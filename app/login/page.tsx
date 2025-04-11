@@ -1,3 +1,5 @@
+"use client"
+
 import Header from "@/components/header"
 import Footer from "@/components/footer"
 import { Button } from "@/components/ui/button"
@@ -7,8 +9,38 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import Link from "next/link"
 import Image from "next/image"
+import { login } from "@/app/auth"
+import { useState } from "react"
+import { useFormStatus } from "react-dom"
+import { AlertCircle } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+
+function LoginButton() {
+  const { pending } = useFormStatus()
+
+  return (
+    <Button className="w-full bg-blue-700 hover:bg-blue-800" type="submit" disabled={pending}>
+      {pending ? "Signing in..." : "Sign In"}
+    </Button>
+  )
+}
 
 export default function LoginPage() {
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleSubmit(formData: FormData) {
+    setError(null)
+
+    try {
+      const result = await login(formData)
+      if (result && !result.success) {
+        setError(result.message)
+      }
+    } catch (err) {
+      setError("An unexpected error occurred. Please try again.")
+    }
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
@@ -31,33 +63,46 @@ export default function LoginPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="m@example.com" />
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Password</Label>
-                  <Link href="/forgot-password" className="text-sm text-blue-700 hover:underline">
-                    Forgot password?
-                  </Link>
+              {error && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+              <form action={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" name="email" type="email" placeholder="m@example.com" required />
                 </div>
-                <Input id="password" type="password" />
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox id="remember" />
-                <Label htmlFor="remember" className="text-sm font-normal">
-                  Remember me for 30 days
-                </Label>
-              </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="password">Password</Label>
+                    <Link href="/forgot-password" className="text-sm text-blue-700 hover:underline">
+                      Forgot password?
+                    </Link>
+                  </div>
+                  <Input id="password" name="password" type="password" required />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox id="remember" />
+                  <Label htmlFor="remember" className="text-sm font-normal">
+                    Remember me for 30 days
+                  </Label>
+                </div>
+                <LoginButton />
+              </form>
             </CardContent>
             <CardFooter className="flex flex-col space-y-4">
-              <Button className="w-full bg-blue-700 hover:bg-blue-800">Sign In</Button>
               <div className="text-center text-sm">
                 Don't have an account?{" "}
                 <Link href="/signup" className="text-blue-700 hover:underline">
                   Sign up
                 </Link>
+              </div>
+              <div className="text-center text-xs text-gray-500">
+                <p>Demo Accounts:</p>
+                <p>Email: user@example.com / Password: password123</p>
+                <p>Email: premium@example.com / Password: password123</p>
               </div>
             </CardFooter>
           </Card>

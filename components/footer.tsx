@@ -10,13 +10,13 @@ export default function Footer() {
           <span className="text-lg font-bold text-blue-700">Leadify</span>
         </div>
         <div className="flex gap-4">
-          <Link href="#" className="text-sm text-gray-500 hover:text-blue-600">
+          <Link href="/privacy-policy" className="text-sm text-gray-500 hover:text-blue-600">
             Privacy Policy
           </Link>
-          <Link href="#" className="text-sm text-gray-500 hover:text-blue-600">
+          <Link href="/terms-of-service" className="text-sm text-gray-500 hover:text-blue-600">
             Terms of Service
           </Link>
-          <Link href="#" className="text-sm text-gray-500 hover:text-blue-600">
+          <Link href="/contact" className="text-sm text-gray-500 hover:text-blue-600">
             Contact Us
           </Link>
         </div>
@@ -46,6 +46,7 @@ export default function Footer() {
           </Link>
         </div>
       </div>
+      <div className="container mt-4 text-center text-sm text-gray-500">© 2025 Leadify, Inc. All rights reserved.</div>
     </footer>
   )
 }

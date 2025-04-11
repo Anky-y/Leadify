@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Search, Download, RefreshCw, Save, Trash2, History, PlusCircle } from "lucide-react"
-import TwitchDataTable from "./twitch-data-table"
+import YouTubeDataTable from "./youtube-data-table"
 import FilterSection from "./filter-section"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -25,33 +25,35 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
 
 // Mock data for demonstration
-import { mockTwitchData } from "./mock-data"
+import { mockYouTubeData } from "./mock-data"
 
 // Types
-import type { TwitchData, SavedSearch } from "./types"
+import type { YouTubeData, SavedSearch } from "./types"
 
-interface TwitchScraperUIProps {
+interface YouTubeScraperUIProps {
   initialSubscribed?: boolean
 }
 
-export default function TwitchScraperUI({ initialSubscribed = false }: TwitchScraperUIProps) {
+export default function YouTubeScraperUI({ initialSubscribed = false }: YouTubeScraperUIProps) {
   // State for search and filters
   const [searchTerm, setSearchTerm] = useState("")
   const [language, setLanguage] = useState<string>("")
   const [category, setCategory] = useState<string>("")
-  const [minFollowers, setMinFollowers] = useState<number>(1000)
-  const [maxFollowers, setMaxFollowers] = useState<number>(10000000)
-  const [minViewers, setMinViewers] = useState<number>(10)
-  const [maxViewers, setMaxViewers] = useState<number>(100000)
+  const [minSubscribers, setMinSubscribers] = useState<number>(1000)
+  const [maxSubscribers, setMaxSubscribers] = useState<number>(10000000)
+  const [minViews, setMinViews] = useState<number>(1000)
+  const [maxViews, setMaxViews] = useState<number>(100000000)
+  const [uploadFrequency, setUploadFrequency] = useState<string>("")
 
   // State for UI
   const [isLoading, setIsLoading] = useState(false)
-  const [data, setData] = useState<TwitchData[]>([])
+  const [data, setData] = useState<YouTubeData[]>([])
   const [subscribed, setSubscribed] = useState(initialSubscribed)
   const [exportFormat, setExportFormat] = useState("csv")
   const [saveDialogOpen, setSaveDialogOpen] = useState(false)
   const [searchName, setSearchName] = useState("")
   const [activeTab, setActiveTab] = useState("search")
+  const [showAddToCrmDialog, setShowAddToCrmDialog] = useState(false)
 
   // State for saved searches
   const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([])
@@ -70,12 +72,12 @@ export default function TwitchScraperUI({ initialSubscribed = false }: TwitchScr
 
   // Load saved searches from localStorage on component mount
   useEffect(() => {
-    const savedSearchesFromStorage = localStorage.getItem("savedSearches")
+    const savedSearchesFromStorage = localStorage.getItem("youtubeSavedSearches")
     if (savedSearchesFromStorage) {
       setSavedSearches(JSON.parse(savedSearchesFromStorage))
     }
 
-    const searchHistoryFromStorage = localStorage.getItem("searchHistory")
+    const searchHistoryFromStorage = localStorage.getItem("youtubeSearchHistory")
     if (searchHistoryFromStorage) {
       setSearchHistory(JSON.parse(searchHistoryFromStorage))
     }
@@ -83,15 +85,13 @@ export default function TwitchScraperUI({ initialSubscribed = false }: TwitchScr
 
   // Save searches to localStorage when they change
   useEffect(() => {
-    localStorage.setItem("savedSearches", JSON.stringify(savedSearches))
+    localStorage.setItem("youtubeSavedSearches", JSON.stringify(savedSearches))
   }, [savedSearches])
 
   // Save search history to localStorage when it changes
   useEffect(() => {
-    localStorage.setItem("searchHistory", JSON.stringify(searchHistory))
+    localStorage.setItem("youtubeSearchHistory", JSON.stringify(searchHistory))
   }, [searchHistory])
-
-  const [showAddToCrmDialog, setShowAddToCrmDialog] = useState(false)
 
   const handleSearch = () => {
     setIsLoading(true)
@@ -100,9 +100,9 @@ export default function TwitchScraperUI({ initialSubscribed = false }: TwitchScr
       setIsLoading(false)
 
       // Filter data based on search criteria
-      const filteredData = mockTwitchData.filter((item) => {
+      const filteredData = mockYouTubeData.filter((item) => {
         // Filter by search term
-        if (searchTerm && !item.username.toLowerCase().includes(searchTerm.toLowerCase())) {
+        if (searchTerm && !item.channelName.toLowerCase().includes(searchTerm.toLowerCase())) {
           return false
         }
 
@@ -116,13 +116,18 @@ export default function TwitchScraperUI({ initialSubscribed = false }: TwitchScr
           return false
         }
 
-        // Filter by follower count
-        if (item.followers < minFollowers || item.followers > maxFollowers) {
+        // Filter by subscriber count
+        if (item.subscribers < minSubscribers || item.subscribers > maxSubscribers) {
           return false
         }
 
-        // Filter by viewer count
-        if (item.viewers < minViewers || item.viewers > maxViewers) {
+        // Filter by view count
+        if (item.averageViews < minViews || item.averageViews > maxViews) {
+          return false
+        }
+
+        // Filter by upload frequency
+        if (uploadFrequency && uploadFrequency !== "any" && item.uploadFrequency !== uploadFrequency) {
           return false
         }
 
@@ -137,7 +142,7 @@ export default function TwitchScraperUI({ initialSubscribed = false }: TwitchScr
       const newSearchHistoryItem = {
         id: Date.now().toString(),
         date: new Date(),
-        query: searchTerm || "All streamers",
+        query: searchTerm || "All channels",
         results: filteredData.length,
       }
 
@@ -146,7 +151,7 @@ export default function TwitchScraperUI({ initialSubscribed = false }: TwitchScr
       // Show toast with result count
       toast({
         title: "Search Results",
-        description: `Found ${filteredData.length} results${!subscribed && filteredData.length > 10 ? `, showing 10 (upgrade to see all)` : ""}`,
+        description: `Found ${filteredData.length} results${!subscribed && filteredData.length > 10 ? ", showing 10 (upgrade to see all)" : ""}`,
       })
     }, 1000)
   }
@@ -196,10 +201,11 @@ export default function TwitchScraperUI({ initialSubscribed = false }: TwitchScr
         searchTerm,
         language,
         category,
-        minFollowers,
-        maxFollowers,
-        minViewers,
-        maxViewers,
+        minSubscribers,
+        maxSubscribers,
+        minViews,
+        maxViews,
+        uploadFrequency,
       },
     }
 
@@ -221,10 +227,11 @@ export default function TwitchScraperUI({ initialSubscribed = false }: TwitchScr
     setSearchTerm(search.filters.searchTerm)
     setLanguage(search.filters.language)
     setCategory(search.filters.category)
-    setMinFollowers(search.filters.minFollowers)
-    setMaxFollowers(search.filters.maxFollowers)
-    setMinViewers(search.filters.minViewers)
-    setMaxViewers(search.filters.maxViewers)
+    setMinSubscribers(search.filters.minSubscribers)
+    setMaxSubscribers(search.filters.maxSubscribers)
+    setMinViews(search.filters.minViews)
+    setMaxViews(search.filters.maxViews)
+    setUploadFrequency(search.filters.uploadFrequency)
 
     // Switch to search tab
     setActiveTab("search")
@@ -261,19 +268,18 @@ export default function TwitchScraperUI({ initialSubscribed = false }: TwitchScr
     // For now, we'll just simulate it with localStorage
     const existingLeads = JSON.parse(localStorage.getItem("crmLeads") || "[]")
 
-    // Convert Twitch data to CRM lead format
+    // Convert YouTube data to CRM lead format
     const newLeads = data.map((item) => ({
-      id: `twitch-${item.id}`,
-      name: item.username,
-      platform: "Twitch",
-      followers: item.followers,
-      engagement: item.viewers,
+      id: `yt-${item.id}`,
+      name: item.channelName,
+      platform: "YouTube",
+      followers: item.subscribers,
+      engagement: item.averageViews,
       language: item.language,
       category: item.category,
       email: item.email,
       social: {
         discord: item.discord,
-        youtube: item.youtube,
         twitter: item.twitter,
         facebook: item.facebook,
         instagram: item.instagram,
@@ -301,8 +307,8 @@ export default function TwitchScraperUI({ initialSubscribed = false }: TwitchScr
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Twitch Scraper</h1>
-        <p className="text-muted-foreground">Find and filter Twitch streamers based on your specific requirements.</p>
+        <h1 className="text-3xl font-bold tracking-tight">YouTube Scraper</h1>
+        <p className="text-muted-foreground">Find and filter YouTube creators based on your specific requirements.</p>
       </div>
 
       {!subscribed && (
@@ -337,22 +343,25 @@ export default function TwitchScraperUI({ initialSubscribed = false }: TwitchScr
               setLanguage={setLanguage}
               category={category}
               setCategory={setCategory}
-              minFollowers={minFollowers}
-              setMinFollowers={setMinFollowers}
-              maxFollowers={maxFollowers}
-              setMaxFollowers={setMaxFollowers}
-              minViewers={minViewers}
-              setMinViewers={setMinViewers}
-              maxViewers={maxViewers}
-              setMaxViewers={setMaxViewers}
+              minSubscribers={minSubscribers}
+              setMinSubscribers={setMinSubscribers}
+              maxSubscribers={maxSubscribers}
+              setMaxSubscribers={setMaxSubscribers}
+              minViews={minViews}
+              setMinViews={setMinViews}
+              maxViews={maxViews}
+              setMaxViews={setMaxViews}
+              uploadFrequency={uploadFrequency}
+              setUploadFrequency={setUploadFrequency}
               onApplyFilters={handleSearch}
               onResetFilters={() => {
                 setLanguage("")
                 setCategory("")
-                setMinFollowers(1000)
-                setMaxFollowers(10000000)
-                setMinViewers(10)
-                setMaxViewers(100000)
+                setMinSubscribers(1000)
+                setMaxSubscribers(10000000)
+                setMinViews(1000)
+                setMaxViews(100000000)
+                setUploadFrequency("")
               }}
             />
 
@@ -361,7 +370,7 @@ export default function TwitchScraperUI({ initialSubscribed = false }: TwitchScr
                 <div className="flex-1">
                   <div className="relative">
                     <Input
-                      placeholder="Search by username..."
+                      placeholder="Search by channel name..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="pr-10"
@@ -400,7 +409,7 @@ export default function TwitchScraperUI({ initialSubscribed = false }: TwitchScr
                           id="search-name"
                           value={searchName}
                           onChange={(e) => setSearchName(e.target.value)}
-                          placeholder="e.g., English Fortnite Streamers"
+                          placeholder="e.g., Tech YouTubers 100k+"
                           className="mt-2"
                         />
                       </div>
@@ -439,7 +448,8 @@ export default function TwitchScraperUI({ initialSubscribed = false }: TwitchScr
 
               <div className="flex items-center justify-between mb-4">
                 <div className="text-sm text-gray-500">
-                  {data.length} results {!subscribed && data.length === 10 && mockTwitchData.length > 10 && "(limited)"}
+                  {data.length} results{" "}
+                  {!subscribed && data.length === 10 && mockYouTubeData.length > 10 && "(limited)"}
                 </div>
 
                 {!initialSubscribed && (
@@ -454,7 +464,7 @@ export default function TwitchScraperUI({ initialSubscribed = false }: TwitchScr
 
               {data.length > 0 ? (
                 <>
-                  <TwitchDataTable data={data} subscribed={subscribed} />
+                  <YouTubeDataTable data={data} subscribed={subscribed} />
                   <div className="flex justify-end mt-4">
                     <Dialog open={showAddToCrmDialog} onOpenChange={setShowAddToCrmDialog}>
                       <DialogTrigger asChild>
@@ -467,12 +477,12 @@ export default function TwitchScraperUI({ initialSubscribed = false }: TwitchScr
                         <DialogHeader>
                           <DialogTitle>Add to CRM</DialogTitle>
                           <DialogDescription>
-                            Add these {data.length} Twitch streamers to your CRM as leads.
+                            Add these {data.length} YouTube channels to your CRM as leads.
                           </DialogDescription>
                         </DialogHeader>
                         <div className="py-4">
                           <p className="text-sm text-gray-500">
-                            This will add all {data.length} streamers from your current search results to your CRM. You
+                            This will add all {data.length} channels from your current search results to your CRM. You
                             can manage these leads, add them to email sequences, and track your outreach from the CRM
                             dashboard.
                           </p>
@@ -494,7 +504,7 @@ export default function TwitchScraperUI({ initialSubscribed = false }: TwitchScr
                       <Search className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                       <h3 className="text-lg font-medium">No search results</h3>
                       <p className="text-gray-500 max-w-md">
-                        Use the search bar and filters to find Twitch streamers that match your criteria.
+                        Use the search bar and filters to find YouTube creators that match your criteria.
                       </p>
                       <Button className="mt-4 bg-blue-700 hover:bg-blue-800" onClick={handleSearch}>
                         Search Now
@@ -546,16 +556,16 @@ export default function TwitchScraperUI({ initialSubscribed = false }: TwitchScr
                         </p>
                       )}
                       <p>
-                        Followers:{" "}
+                        Subscribers:{" "}
                         <span className="font-medium">
-                          {search.filters.minFollowers.toLocaleString()} -{" "}
-                          {search.filters.maxFollowers.toLocaleString()}
+                          {search.filters.minSubscribers.toLocaleString()} -{" "}
+                          {search.filters.maxSubscribers.toLocaleString()}
                         </span>
                       </p>
                       <p>
-                        Viewers:{" "}
+                        Views:{" "}
                         <span className="font-medium">
-                          {search.filters.minViewers.toLocaleString()} - {search.filters.maxViewers.toLocaleString()}
+                          {search.filters.minViews.toLocaleString()} - {search.filters.maxViews.toLocaleString()}
                         </span>
                       </p>
                     </div>

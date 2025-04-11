@@ -4,15 +4,35 @@ import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Menu, X } from "lucide-react"
-import { useState, useEffect, useRef } from "react"
+import { useRef } from "react"
 import { cn } from "@/lib/utils"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { usePathname } from "next/navigation"
+import { getUser } from "@/app/auth"
+import { useEffect, useState } from "react"
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [user, setUser] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(true)
   const menuRef = useRef<HTMLDivElement>(null)
   const pathname = usePathname()
+
+  // Fetch user on component mount
+  useEffect(() => {
+    async function fetchUser() {
+      try {
+        const userData = await getUser()
+        setUser(userData)
+      } catch (error) {
+        console.error("Error fetching user:", error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchUser()
+  }, [])
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -109,30 +129,33 @@ export default function Header() {
           >
             Contact
           </Link>
-          <Link
-            href="/twitch-scraper"
-            className={cn(
-              "text-sm font-medium transition-colors",
-              isActive("/twitch-scraper") ? "text-blue-700" : "hover:text-blue-600",
-            )}
-          >
-            Twitch Scraper
-          </Link>
         </nav>
 
         {/* Desktop Auth Buttons and Theme Toggle */}
         <div className="hidden md:flex items-center gap-2">
           <ThemeToggle />
-          <Link href="/login">
-            <Button variant="ghost" size="sm">
-              Sign In
-            </Button>
-          </Link>
-          <Link href="/signup">
-            <Button size="sm" className="bg-blue-700 hover:bg-blue-800">
-              Sign Up
-            </Button>
-          </Link>
+          {isLoading ? (
+            <div className="h-9 w-16 bg-gray-200 animate-pulse rounded"></div>
+          ) : user ? (
+            <Link href="/dashboard">
+              <Button size="sm" className="bg-blue-700 hover:bg-blue-800">
+                Dashboard
+              </Button>
+            </Link>
+          ) : (
+            <>
+              <Link href="/login">
+                <Button variant="ghost" size="sm">
+                  Sign In
+                </Button>
+              </Link>
+              <Link href="/signup">
+                <Button size="sm" className="bg-blue-700 hover:bg-blue-800">
+                  Sign Up
+                </Button>
+              </Link>
+            </>
+          )}
         </div>
 
         {/* Mobile Menu Button and Theme Toggle */}
@@ -209,30 +232,31 @@ export default function Header() {
             >
               Contact
             </Link>
-            <Link
-              href="/twitch-scraper"
-              className={cn(
-                "px-2 py-2 text-sm font-medium rounded-md transition-colors",
-                isActive("/twitch-scraper")
-                  ? "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-200"
-                  : "hover:bg-blue-50 dark:hover:bg-blue-900/20",
-              )}
-            >
-              Twitch Scraper
-            </Link>
           </nav>
 
           <div className="flex gap-2 mt-3 pt-2 border-t border-gray-100 dark:border-gray-800">
-            <Link href="/login" className="flex-1">
-              <Button variant="ghost" size="sm" className="w-full justify-center">
-                Sign In
-              </Button>
-            </Link>
-            <Link href="/signup" className="flex-1">
-              <Button size="sm" className="w-full justify-center bg-blue-700 hover:bg-blue-800">
-                Sign Up
-              </Button>
-            </Link>
+            {isLoading ? (
+              <div className="h-9 w-full bg-gray-200 animate-pulse rounded"></div>
+            ) : user ? (
+              <Link href="/dashboard" className="w-full">
+                <Button size="sm" className="w-full justify-center bg-blue-700 hover:bg-blue-800">
+                  Dashboard
+                </Button>
+              </Link>
+            ) : (
+              <>
+                <Link href="/login" className="flex-1">
+                  <Button variant="ghost" size="sm" className="w-full justify-center">
+                    Sign In
+                  </Button>
+                </Link>
+                <Link href="/signup" className="flex-1">
+                  <Button size="sm" className="w-full justify-center bg-blue-700 hover:bg-blue-800">
+                    Sign Up
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>

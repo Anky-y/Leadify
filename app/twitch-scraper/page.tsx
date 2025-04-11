@@ -1,6 +1,6 @@
-import Header from "@/components/header";
-import Footer from "@/components/footer";
-import TwitchScraperUI from "@/components/twitch-scraper/twitch-scraper-ui";
+import Header from "@/components/header"
+import Footer from "@/components/footer"
+import TwitchScraperUI from "@/components/twitch-scraper/twitch-scraper-ui"
 
 export default function TwitchScraperPage() {
   return (
@@ -11,5 +11,5 @@ export default function TwitchScraperPage() {
       </main>
       <Footer />
     </div>
-  );
+  )
 }

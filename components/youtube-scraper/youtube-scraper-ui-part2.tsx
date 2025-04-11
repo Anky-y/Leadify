@@ -1,17 +1,17 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import type React from "react"
+
+// Continuation of youtube-scraper-ui.tsx
+import { useState } from "react"
+import { Alert, AlertCircle, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Search, Download, RefreshCw, Save, Trash2, History, PlusCircle } from "lucide-react"
-import TwitchDataTable from "./twitch-data-table"
-import FilterSection from "./filter-section"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
-import { useToast } from "@/components/ui/use-toast"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Dialog,
   DialogContent,
@@ -21,132 +21,293 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { AlertCircle } from "lucide-react"
+import { toast } from "@/components/ui/use-toast"
+import { Download, History, RefreshCw, Save, Search, Trash2 } from "lucide-react"
+import { YouTubeDataTable } from "./youtube-data-table"
 
-// Mock data for demonstration
-import { mockTwitchData } from "./mock-data"
+// Mock data for demonstration purposes
+const mockYouTubeData = [
+  {
+    id: "1",
+    channelName: "TechCrunch",
+    subscribers: 12000000,
+    avgViews: 350000,
+    uploadFrequency: "Weekly",
+    contactInfo: "techcrunch@example.com",
+  },
+  {
+    id: "2",
+    channelName: "The Verge",
+    subscribers: 8500000,
+    avgViews: 500000,
+    uploadFrequency: "Daily",
+    contactInfo: "theverge@example.com",
+  },
+  {
+    id: "3",
+    channelName: "Marques Brownlee",
+    subscribers: 15000000,
+    avgViews: 2000000,
+    uploadFrequency: "Weekly",
+    contactInfo: "marques@example.com",
+  },
+  {
+    id: "4",
+    channelName: "Linus Tech Tips",
+    subscribers: 14500000,
+    avgViews: 1500000,
+    uploadFrequency: "Daily",
+    contactInfo: "linus@example.com",
+  },
+  {
+    id: "5",
+    channelName: "CNET",
+    subscribers: 9000000,
+    avgViews: 400000,
+    uploadFrequency: "Weekly",
+    contactInfo: "cnet@example.com",
+  },
+  {
+    id: "6",
+    channelName: "WIRED",
+    subscribers: 7000000,
+    avgViews: 600000,
+    uploadFrequency: "Monthly",
+    contactInfo: "wired@example.com",
+  },
+  {
+    id: "7",
+    channelName: "Engadget",
+    subscribers: 6000000,
+    avgViews: 300000,
+    uploadFrequency: "Weekly",
+    contactInfo: "engadget@example.com",
+  },
+  {
+    id: "8",
+    channelName: "9to5Google",
+    subscribers: 3000000,
+    avgViews: 250000,
+    uploadFrequency: "Daily",
+    contactInfo: "google@example.com",
+  },
+  {
+    id: "9",
+    channelName: "Android Authority",
+    subscribers: 3500000,
+    avgViews: 200000,
+    uploadFrequency: "Daily",
+    contactInfo: "android@example.com",
+  },
+  {
+    id: "10",
+    channelName: "Mrwhosetheboss",
+    subscribers: 5000000,
+    avgViews: 750000,
+    uploadFrequency: "Weekly",
+    contactInfo: "boss@example.com",
+  },
+  {
+    id: "11",
+    channelName: "Unbox Therapy",
+    subscribers: 17000000,
+    avgViews: 2500000,
+    uploadFrequency: "Weekly",
+    contactInfo: "unbox@example.com",
+  },
+]
 
-// Types
-import type { TwitchData, SavedSearch } from "./types"
-
-interface TwitchScraperUIProps {
-  initialSubscribed?: boolean
+interface SavedSearch {
+  id: string
+  name: string
+  filters: {
+    searchTerm: string
+    language: string
+    category: string
+    minSubscribers: number
+    maxSubscribers: number
+    minViews: number
+    maxViews: number
+    uploadFrequency: string
+  }
 }
 
-export default function TwitchScraperUI({ initialSubscribed = false }: TwitchScraperUIProps) {
-  // State for search and filters
-  const [searchTerm, setSearchTerm] = useState("")
-  const [language, setLanguage] = useState<string>("")
-  const [category, setCategory] = useState<string>("")
-  const [minFollowers, setMinFollowers] = useState<number>(1000)
-  const [maxFollowers, setMaxFollowers] = useState<number>(10000000)
-  const [minViewers, setMinViewers] = useState<number>(10)
-  const [maxViewers, setMaxViewers] = useState<number>(100000)
+interface SearchHistoryItem {
+  id: string
+  query: string
+  date: number
+  results: number
+}
 
-  // State for UI
+interface FilterSectionProps {
+  language: string
+  setLanguage: (language: string) => void
+  category: string
+  setCategory: (category: string) => void
+  minSubscribers: number
+  setMinSubscribers: (minSubscribers: number) => void
+  maxSubscribers: number
+  setMaxSubscribers: (maxSubscribers: number) => void
+  minViews: number
+  setMinViews: (minViews: number) => void
+  maxViews: number
+  setMaxViews: (maxViews: number) => void
+  uploadFrequency: string
+  setUploadFrequency: (uploadFrequency: string) => void
+  onApplyFilters: () => void
+  onResetFilters: () => void
+}
+
+const FilterSection: React.FC<FilterSectionProps> = ({
+  language,
+  setLanguage,
+  category,
+  setCategory,
+  minSubscribers,
+  setMinSubscribers,
+  maxSubscribers,
+  setMaxSubscribers,
+  minViews,
+  setMinViews,
+  maxViews,
+  setMaxViews,
+  uploadFrequency,
+  setUploadFrequency,
+  onApplyFilters,
+  onResetFilters,
+}) => {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Filters</CardTitle>
+        <CardDescription>Customize your search criteria.</CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-4">
+        <div className="grid gap-2">
+          <Label htmlFor="language">Language</Label>
+          <Input
+            id="language"
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            placeholder="e.g., English"
+          />
+        </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor="category">Category</Label>
+          <Input
+            id="category"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            placeholder="e.g., Technology"
+          />
+        </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor="min-subscribers">Min. Subscribers</Label>
+          <Input
+            type="number"
+            id="min-subscribers"
+            value={minSubscribers}
+            onChange={(e) => setMinSubscribers(Number(e.target.value))}
+          />
+        </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor="max-subscribers">Max. Subscribers</Label>
+          <Input
+            type="number"
+            id="max-subscribers"
+            value={maxSubscribers}
+            onChange={(e) => setMaxSubscribers(Number(e.target.value))}
+          />
+        </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor="min-views">Min. Avg. Views</Label>
+          <Input type="number" id="min-views" value={minViews} onChange={(e) => setMinViews(Number(e.target.value))} />
+        </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor="max-views">Max. Avg. Views</Label>
+          <Input type="number" id="max-views" value={maxViews} onChange={(e) => setMaxViews(Number(e.target.value))} />
+        </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor="upload-frequency">Upload Frequency</Label>
+          <Select value={uploadFrequency} onValueChange={setUploadFrequency}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select frequency" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Daily">Daily</SelectItem>
+              <SelectItem value="Weekly">Weekly</SelectItem>
+              <SelectItem value="Monthly">Monthly</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </CardContent>
+      <CardFooter className="flex justify-between">
+        <Button variant="outline" onClick={onResetFilters}>
+          Reset
+        </Button>
+        <Button onClick={onApplyFilters}>Apply</Button>
+      </CardFooter>
+    </Card>
+  )
+}
+
+export function YouTubeScraperUI() {
+  const [activeTab, setActiveTab] = useState("search")
+  const [searchTerm, setSearchTerm] = useState("")
+  const [language, setLanguage] = useState("")
+  const [category, setCategory] = useState("")
+  const [minSubscribers, setMinSubscribers] = useState(1000)
+  const [maxSubscribers, setMaxSubscribers] = useState(10000000)
+  const [minViews, setMinViews] = useState(1000)
+  const [maxViews, setMaxViews] = useState(100000000)
+  const [uploadFrequency, setUploadFrequency] = useState("")
+  const [data, setData] = useState([])
   const [isLoading, setIsLoading] = useState(false)
-  const [data, setData] = useState<TwitchData[]>([])
-  const [subscribed, setSubscribed] = useState(initialSubscribed)
-  const [exportFormat, setExportFormat] = useState("csv")
   const [saveDialogOpen, setSaveDialogOpen] = useState(false)
   const [searchName, setSearchName] = useState("")
-  const [activeTab, setActiveTab] = useState("search")
-
-  // State for saved searches
   const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([])
-
-  // State for search history
-  const [searchHistory, setSearchHistory] = useState<
-    {
-      id: string
-      date: Date
-      query: string
-      results: number
-    }[]
-  >([])
-
-  const { toast } = useToast()
-
-  // Load saved searches from localStorage on component mount
-  useEffect(() => {
-    const savedSearchesFromStorage = localStorage.getItem("savedSearches")
-    if (savedSearchesFromStorage) {
-      setSavedSearches(JSON.parse(savedSearchesFromStorage))
-    }
-
-    const searchHistoryFromStorage = localStorage.getItem("searchHistory")
-    if (searchHistoryFromStorage) {
-      setSearchHistory(JSON.parse(searchHistoryFromStorage))
-    }
-  }, [])
-
-  // Save searches to localStorage when they change
-  useEffect(() => {
-    localStorage.setItem("savedSearches", JSON.stringify(savedSearches))
-  }, [savedSearches])
-
-  // Save search history to localStorage when it changes
-  useEffect(() => {
-    localStorage.setItem("searchHistory", JSON.stringify(searchHistory))
-  }, [searchHistory])
-
-  const [showAddToCrmDialog, setShowAddToCrmDialog] = useState(false)
+  const [searchHistory, setSearchHistory] = useState<SearchHistoryItem[]>([])
+  const [exportFormat, setExportFormat] = useState("csv")
+  const [subscribed, setSubscribed] = useState(false)
+  const [initialSubscribed, setInitialSubscribed] = useState(false)
 
   const handleSearch = () => {
     setIsLoading(true)
-    // Simulate API call
+
+    // Simulate API call with a delay
     setTimeout(() => {
-      setIsLoading(false)
-
-      // Filter data based on search criteria
-      const filteredData = mockTwitchData.filter((item) => {
-        // Filter by search term
-        if (searchTerm && !item.username.toLowerCase().includes(searchTerm.toLowerCase())) {
-          return false
-        }
-
-        // Filter by language
-        if (language && language !== "any" && item.language.toLowerCase() !== language.toLowerCase()) {
-          return false
-        }
-
-        // Filter by category
-        if (category && category !== "any" && item.category.toLowerCase() !== category.toLowerCase()) {
-          return false
-        }
-
-        // Filter by follower count
-        if (item.followers < minFollowers || item.followers > maxFollowers) {
-          return false
-        }
-
-        // Filter by viewer count
-        if (item.viewers < minViewers || item.viewers > maxViewers) {
-          return false
-        }
-
-        return true
+      const filteredData = mockYouTubeData.filter((item) => {
+        const searchTermMatch = item.channelName.toLowerCase().includes(searchTerm.toLowerCase())
+        const subscribersInRange = item.subscribers >= minSubscribers && item.subscribers <= maxSubscribers
+        const viewsInRange = item.avgViews >= minViews && item.avgViews <= maxViews
+        return searchTermMatch && subscribersInRange && viewsInRange
       })
 
-      // Apply result limit if not subscribed
-      const limitedData = subscribed ? filteredData : filteredData.slice(0, 10)
-      setData(limitedData)
+      setData(subscribed ? filteredData : filteredData.slice(0, 10))
+      setIsLoading(false)
 
       // Add to search history
-      const newSearchHistoryItem = {
-        id: Date.now().toString(),
-        date: new Date(),
-        query: searchTerm || "All streamers",
-        results: filteredData.length,
-      }
+      setSearchHistory([
+        {
+          id: Date.now().toString(),
+          query: searchTerm,
+          date: Date.now(),
+          results: filteredData.length,
+        },
+        ...searchHistory,
+      ])
 
-      setSearchHistory((prev) => [newSearchHistoryItem, ...prev].slice(0, 20)) // Keep only last 20 searches
-
-      // Show toast with result count
       toast({
-        title: "Search Results",
-        description: `Found ${filteredData.length} results${!subscribed && filteredData.length > 10 ? `, showing 10 (upgrade to see all)` : ""}`,
+        title: "Search complete",
+        description: `Found ${filteredData.length} matching creators${
+          !subscribed && filteredData.length > 10 ? `, showing 10 (upgrade to see all)` : ""
+        }`,
       })
     }, 1000)
   }
@@ -196,10 +357,11 @@ export default function TwitchScraperUI({ initialSubscribed = false }: TwitchScr
         searchTerm,
         language,
         category,
-        minFollowers,
-        maxFollowers,
-        minViewers,
-        maxViewers,
+        minSubscribers,
+        maxSubscribers,
+        minViews,
+        maxViews,
+        uploadFrequency,
       },
     }
 
@@ -221,10 +383,11 @@ export default function TwitchScraperUI({ initialSubscribed = false }: TwitchScr
     setSearchTerm(search.filters.searchTerm)
     setLanguage(search.filters.language)
     setCategory(search.filters.category)
-    setMinFollowers(search.filters.minFollowers)
-    setMaxFollowers(search.filters.maxFollowers)
-    setMinViewers(search.filters.minViewers)
-    setMaxViewers(search.filters.maxViewers)
+    setMinSubscribers(search.filters.minSubscribers)
+    setMaxSubscribers(search.filters.maxSubscribers)
+    setMinViews(search.filters.minViews)
+    setMaxViews(search.filters.maxViews)
+    setUploadFrequency(search.filters.uploadFrequency)
 
     // Switch to search tab
     setActiveTab("search")
@@ -247,62 +410,11 @@ export default function TwitchScraperUI({ initialSubscribed = false }: TwitchScr
     })
   }
 
-  const handleAddToCrm = () => {
-    if (data.length === 0) {
-      toast({
-        title: "No data to add",
-        description: "Please perform a search first to get data for the CRM.",
-        variant: "destructive",
-      })
-      return
-    }
-
-    // In a real app, this would add the data to the CRM
-    // For now, we'll just simulate it with localStorage
-    const existingLeads = JSON.parse(localStorage.getItem("crmLeads") || "[]")
-
-    // Convert Twitch data to CRM lead format
-    const newLeads = data.map((item) => ({
-      id: `twitch-${item.id}`,
-      name: item.username,
-      platform: "Twitch",
-      followers: item.followers,
-      engagement: item.viewers,
-      language: item.language,
-      category: item.category,
-      email: item.email,
-      social: {
-        discord: item.discord,
-        youtube: item.youtube,
-        twitter: item.twitter,
-        facebook: item.facebook,
-        instagram: item.instagram,
-      },
-      url: item.channelUrl,
-      sequenceStatus: "Not Started",
-      stage: "New Lead",
-      replied: false,
-      classification: "Unclassified",
-      dateAdded: new Date().toISOString(),
-    }))
-
-    // Add new leads to existing leads
-    const updatedLeads = [...existingLeads, ...newLeads]
-    localStorage.setItem("crmLeads", JSON.stringify(updatedLeads))
-
-    setShowAddToCrmDialog(false)
-
-    toast({
-      title: "Added to CRM",
-      description: `${data.length} leads have been added to your CRM.`,
-    })
-  }
-
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Twitch Scraper</h1>
-        <p className="text-muted-foreground">Find and filter Twitch streamers based on your specific requirements.</p>
+        <h1 className="text-3xl font-bold tracking-tight">YouTube Scraper</h1>
+        <p className="text-muted-foreground">Find and filter YouTube creators based on your specific requirements.</p>
       </div>
 
       {!subscribed && (
@@ -337,22 +449,25 @@ export default function TwitchScraperUI({ initialSubscribed = false }: TwitchScr
               setLanguage={setLanguage}
               category={category}
               setCategory={setCategory}
-              minFollowers={minFollowers}
-              setMinFollowers={setMinFollowers}
-              maxFollowers={maxFollowers}
-              setMaxFollowers={setMaxFollowers}
-              minViewers={minViewers}
-              setMinViewers={setMinViewers}
-              maxViewers={maxViewers}
-              setMaxViewers={setMaxViewers}
+              minSubscribers={minSubscribers}
+              setMinSubscribers={setMinSubscribers}
+              maxSubscribers={maxSubscribers}
+              setMaxSubscribers={setMaxSubscribers}
+              minViews={minViews}
+              setMinViews={setMinViews}
+              maxViews={maxViews}
+              setMaxViews={setMaxViews}
+              uploadFrequency={uploadFrequency}
+              setUploadFrequency={setUploadFrequency}
               onApplyFilters={handleSearch}
               onResetFilters={() => {
                 setLanguage("")
                 setCategory("")
-                setMinFollowers(1000)
-                setMaxFollowers(10000000)
-                setMinViewers(10)
-                setMaxViewers(100000)
+                setMinSubscribers(1000)
+                setMaxSubscribers(10000000)
+                setMinViews(1000)
+                setMaxViews(100000000)
+                setUploadFrequency("")
               }}
             />
 
@@ -361,7 +476,7 @@ export default function TwitchScraperUI({ initialSubscribed = false }: TwitchScr
                 <div className="flex-1">
                   <div className="relative">
                     <Input
-                      placeholder="Search by username..."
+                      placeholder="Search by channel name..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="pr-10"
@@ -400,7 +515,7 @@ export default function TwitchScraperUI({ initialSubscribed = false }: TwitchScr
                           id="search-name"
                           value={searchName}
                           onChange={(e) => setSearchName(e.target.value)}
-                          placeholder="e.g., English Fortnite Streamers"
+                          placeholder="e.g., Tech Reviewers 100K+"
                           className="mt-2"
                         />
                       </div>
@@ -439,7 +554,8 @@ export default function TwitchScraperUI({ initialSubscribed = false }: TwitchScr
 
               <div className="flex items-center justify-between mb-4">
                 <div className="text-sm text-gray-500">
-                  {data.length} results {!subscribed && data.length === 10 && mockTwitchData.length > 10 && "(limited)"}
+                  {data.length} results{" "}
+                  {!subscribed && data.length === 10 && mockYouTubeData.length > 10 && "(limited)"}
                 </div>
 
                 {!initialSubscribed && (
@@ -453,40 +569,7 @@ export default function TwitchScraperUI({ initialSubscribed = false }: TwitchScr
               </div>
 
               {data.length > 0 ? (
-                <>
-                  <TwitchDataTable data={data} subscribed={subscribed} />
-                  <div className="flex justify-end mt-4">
-                    <Dialog open={showAddToCrmDialog} onOpenChange={setShowAddToCrmDialog}>
-                      <DialogTrigger asChild>
-                        <Button className="bg-blue-700 hover:bg-blue-800">
-                          <PlusCircle className="mr-2 h-4 w-4" />
-                          Add to CRM
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Add to CRM</DialogTitle>
-                          <DialogDescription>
-                            Add these {data.length} Twitch streamers to your CRM as leads.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="py-4">
-                          <p className="text-sm text-gray-500">
-                            This will add all {data.length} streamers from your current search results to your CRM. You
-                            can manage these leads, add them to email sequences, and track your outreach from the CRM
-                            dashboard.
-                          </p>
-                        </div>
-                        <DialogFooter>
-                          <Button variant="outline" onClick={() => setShowAddToCrmDialog(false)}>
-                            Cancel
-                          </Button>
-                          <Button onClick={handleAddToCrm}>Add to CRM</Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-                </>
+                <YouTubeDataTable data={data} subscribed={subscribed} />
               ) : (
                 <Card>
                   <CardContent className="flex flex-col items-center justify-center py-12">
@@ -494,7 +577,7 @@ export default function TwitchScraperUI({ initialSubscribed = false }: TwitchScr
                       <Search className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                       <h3 className="text-lg font-medium">No search results</h3>
                       <p className="text-gray-500 max-w-md">
-                        Use the search bar and filters to find Twitch streamers that match your criteria.
+                        Use the search bar and filters to find YouTube creators that match your criteria.
                       </p>
                       <Button className="mt-4 bg-blue-700 hover:bg-blue-800" onClick={handleSearch}>
                         Search Now
@@ -546,18 +629,23 @@ export default function TwitchScraperUI({ initialSubscribed = false }: TwitchScr
                         </p>
                       )}
                       <p>
-                        Followers:{" "}
+                        Subscribers:{" "}
                         <span className="font-medium">
-                          {search.filters.minFollowers.toLocaleString()} -{" "}
-                          {search.filters.maxFollowers.toLocaleString()}
+                          {search.filters.minSubscribers.toLocaleString()} -{" "}
+                          {search.filters.maxSubscribers.toLocaleString()}
                         </span>
                       </p>
                       <p>
-                        Viewers:{" "}
+                        Avg. Views:{" "}
                         <span className="font-medium">
-                          {search.filters.minViewers.toLocaleString()} - {search.filters.maxViewers.toLocaleString()}
+                          {search.filters.minViews.toLocaleString()} - {search.filters.maxViews.toLocaleString()}
                         </span>
                       </p>
+                      {search.filters.uploadFrequency && (
+                        <p>
+                          Upload Frequency: <span className="font-medium">{search.filters.uploadFrequency}</span>
+                        </p>
+                      )}
                     </div>
                   </CardContent>
                   <div className="px-6 py-2 flex justify-between">

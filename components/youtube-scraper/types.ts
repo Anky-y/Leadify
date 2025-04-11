@@ -1,13 +1,13 @@
-export interface TwitchData {
+export interface YouTubeData {
   id: string
-  username: string
+  channelName: string
   channelUrl: string
-  followers: number
-  viewers: number
+  subscribers: number
+  averageViews: number
   language: string
   category: string
+  uploadFrequency: string
   discord: string
-  youtube: string
   twitter: string
   facebook: string
   instagram: string
@@ -18,10 +18,11 @@ export interface FilterValues {
   searchTerm: string
   language: string
   category: string
-  minFollowers: number
-  maxFollowers: number
-  minViewers: number
-  maxViewers: number
+  minSubscribers: number
+  maxSubscribers: number
+  minViews: number
+  maxViews: number
+  uploadFrequency: string
 }
 
 export interface SavedSearch {

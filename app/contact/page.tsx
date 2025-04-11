@@ -140,6 +140,23 @@ export default function ContactPage() {
             </div>
           </div>
         </section>
+
+        {/* Map Section */}
+        <section className="w-full py-12 md:py-24 bg-gradient-to-b from-white to-blue-50">
+          <div className="container px-4 md:px-6">
+            <div className="flex flex-col items-center justify-center space-y-4 text-center mb-12">
+              <h2 className="text-2xl font-bold tracking-tighter sm:text-3xl text-blue-900">Our Location</h2>
+            </div>
+            <div className="mx-auto max-w-5xl overflow-hidden rounded-lg border border-gray-200">
+              <div className="aspect-[16/9] w-full bg-gray-100">
+                {/* Placeholder for map - in a real app, you would embed a Google Map or similar here */}
+                <div className="flex h-full items-center justify-center">
+                  <p className="text-gray-500">Map loading...</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
       </main>
       <Footer />
     </div>
