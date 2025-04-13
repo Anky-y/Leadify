@@ -1,31 +1,48 @@
-import type { Metadata } from "next"
-import { requireAuth } from "@/app/auth"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { AlertCircle, FileSpreadsheet, Mail, Database, FileText, Calendar } from "lucide-react"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import type { Metadata } from "next";
+import { requireAuth } from "@/app/auth";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  AlertCircle,
+  FileSpreadsheet,
+  Mail,
+  Database,
+  FileText,
+  Calendar,
+} from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export const metadata: Metadata = {
   title: "Integrations | Leadify",
   description: "Connect Leadify with your favorite tools and services.",
-}
+};
 
 export default async function IntegrationsPage() {
-  await requireAuth()
+  await requireAuth();
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Integrations</h1>
-        <p className="text-muted-foreground">Connect Leadify with your favorite tools and services.</p>
+        <p className="text-muted-foreground">
+          Connect Leadify with your favorite tools and services.
+        </p>
       </div>
 
       <Alert>
         <AlertCircle className="h-4 w-4" />
         <AlertTitle>Demo Mode</AlertTitle>
         <AlertDescription>
-          This is a demo interface. In a real application, you would be able to connect to these services.
+          This is a demo interface. In a real application, you would be able to
+          connect to these services.
         </AlertDescription>
       </Alert>
 
@@ -39,16 +56,21 @@ export default async function IntegrationsPage() {
                 </div>
                 <CardTitle>Google Sheets</CardTitle>
               </div>
-              <CardDescription className="mt-1">Export data directly to Google Sheets</CardDescription>
+              <CardDescription className="mt-1">
+                Export data directly to Google Sheets
+              </CardDescription>
             </div>
-            <Badge variant="outline" className="bg-green-50 text-green-700 hover:bg-green-50 hover:text-green-700">
+            <Badge
+              variant="outline"
+              className="bg-green-50 text-green-700 hover:bg-green-50 hover:text-green-700"
+            >
               Connected
             </Badge>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              Automatically export your search results to Google Sheets. Create new sheets or update existing ones with
-              your latest data.
+              Automatically export your search results to Google Sheets. Create
+              new sheets or update existing ones with your latest data.
             </p>
           </CardContent>
           <CardFooter>
@@ -67,21 +89,26 @@ export default async function IntegrationsPage() {
                 </div>
                 <CardTitle>Gmail</CardTitle>
               </div>
-              <CardDescription className="mt-1">Send outreach emails directly from Leadify</CardDescription>
+              <CardDescription className="mt-1">
+                Send outreach emails directly from Leadify
+              </CardDescription>
             </div>
             <Badge variant="outline">Not Connected</Badge>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              Connect your Gmail account to send personalized outreach emails to content creators directly from Leadify.
+              Connect your Gmail account to send personalized outreach emails to
+              content creators directly from Leadify.
             </p>
           </CardContent>
           <CardFooter>
-            <Button className="w-full bg-blue-700 hover:bg-blue-800">Connect</Button>
+            <Button className="w-full bg-blue-700 hover:bg-blue-800">
+              Connect
+            </Button>
           </CardFooter>
         </Card>
 
-        <Card>
+        {/* <Card>
           <CardHeader className="flex flex-row items-start justify-between">
             <div>
               <div className="flex items-center gap-2">
@@ -185,8 +212,8 @@ export default async function IntegrationsPage() {
           <CardFooter>
             <Button className="w-full bg-blue-700 hover:bg-blue-800">Connect</Button>
           </CardFooter>
-        </Card>
+        </Card> */}
       </div>
     </div>
-  )
+  );
 }

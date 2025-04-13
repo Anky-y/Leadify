@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Plus, UploadCloud } from "lucide-react"
-import { useToast } from "@/components/ui/use-toast"
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Plus, UploadCloud } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 import {
   Dialog,
   DialogContent,
@@ -12,99 +12,104 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
-import SequenceList from "./sequence-list"
-import SequenceParametersDialog from "./sequence-parameters-dialog"
-import { useRouter } from "next/navigation"
-import type { CrmLead } from "../crm/types"
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import SequenceList from "./sequence-list";
+import SequenceParametersDialog from "./sequence-parameters-dialog";
+import { useRouter } from "next/navigation";
+import type { CrmLead } from "../crm/types";
 
 // Define types for better code readability and type safety
 interface EmailSequence {
-  id: string
-  name: string
-  description: string
-  createdAt: string
+  id: string;
+  name: string;
+  description: string;
+  createdAt: string;
   parameters: {
-    followUpEmails: number
-    intervals: number[]
-    haltOnReply: boolean
-    sameThread: boolean
-  }
-  contacts: string[]
+    followUpEmails: number;
+    intervals: number[];
+    haltOnReply: boolean;
+    sameThread: boolean;
+  };
+  contacts: string[];
   emails: {
-    id: string
-    subject: string
-    body: string
-    delay: number
-    order: number
-  }[]
+    id: string;
+    subject: string;
+    body: string;
+    delay: number;
+    order: number;
+  }[];
   stats: {
-    leadsAdded: number
-    emailsSent: number
-    responses: number
-    responseRate: number
-  }
-  status: "draft" | "active" | "paused" | "completed"
+    leadsAdded: number;
+    emailsSent: number;
+    responses: number;
+    responseRate: number;
+  };
+  status: "draft" | "active" | "paused" | "completed";
 }
 
 interface EmailSequencesUIProps {
-  initialSubscribed?: boolean
+  initialSubscribed?: boolean;
 }
 
 /**
  * Main component for managing email sequences
  * Handles creating, updating, and deleting sequences
  */
-export default function EmailSequencesUI({ initialSubscribed = false }: EmailSequencesUIProps) {
-  const [sequences, setSequences] = useState<EmailSequence[]>([])
-  const [showUploadDialog, setShowUploadDialog] = useState(false)
-  const [showParametersDialog, setShowParametersDialog] = useState(false)
-  const [uploadFile, setUploadFile] = useState<File | null>(null)
-  const [crmLeads, setCrmLeads] = useState<CrmLead[]>([])
-  const router = useRouter()
-  const { toast } = useToast()
+export default function EmailSequencesUI({
+  initialSubscribed = false,
+}: EmailSequencesUIProps) {
+  const [sequences, setSequences] = useState<EmailSequence[]>([]);
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [showParametersDialog, setShowParametersDialog] = useState(false);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [crmLeads, setCrmLeads] = useState<CrmLead[]>([]);
+  const router = useRouter();
+  const { toast } = useToast();
 
   // Load sequences and CRM leads from localStorage on component mount
   useEffect(() => {
     // Load sequences from localStorage
     const loadSequences = () => {
-      const sequencesFromStorage = localStorage.getItem("emailSequences")
+      const sequencesFromStorage = localStorage.getItem("emailSequences");
       if (sequencesFromStorage) {
-        const parsedSequences = JSON.parse(sequencesFromStorage)
+        const parsedSequences = JSON.parse(sequencesFromStorage);
         // Ensure all sequences have a status field
         const updatedSequences = parsedSequences.map((seq: any) => ({
           ...seq,
           status: seq.status || "draft",
-        }))
-        setSequences(updatedSequences)
+        }));
+        setSequences(updatedSequences);
       } else {
         // Add default sequence if none exist
-        const defaultSequence = createDefaultSequence()
-        setSequences([defaultSequence])
-        localStorage.setItem("emailSequences", JSON.stringify([defaultSequence]))
+        const defaultSequence = createDefaultSequence();
+        setSequences([defaultSequence]);
+        localStorage.setItem(
+          "emailSequences",
+          JSON.stringify([defaultSequence])
+        );
       }
-    }
+    };
 
     // Load CRM leads from localStorage
     const loadLeads = () => {
-      const leadsFromStorage = localStorage.getItem("crmLeads")
+      const leadsFromStorage = localStorage.getItem("crmLeads");
       if (leadsFromStorage) {
-        setCrmLeads(JSON.parse(leadsFromStorage))
+        setCrmLeads(JSON.parse(leadsFromStorage));
       }
-    }
+    };
 
-    loadSequences()
-    loadLeads()
-  }, [])
+    loadSequences();
+    loadLeads();
+  }, []);
 
   // Save sequences to localStorage when they change
   useEffect(() => {
     if (sequences.length > 0) {
-      localStorage.setItem("emailSequences", JSON.stringify(sequences))
+      localStorage.setItem("emailSequences", JSON.stringify(sequences));
     }
-  }, [sequences])
+  }, [sequences]);
 
   /**
    * Creates a default email sequence template
@@ -153,8 +158,8 @@ export default function EmailSequencesUI({ initialSubscribed = false }: EmailSeq
         responseRate: 0,
       },
       status: "draft",
-    }
-  }
+    };
+  };
 
   /**
    * Handles creating a new email sequence
@@ -169,7 +174,10 @@ export default function EmailSequencesUI({ initialSubscribed = false }: EmailSeq
       createdAt: new Date().toISOString(),
       parameters: {
         followUpEmails: parameters.followUpEmails,
-        intervals: Array.from({ length: parameters.followUpEmails }, (_, i) => parameters.intervals[i] || 3),
+        intervals: Array.from(
+          { length: parameters.followUpEmails },
+          (_, i) => parameters.intervals[i] || 3
+        ),
         haltOnReply: parameters.haltOnReply,
         sameThread: parameters.sameThread,
       },
@@ -190,24 +198,24 @@ export default function EmailSequencesUI({ initialSubscribed = false }: EmailSeq
         responseRate: 0,
       },
       status: "draft",
-    }
+    };
 
     // Add the new sequence to the list
-    const updatedSequences = [...sequences, newSequence]
-    setSequences(updatedSequences)
+    const updatedSequences = [...sequences, newSequence];
+    setSequences(updatedSequences);
 
     // Close the dialog
-    setShowParametersDialog(false)
+    setShowParametersDialog(false);
 
     // Show success toast
     toast({
       title: "Sequence Created",
       description: `Your sequence "${parameters.name}" has been created.`,
-    })
+    });
 
     // Redirect to the sequence editor
-    router.push(`/dashboard/email-sequences/editor?id=${newSequence.id}`)
-  }
+    router.push(`/dashboard/email-sequences/editor?id=${newSequence.id}`);
+  };
 
   /**
    * Handles uploading leads from a file
@@ -219,8 +227,8 @@ export default function EmailSequencesUI({ initialSubscribed = false }: EmailSeq
         title: "No file selected",
         description: "Please select a file to upload.",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
 
     // For demo purposes, we'll just simulate it with some mock data
@@ -263,90 +271,98 @@ export default function EmailSequencesUI({ initialSubscribed = false }: EmailSeq
         classification: "Unclassified",
         dateAdded: new Date().toISOString(),
       },
-    ]
+    ];
 
     // Add new leads to existing leads
-    const existingLeads = JSON.parse(localStorage.getItem("crmLeads") || "[]")
-    const updatedLeads = [...existingLeads, ...newLeads]
-    localStorage.setItem("crmLeads", JSON.stringify(updatedLeads))
-    setCrmLeads(updatedLeads)
+    const existingLeads = JSON.parse(localStorage.getItem("crmLeads") || "[]");
+    const updatedLeads = [...existingLeads, ...newLeads];
+    localStorage.setItem("crmLeads", JSON.stringify(updatedLeads));
+    setCrmLeads(updatedLeads);
 
-    setShowUploadDialog(false)
-    setUploadFile(null)
+    setShowUploadDialog(false);
+    setUploadFile(null);
 
     toast({
       title: "Leads Uploaded",
       description: `${newLeads.length} leads have been added to your CRM.`,
-    })
-  }
+    });
+  };
 
   /**
    * Handles deleting a sequence
    * @param id The ID of the sequence to delete
    */
   const handleDeleteSequence = (id: string) => {
-    const updatedSequences = sequences.filter((seq) => seq.id !== id)
-    setSequences(updatedSequences)
+    const updatedSequences = sequences.filter((seq) => seq.id !== id);
+    setSequences(updatedSequences);
 
     toast({
       title: "Sequence Deleted",
       description: "Your sequence has been deleted.",
-    })
-  }
+    });
+  };
 
   /**
    * Handles updating a sequence
    * @param updatedSequence The updated sequence object
    */
   const handleUpdateSequence = (updatedSequence: EmailSequence) => {
-    const updatedSequences = sequences.map((seq) => (seq.id === updatedSequence.id ? updatedSequence : seq))
-    setSequences(updatedSequences)
+    const updatedSequences = sequences.map((seq) =>
+      seq.id === updatedSequence.id ? updatedSequence : seq
+    );
+    setSequences(updatedSequences);
 
     toast({
       title: "Sequence Updated",
       description: `Your sequence "${updatedSequence.name}" has been updated.`,
-    })
-  }
+    });
+  };
 
   /**
    * Handles changing the status of a sequence
    * @param id The ID of the sequence
    * @param status The new status
    */
-  const handleChangeSequenceStatus = (id: string, status: EmailSequence["status"]) => {
+  const handleChangeSequenceStatus = (
+    id: string,
+    status: EmailSequence["status"]
+  ) => {
     const updatedSequences = sequences.map((seq) => {
       if (seq.id === id) {
-        return { ...seq, status }
+        return { ...seq, status };
       }
-      return seq
-    })
+      return seq;
+    });
 
-    setSequences(updatedSequences)
+    setSequences(updatedSequences);
 
     const statusMessages = {
       active: "Sequence activated. Emails will be sent according to schedule.",
       paused: "Sequence paused. No emails will be sent until resumed.",
       completed: "Sequence marked as completed.",
       draft: "Sequence returned to draft status.",
-    }
+    };
 
     toast({
       title: `Sequence ${status.charAt(0).toUpperCase() + status.slice(1)}`,
       description: statusMessages[status],
-    })
-  }
+    });
+  };
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Email Sequences</h1>
-        <p className="text-muted-foreground">Create and manage email sequences for your leads.</p>
+        <p className="text-muted-foreground">
+          Create and manage email sequences for your leads.
+        </p>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4 justify-between">
         <div className="flex-1">
           <p className="text-sm text-muted-foreground">
-            {sequences.length} {sequences.length === 1 ? "sequence" : "sequences"} available
+            {sequences.length}{" "}
+            {sequences.length === 1 ? "sequence" : "sequences"} available
           </p>
         </div>
 
@@ -357,14 +373,20 @@ export default function EmailSequencesUI({ initialSubscribed = false }: EmailSeq
             onSubmit={handleCreateSequence}
           />
 
-          <Button className="bg-blue-700 hover:bg-blue-800" onClick={() => setShowParametersDialog(true)}>
+          <Button
+            className="bg-blue-700 hover:bg-blue-800"
+            onClick={() => setShowParametersDialog(true)}
+          >
             <Plus className="mr-2 h-4 w-4" />
             New Sequence
           </Button>
 
           <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
             <DialogTrigger asChild>
-              <Button variant="outline" className="border-blue-200 text-blue-700 hover:bg-blue-50">
+              <Button
+                variant="outline"
+                className="border-blue-200 text-blue-700 hover:bg-blue-50"
+              >
                 <UploadCloud className="mr-2 h-4 w-4" />
                 Upload Leads
               </Button>
@@ -372,7 +394,9 @@ export default function EmailSequencesUI({ initialSubscribed = false }: EmailSeq
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Upload Leads</DialogTitle>
-                <DialogDescription>Upload a CSV or Excel file with your leads.</DialogDescription>
+                <DialogDescription>
+                  Upload a CSV or Excel file with your leads.
+                </DialogDescription>
               </DialogHeader>
               <div className="py-4">
                 <Label htmlFor="lead-file">File</Label>
@@ -384,11 +408,15 @@ export default function EmailSequencesUI({ initialSubscribed = false }: EmailSeq
                   onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
                 />
                 <p className="text-sm text-gray-500 mt-2">
-                  Your file should include columns for name, email, and other lead information.
+                  Your file should include columns for name, email, and other
+                  lead information.
                 </p>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setShowUploadDialog(false)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowUploadDialog(false)}
+                >
                   Cancel
                 </Button>
                 <Button onClick={handleUploadLeads}>Upload</Button>
@@ -406,5 +434,5 @@ export default function EmailSequencesUI({ initialSubscribed = false }: EmailSeq
         onChangeStatus={handleChangeSequenceStatus}
       />
     </div>
-  )
+  );
 }

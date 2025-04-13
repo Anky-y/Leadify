@@ -222,7 +222,7 @@ export default function SequenceEditor({
   return (
     <div className="space-y-4">
       {isSequenceActive && (
-        <Alert variant="warning" className="mb-4">
+        <Alert variant="default" className="mb-4">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Sequence is active</AlertTitle>
           <AlertDescription>
