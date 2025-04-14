@@ -1,5 +1,4 @@
 import type { Metadata } from "next"
-import { requireAuth } from "@/app/auth"
 import TwitchScraperUI from "@/components/twitch-scraper/twitch-scraper-ui"
 
 export const metadata: Metadata = {
@@ -8,7 +7,6 @@ export const metadata: Metadata = {
 }
 
 export default async function TwitchScraperPage() {
-  const user = await requireAuth()
 
-  return <TwitchScraperUI initialSubscribed={user.subscribed} />
+  return <TwitchScraperUI />
 }

@@ -1,52 +1,63 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { useState } from "react"
-import { useToast } from "@/components/ui/use-toast"
+import type React from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useState } from "react";
+import { useToast } from "@/components/ui/use-toast";
+import { useUserContext } from "../../../app/context/UserContext";
 
 export default function ProfilePage() {
-  const [isLoading, setIsLoading] = useState(false)
-  const { toast } = useToast()
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+  const { user } = useUserContext();
 
   const handleProfileUpdate = (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
+    e.preventDefault();
+    setIsLoading(true);
 
     // Simulate API call
     setTimeout(() => {
-      setIsLoading(false)
+      setIsLoading(false);
       toast({
         title: "Profile updated",
         description: "Your profile information has been updated successfully.",
-      })
-    }, 1000)
-  }
+      });
+    }, 1000);
+  };
 
   const handlePasswordUpdate = (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
+    e.preventDefault();
+    setIsLoading(true);
 
     // Simulate API call
     setTimeout(() => {
-      setIsLoading(false)
+      setIsLoading(false);
       toast({
         title: "Password updated",
         description: "Your password has been updated successfully.",
-      })
-    }, 1000)
-  }
+      });
+    }, 1000);
+  };
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Profile</h1>
-        <p className="text-muted-foreground">Manage your account settings and profile information.</p>
+        <p className="text-muted-foreground">
+          Manage your account settings and profile information.
+        </p>
       </div>
 
       <div className="flex items-center gap-4">
@@ -55,8 +66,10 @@ export default function ProfilePage() {
           <AvatarFallback>U</AvatarFallback>
         </Avatar>
         <div>
-          <h2 className="text-xl font-bold">Demo User</h2>
-          <p className="text-muted-foreground">user@example.com</p>
+          <h2 className="text-xl font-bold">
+            {`${user?.first_name || ""} ${user?.last_name || ""}`}
+          </h2>
+          <p className="text-muted-foreground">{user?.email}</p>
         </div>
       </div>
 
@@ -72,27 +85,33 @@ export default function ProfilePage() {
             <form onSubmit={handleProfileUpdate}>
               <CardHeader>
                 <CardTitle>General Information</CardTitle>
-                <CardDescription>Update your account information.</CardDescription>
+                <CardDescription>
+                  Update your account information.
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="first-name">First name</Label>
-                    <Input id="first-name" defaultValue="Demo" />
+                    <Label htmlFor="first-name">{user?.first_name}</Label>
+                    <Input id="first-name" defaultValue={user?.first_name} />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="last-name">Last name</Label>
-                    <Input id="last-name" defaultValue="User" />
+                    <Label htmlFor="last-name">{user?.last_name}</Label>
+                    <Input id="last-name" defaultValue={user?.last_name} />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" defaultValue="user@example.com" />
+                  <Label htmlFor="email">{user?.email}</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    defaultValue="user@example.com"
+                  />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="company">Company</Label>
+                  <Label htmlFor="company">company</Label>
                   <Input id="company" defaultValue="Acme Inc." />
                 </div>
               </CardContent>
@@ -117,7 +136,9 @@ export default function ProfilePage() {
                 </Avatar>
                 <div className="space-y-2">
                   <Button variant="outline">Upload New Picture</Button>
-                  <p className="text-xs text-muted-foreground">JPG, GIF or PNG. Max size of 800K.</p>
+                  <p className="text-xs text-muted-foreground">
+                    JPG, GIF or PNG. Max size of 800K.
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -158,14 +179,17 @@ export default function ProfilePage() {
           <Card>
             <CardHeader>
               <CardTitle>Two-Factor Authentication</CardTitle>
-              <CardDescription>Add an extra layer of security to your account.</CardDescription>
+              <CardDescription>
+                Add an extra layer of security to your account.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="font-medium">Two-Factor Authentication</h3>
                   <p className="text-sm text-muted-foreground">
-                    Add an extra layer of security to your account by enabling two-factor authentication.
+                    Add an extra layer of security to your account by enabling
+                    two-factor authentication.
                   </p>
                 </div>
                 <Button variant="outline">Enable</Button>
@@ -178,7 +202,9 @@ export default function ProfilePage() {
           <Card>
             <CardHeader>
               <CardTitle>Email Notifications</CardTitle>
-              <CardDescription>Manage your email notification preferences.</CardDescription>
+              <CardDescription>
+                Manage your email notification preferences.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
@@ -205,5 +231,5 @@ export default function ProfilePage() {
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 }
