@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { requireAuth } from "@/app/auth";
 import {
   Card,
   CardContent,
@@ -26,7 +25,6 @@ export const metadata: Metadata = {
 };
 
 export default async function IntegrationsPage() {
-  await requireAuth();
 
   return (
     <div className="space-y-6">

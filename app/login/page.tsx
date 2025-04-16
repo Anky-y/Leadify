@@ -16,17 +16,15 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import Link from "next/link";
 import Image from "next/image";
-import { getSession, getUserData, signInWithEmail } from "@/lib/utils/auth";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useRouter } from "next/navigation";
-import GuestOnly from "@/components/GuestOnly";
-import { useUserContext } from "../context/UserContext";
+import { redirect, useRouter } from "next/navigation";
+import { createClient } from "@/utils/supabase";
+import { handleLogin } from "./login";
 
 export default function LoginPage() {
-  const { setSession, setUser } = useUserContext()!;
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [password, setPassword] = useState<string | null>(null);
@@ -34,17 +32,18 @@ export default function LoginPage() {
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    try {
-      const user = await signInWithEmail(email!, password!);
-      if (user) {
-        const session = await getSession();
-        const userData = await getUserData();
-        setSession(session);
-        setUser(userData);
-        router.push("/dashboard");
-      }
-    } catch (err) {
-      setError("An unexpected error occurred. Please try again.");
+
+    if (!email || !password) {
+      setError("Email and password are required.");
+      return;
+    }
+
+    const { error } = await handleLogin(email, password);
+
+    if (error) {
+      setError(error);
+    } else {
+      router.push("/dashboard");
     }
   }
 
@@ -63,7 +62,6 @@ export default function LoginPage() {
   }
 
   return (
-    <GuestOnly>
       <div className="flex min-h-screen flex-col">
         <Header />
         <main className="flex-1 flex items-center justify-center py-12 bg-gradient-to-b from-blue-50 to-purple-50">
@@ -150,6 +148,5 @@ export default function LoginPage() {
         </main>
         <Footer />
       </div>
-    </GuestOnly>
   );
 }

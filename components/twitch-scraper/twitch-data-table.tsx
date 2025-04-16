@@ -24,7 +24,7 @@ import type { TwitchData } from "./types";
 
 interface TwitchDataTableProps {
   data: TwitchData[];
-  subscribed: boolean | undefined | null;
+  subscribed: boolean;
 }
 
 export default function TwitchDataTable({

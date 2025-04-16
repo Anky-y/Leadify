@@ -10,9 +10,9 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { usePathname } from "next/navigation";
 // import { getUser } from "../app/auth"
 import { useEffect, useState } from "react";
-import { getSession } from "@/lib/utils/auth";
-import { useUserContext } from "@/app/context/UserContext"; // interface DashboardUIProps {
-import type { Session as supabaseSession } from "@supabase/supabase-js";
+import { getAuthUser, getUserData } from "@/utils/auth";
+import User from "@/app/types/user";
+import AuthUser from "@/app/types/userAuth";
 
 /*************  ✨ Windsurf Command ⭐  *************/
 /**
@@ -26,12 +26,10 @@ import type { Session as supabaseSession } from "@supabase/supabase-js";
  */
 /*******  d13f2080-228c-429e-9fa5-c532c1e6f7ea  *******/ export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [session, setSession] = useState<any>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
-
-  const { session } = useUserContext();
-  console.log(session);
+  const [user, setUser] = useState<User | null>(null);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -66,6 +64,14 @@ import type { Session as supabaseSession } from "@supabase/supabase-js";
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, [isMenuOpen]);
+  useEffect(() => {
+    const fetchUser = async () => {
+      const authUser = await getUserData();
+      setUser(authUser);
+    };
+
+    fetchUser();
+  }, []);
 
   // Close menu when route changes
   useEffect(() => {
@@ -139,9 +145,7 @@ import type { Session as supabaseSession } from "@supabase/supabase-js";
         {/* Desktop Auth Buttons and Theme Toggle */}
         <div className="hidden md:flex items-center gap-2">
           <ThemeToggle />
-          {isLoading ? (
-            <div className="h-9 w-16 bg-gray-200 animate-pulse rounded"></div>
-          ) : session ? (
+          {user ? (
             <Link href="/dashboard">
               <Button size="sm" className="bg-blue-700 hover:bg-blue-800">
                 Dashboard

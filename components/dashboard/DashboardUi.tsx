@@ -17,24 +17,23 @@ import {
 import User from "../../app/types/user";
 import { useEffect, useState } from "react";
 import type { Session as SupabaseSession } from "@supabase/supabase-js";
-import { useRouter } from "next/navigation";
-import { useUserContext } from "@/app/context/UserContext"; // interface DashboardUIProps {
-
+import { getUserData } from "@/utils/auth";
 // import { useUser } from "@/app/context/UserContext";
 // interface DashboardUIProps {
 //   user: User; // You will get the user prop from the server-side page
 // }
 export default function DashboardUi() {
-  const { session, user } = useUserContext();
-  const router = useRouter();
-  if (!session) {
-    return <div>Loading...</div>; // You can show a loading state until session data is available
-  }
-  if (!user) {
-    return <div>Loading...</div>; // You can show a loading state until user data is available
-  }
+  const [user, setUser] = useState<User | null>(null);
 
-  console.log(user);
+  // Fetch user data on component mount
+  useEffect(() => {
+    const fetchUser = async () => {
+      const userData = await getUserData();
+      setUser(userData);
+    };
+
+    fetchUser();
+  }, []);
 
   return (
     <div className="space-y-6">

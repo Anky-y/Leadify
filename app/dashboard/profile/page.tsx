@@ -14,15 +14,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
-import { useUserContext } from "../../../app/context/UserContext";
+import User from "@/app/types/user";
 
 export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const { user } = useUserContext();
-
+  const [user, setUser] = useState<User | null>();
+  // useEffect(() => {
+  //    fetchUser()
+  // }, []);
   const handleProfileUpdate = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -92,26 +94,22 @@ export default function ProfilePage() {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="first-name">{user?.first_name}</Label>
+                    <Label htmlFor="first-name">First Name</Label>
                     <Input id="first-name" defaultValue={user?.first_name} />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="last-name">{user?.last_name}</Label>
+                    <Label htmlFor="last-name">Last Name</Label>
                     <Input id="last-name" defaultValue={user?.last_name} />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="email">{user?.email}</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    defaultValue="user@example.com"
-                  />
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" type="email" defaultValue={user?.email} />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="company">company</Label>
+                  <Label htmlFor="company">Company</Label>
                   <Input id="company" defaultValue="Acme Inc." />
                 </div>
               </CardContent>

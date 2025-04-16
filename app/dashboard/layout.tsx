@@ -4,7 +4,11 @@ import type { Metadata } from "next";
 import DashboardSidebar from "@/components/dashboard/sidebar";
 import DashboardHeader from "@/components/dashboard/header";
 
-import DashboardPageWrapper from "@/components/dashboard/DashboardPageWrapper";
+// import DashboardPageWrapper from "@/components/dashboard/DashboardPageWrapper";
+import { createClient } from "@/utils/supabase";
+import { redirect } from "next/navigation";
+import { getUserData } from "@/utils/auth";
+import User from "../types/user";
 
 export const metadata: Metadata = {
   title: "Dashboard | Leadify",
@@ -16,20 +20,24 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // This will redirect to login if user is not authenticated
-  // const user = await requireAuth();
-
+  // Fetch user data on component mount
+  const user: User | null = await getUserData();
+  if (!user) {
+    // Redirect to login if no user is found
+    return redirect("/login");
+  }
+  // const user = useUser();
   return (
-    <DashboardPageWrapper>
-      <div className="flex min-h-screen flex-col">
-        <DashboardHeader />
-        <div className="flex">
-          <DashboardSidebar />
-          <main className="flex-1 p-4 md:p-6 overflow-auto md:ml-64">
-            {children}
-          </main>
-        </div>
+    // <UserProvider user={user}>
+    <div className="flex min-h-screen flex-col">
+      <DashboardHeader user={user} />
+      <div className="flex">
+        <DashboardSidebar />
+        <main className="flex-1 p-4 md:p-6 overflow-auto md:ml-64">
+          {children}
+        </main>
       </div>
-    </DashboardPageWrapper>
+    </div>
+    // </UserProvider>
   );
 }

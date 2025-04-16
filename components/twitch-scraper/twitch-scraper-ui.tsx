@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -38,17 +38,25 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 
-// Mock data for demonstration
-import { mockTwitchData } from "./mock-data";
+// Import hardcoded examples
+import {
+  mockTwitchData,
+  mockSavedSearches,
+  mockSearchHistory,
+} from "./mock-data";
 
 // Types
 import type { TwitchData, SavedSearch } from "./types";
-import { useUser } from "@/app/context/UserContext1";
-import User from "../../app/types/user";
 
-export default function TwitchScraperUI() {
+interface TwitchScraperUIProps {
+  initialSubscribed?: boolean;
+}
+
+export default function TwitchScraperUI({
+  initialSubscribed = false,
+}: TwitchScraperUIProps) {
   // State for search and filters
-  const [searchTerm, setSearchTerm] = useState("");
+  // const [searchTerm, setSearchTerm] = useState("");
   const [language, setLanguage] = useState<string>("");
   const [category, setCategory] = useState<string>("");
   const [minFollowers, setMinFollowers] = useState<number>(1000);
@@ -59,275 +67,164 @@ export default function TwitchScraperUI() {
   // State for UI
   const [isLoading, setIsLoading] = useState(false);
   const [data, setData] = useState<TwitchData[]>([]);
+  const [subscribed, setSubscribed] = useState(initialSubscribed);
   const [exportFormat, setExportFormat] = useState("csv");
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [searchName, setSearchName] = useState("");
   const [activeTab, setActiveTab] = useState("search");
 
-  const { user } = useUser();
-
-  // State for saved searches
-  const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
-
-  // State for search history
-  const [searchHistory, setSearchHistory] = useState<
-    {
-      id: string;
-      date: Date;
-      query: string;
-      results: number;
-    }[]
-  >([]);
-
-  const { toast } = useToast();
-
-  // Load saved searches from localStorage on component mount
-  useEffect(() => {
-    const savedSearchesFromStorage = localStorage.getItem("savedSearches");
-    if (savedSearchesFromStorage) {
-      setSavedSearches(JSON.parse(savedSearchesFromStorage));
-    }
-
-    const searchHistoryFromStorage = localStorage.getItem("searchHistory");
-    if (searchHistoryFromStorage) {
-      setSearchHistory(JSON.parse(searchHistoryFromStorage));
-    }
-  }, []);
-
-  // Save searches to localStorage when they change
-  useEffect(() => {
-    localStorage.setItem("savedSearches", JSON.stringify(savedSearches));
-  }, [savedSearches]);
-
-  // Save search history to localStorage when it changes
-  useEffect(() => {
-    localStorage.setItem("searchHistory", JSON.stringify(searchHistory));
-  }, [searchHistory]);
+  // State for saved searches and history - using hardcoded examples
+  const [savedSearches, setSavedSearches] =
+    useState<SavedSearch[]>(mockSavedSearches);
+  const [searchHistory, setSearchHistory] = useState(mockSearchHistory);
 
   const [showAddToCrmDialog, setShowAddToCrmDialog] = useState(false);
 
-  const handleSearch = () => {
+  const { toast } = useToast();
+
+  const handleSearch = async () => {
     setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
 
-      // Filter data based on search criteria
-      const filteredData = mockTwitchData.filter((item) => {
-        // Filter by search term
-        if (
-          searchTerm &&
-          !item.username.toLowerCase().includes(searchTerm.toLowerCase())
-        ) {
-          return false;
-        }
-
-        // Filter by language
-        if (
-          language &&
-          language !== "any" &&
-          item.language.toLowerCase() !== language.toLowerCase()
-        ) {
-          return false;
-        }
-
-        // Filter by category
-        if (
-          category &&
-          category !== "any" &&
-          item.category.toLowerCase() !== category.toLowerCase()
-        ) {
-          return false;
-        }
-
-        // Filter by follower count
-        if (item.followers < minFollowers || item.followers > maxFollowers) {
-          return false;
-        }
-
-        // Filter by viewer count
-        if (item.viewers < minViewers || item.viewers > maxViewers) {
-          return false;
-        }
-
-        return true;
+    try {
+      const response = await fetch("http://127.0.0.1:8000/", {
+        method: "GET",
+        // headers: {
+        //   "Content-Type": "application/json",
+        // },
+        // body: JSON.stringify({
+        //   // searchTerm,
+        //   language,
+        //   category,
+        //   minFollowers,
+        //   minViewers,
+        // }),
       });
 
-      // Apply result limit if not subscribed
-      const limitedData = user?.is_subscribed
-        ? filteredData
-        : filteredData.slice(0, 10);
-      setData(limitedData);
+      console.log(response);
 
-      // Add to search history
-      const newSearchHistoryItem = {
-        id: Date.now().toString(),
-        date: new Date(),
-        query: searchTerm || "All streamers",
-        results: filteredData.length,
-      };
+      if (!response.ok) {
+        throw new Error("Failed to fetch data from the backend");
+      }
 
-      setSearchHistory((prev) => [newSearchHistoryItem, ...prev].slice(0, 20)); // Keep only last 20 searches
+      const result = await response.json();
 
-      // Show toast with result count
+      // Assuming the backend returns an array of TwitchData
+      setData(result);
+
       toast({
         title: "Search Results",
-        description: `Found ${filteredData.length} results${
-          !user?.is_subscribed && filteredData.length > 10
-            ? `, showing 10 (upgrade to see all)`
-            : ""
-        }`,
+        description: `Found ${result.length} results.`,
       });
-    }, 1000);
-  };
-
-  const handleExport = () => {
-    if (data.length === 0) {
-      toast({
-        title: "No data to export",
-        description: "Please perform a search first to get data for export.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // In a real app, this would generate a file in the selected format
-    toast({
-      title: `Exporting data as ${exportFormat.toUpperCase()}`,
-      description: `${data.length} records will be exported.`,
-    });
-  };
-
-  const handleSaveSearch = () => {
-    if (!searchName.trim()) {
+    } catch (error) {
+      console.error("Error during search:", error);
       toast({
         title: "Error",
-        description: "Please enter a name for your saved search.",
+        description: "Failed to fetch search results. Please try again.",
         variant: "destructive",
       });
-      return;
+    } finally {
+      setIsLoading(false);
     }
-
-    // Check if user has reached the limit of saved searches (for free users)
-    if (!user?.is_subscribed && savedSearches.length >= 5) {
-      toast({
-        title: "Limit Reached",
-        description:
-          "Free users can save up to 5 searches. Upgrade to Premium for unlimited saved searches.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Create new saved search
-    const newSavedSearch: SavedSearch = {
-      id: Date.now().toString(),
-      name: searchName,
-      filters: {
-        searchTerm,
-        language,
-        category,
-        minFollowers,
-        maxFollowers,
-        minViewers,
-        maxViewers,
-      },
-    };
-
-    // Add to saved searches
-    setSavedSearches([...savedSearches, newSavedSearch]);
-
-    // Close dialog and reset name
-    setSaveDialogOpen(false);
-    setSearchName("");
-
-    toast({
-      title: "Search saved",
-      description: `Your search "${searchName}" has been saved.`,
-    });
   };
 
-  const handleLoadSearch = (search: SavedSearch) => {
-    // Load search filters
-    setSearchTerm(search.filters.searchTerm);
-    setLanguage(search.filters.language);
-    setCategory(search.filters.category);
-    setMinFollowers(search.filters.minFollowers);
-    setMaxFollowers(search.filters.maxFollowers);
-    setMinViewers(search.filters.minViewers);
-    setMaxViewers(search.filters.maxViewers);
+  // const handleExport = () => {
+  //   if (data.length === 0) {
+  //     toast({
+  //       title: "No data to export",
+  //       description: "Please perform a search first to get data for export.",
+  //       variant: "destructive",
+  //     });
+  //     return;
+  //   }
 
-    // Switch to search tab
-    setActiveTab("search");
+  //   toast({
+  //     title: `Exporting data as ${exportFormat.toUpperCase()}`,
+  //     description: `${data.length} records will be exported.`,
+  //   });
+  // };
 
-    // Execute search
-    handleSearch();
+  // const handleSaveSearch = () => {
+  //   if (!searchName.trim()) {
+  //     toast({
+  //       title: "Error",
+  //       description: "Please enter a name for your saved search.",
+  //       variant: "destructive",
+  //     });
+  //     return;
+  //   }
 
-    toast({
-      title: "Search loaded",
-      description: `Loaded saved search "${search.name}".`,
-    });
-  };
+  //   // Create new saved search
+  //   const newSavedSearch: SavedSearch = {
+  //     id: `saved${Date.now()}`,
+  //     name: searchName,
+  //     filters: {
+  //       searchTerm,
+  //       language,
+  //       category,
+  //       minFollowers,
+  //       maxFollowers,
+  //       minViewers,
+  //       maxViewers,
+  //     },
+  //   };
 
-  const handleDeleteSearch = (id: string) => {
-    setSavedSearches(savedSearches.filter((search) => search.id !== id));
+  //   // Add to saved searches
+  //   setSavedSearches([...savedSearches, newSavedSearch]);
+  //   setSaveDialogOpen(false);
+  //   setSearchName("");
 
-    toast({
-      title: "Search deleted",
-      description: "Your saved search has been deleted.",
-    });
-  };
+  //   toast({
+  //     title: "Search saved",
+  //     description: `Your search "${searchName}" has been saved.`,
+  //   });
+  // };
 
-  const handleAddToCrm = () => {
-    if (data.length === 0) {
-      toast({
-        title: "No data to add",
-        description: "Please perform a search first to get data for the CRM.",
-        variant: "destructive",
-      });
-      return;
-    }
+  // const handleLoadSearch = (search: SavedSearch) => {
+  //   // Load search filters
+  //   setSearchTerm(search.filters.searchTerm);
+  //   setLanguage(search.filters.language);
+  //   setCategory(search.filters.category);
+  //   setMinFollowers(search.filters.minFollowers);
+  //   setMaxFollowers(search.filters.maxFollowers);
+  //   setMinViewers(search.filters.minViewers);
+  //   setMaxViewers(search.filters.maxViewers);
 
-    // In a real app, this would add the data to the CRM
-    // For now, we'll just simulate it with localStorage
-    const existingLeads = JSON.parse(localStorage.getItem("crmLeads") || "[]");
+  //   // Switch to search tab
+  //   setActiveTab("search");
+  //   handleSearch();
 
-    // Convert Twitch data to CRM lead format
-    const newLeads = data.map((item) => ({
-      id: `twitch-${item.id}`,
-      name: item.username,
-      platform: "Twitch",
-      followers: item.followers,
-      engagement: item.viewers,
-      language: item.language,
-      category: item.category,
-      email: item.email,
-      social: {
-        discord: item.discord,
-        youtube: item.youtube,
-        twitter: item.twitter,
-        facebook: item.facebook,
-        instagram: item.instagram,
-      },
-      url: item.channelUrl,
-      sequenceStatus: "Not Started",
-      stage: "New Lead",
-      replied: false,
-      classification: "Unclassified",
-      dateAdded: new Date().toISOString(),
-    }));
+  //   toast({
+  //     title: "Search loaded",
+  //     description: `Loaded saved search "${search.name}".`,
+  //   });
+  // };
 
-    // Add new leads to existing leads
-    const updatedLeads = [...existingLeads, ...newLeads];
-    localStorage.setItem("crmLeads", JSON.stringify(updatedLeads));
+  // const handleDeleteSearch = (id: string) => {
+  //   setSavedSearches(savedSearches.filter((search) => search.id !== id));
 
-    setShowAddToCrmDialog(false);
+  //   toast({
+  //     title: "Search deleted",
+  //     description: "Your saved search has been deleted.",
+  //   });
+  // };
 
-    toast({
-      title: "Added to CRM",
-      description: `${data.length} leads have been added to your CRM.`,
-    });
-  };
+  // const handleAddToCrm = () => {
+  //   if (data.length === 0) {
+  //     toast({
+  //       title: "No data to add",
+  //       description: "Please perform a search first to get data for the CRM.",
+  //       variant: "destructive",
+  //     });
+  //     return;
+  //   }
+
+  //   setShowAddToCrmDialog(false);
+
+  //   toast({
+  //     title: "Added to CRM",
+  //     description: `${data.length} leads have been added to your CRM.`,
+  //   });
+  // };
 
   return (
     <div className="space-y-6">
@@ -338,12 +235,12 @@ export default function TwitchScraperUI() {
         </p>
       </div>
 
-      {!user?.is_subscribed && (
+      {!subscribed && (
         <Alert className="border-amber-200 bg-amber-50 text-amber-800">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Free account limitations</AlertTitle>
           <AlertDescription>
-            You're using a free account which limits results to 10 entries and
+            You're using a free account which limits results to 3 entries and
             masks contact information.{" "}
             <a
               href="/dashboard/billing"
@@ -356,7 +253,7 @@ export default function TwitchScraperUI() {
         </Alert>
       )}
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList>
           <TabsTrigger value="search">Search</TabsTrigger>
           <TabsTrigger value="saved">
@@ -401,8 +298,8 @@ export default function TwitchScraperUI() {
                   <div className="relative">
                     <Input
                       placeholder="Search by username..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
+                      // value={searchTerm}
+                      // onChange={(e) => setSearchTerm(e.target.value)}
                       className="pr-10"
                       onKeyDown={(e) => {
                         if (e.key === "Enter") handleSearch();
@@ -462,7 +359,7 @@ export default function TwitchScraperUI() {
                         >
                           Cancel
                         </Button>
-                        <Button onClick={handleSaveSearch}>Save</Button>
+                        {/* <Button onClick={handleSaveSearch}>Save</Button> */}
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
@@ -485,7 +382,7 @@ export default function TwitchScraperUI() {
                     <Button
                       variant="outline"
                       className="border-blue-200 text-blue-700 hover:bg-blue-50"
-                      onClick={handleExport}
+                      // onClick={handleExport}
                     >
                       <Download className="mr-2 h-4 w-4" />
                       Export
@@ -497,71 +394,16 @@ export default function TwitchScraperUI() {
               <div className="flex items-center justify-between mb-4">
                 <div className="text-sm text-gray-500">
                   {data.length} results{" "}
-                  {!user?.is_subscribed &&
-                    data.length === 10 &&
-                    mockTwitchData.length > 10 &&
+                  {!subscribed &&
+                    data.length === 3 &&
+                    mockTwitchData.length > 3 &&
                     "(limited)"}
                 </div>
-                {/* 
-                {!user?.is_subscribed && (
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="subscription-toggle"
-                      checked={user?.is_subscribed}
-                      onCheckedChange={user?.is_subscribed}
-                    />
-                    <Label htmlFor="subscription-toggle" className="text-sm">
-                      Simulate Premium Account
-                    </Label>
-                  </div>
-                )} */}
               </div>
 
               {data.length > 0 ? (
                 <>
-                  <TwitchDataTable
-                    data={data}
-                    subscribed={user?.is_subscribed}
-                  />
-                  <div className="flex justify-end mt-4">
-                    <Dialog
-                      open={showAddToCrmDialog}
-                      onOpenChange={setShowAddToCrmDialog}
-                    >
-                      <DialogTrigger asChild>
-                        <Button className="bg-blue-700 hover:bg-blue-800">
-                          <PlusCircle className="mr-2 h-4 w-4" />
-                          Add to CRM
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Add to CRM</DialogTitle>
-                          <DialogDescription>
-                            Add these {data.length} Twitch streamers to your CRM
-                            as leads.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="py-4">
-                          <p className="text-sm text-gray-500">
-                            This will add all {data.length} streamers from your
-                            current search results to your CRM. You can manage
-                            these leads, add them to email sequences, and track
-                            your outreach from the CRM dashboard.
-                          </p>
-                        </div>
-                        <DialogFooter>
-                          <Button
-                            variant="outline"
-                            onClick={() => setShowAddToCrmDialog(false)}
-                          >
-                            Cancel
-                          </Button>
-                          <Button onClick={handleAddToCrm}>Add to CRM</Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
+                  <TwitchDataTable data={data} subscribed={subscribed} />
                 </>
               ) : (
                 <Card>
@@ -587,7 +429,7 @@ export default function TwitchScraperUI() {
           </div>
         </TabsContent>
 
-        <TabsContent value="saved">
+        {/* <TabsContent value="saved">
           {savedSearches.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
@@ -655,7 +497,7 @@ export default function TwitchScraperUI() {
                       variant="ghost"
                       size="sm"
                       className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      onClick={() => handleDeleteSearch(search.id)}
+                      // onClick={() => handleDeleteSearch(search.id)}
                     >
                       <Trash2 className="h-4 w-4 mr-1" />
                       Delete
@@ -663,7 +505,7 @@ export default function TwitchScraperUI() {
                     <Button
                       size="sm"
                       className="bg-blue-700 hover:bg-blue-800"
-                      onClick={() => handleLoadSearch(search)}
+                      // onClick={() => handleLoadSearch(search)}
                     >
                       Load
                     </Button>
@@ -725,7 +567,7 @@ export default function TwitchScraperUI() {
               </CardContent>
             </Card>
           )}
-        </TabsContent>
+        </TabsContent> */}
       </Tabs>
     </div>
   );

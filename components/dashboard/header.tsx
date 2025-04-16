@@ -16,28 +16,26 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import type User from "../../app/types/user";
-import {  logout } from "../../lib/utils/auth";
 import { useRouter } from "next/navigation";
-import { useUserContext } from "@/app/context/UserContext"; // interface DashboardUIProps {
-//   user: User; // You will get the user prop from the server-side page
-// }
+import { useEffect, useState } from "react";
+import { getUserData } from "@/utils/auth";
+import { handleLogout } from "./logout";
 
-export default function DashboardHeader() {
-  const { setSession, setUser, user } = useUserContext()!;
+export default function DashboardHeader({ user }: { user: User | null }) {
   const router = useRouter();
-  console.log(user);
-  if (!user) {
-    return <div>Loading...</div>;
-  }
+
   const initials = user?.first_name;
 
-  console.log(initials);
+  const handleLogoutClick = async () => {
+    const { error } = await handleLogout();
 
-  const handleLogout = async () => {
-    await logout();
-    setSession(null);
-    setUser(null);
-    router.push("/login");
+    if (error) {
+      console.error("Logout failed:", error);
+      return;
+    }
+
+    // Redirect to login page after logout
+    router.push("/");
   };
   return (
     <header className="sticky top-0 z-30 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -67,8 +65,8 @@ export default function DashboardHeader() {
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                 <Avatar className="h-8 w-8">
                   <AvatarImage
-                    src={`https://avatar.vercel.sh/${user.id}`}
-                    alt={user.first_name}
+                    src={`https://avatar.vercel.sh/${user?.id}`}
+                    alt={user?.first_name}
                   />
                   <AvatarFallback>{initials}</AvatarFallback>
                 </Avatar>
@@ -78,12 +76,12 @@ export default function DashboardHeader() {
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm font-medium leading-none">
-                    {user.first_name}
+                    {user?.first_name}
                   </p>
                   <p className="text-xs leading-none text-muted-foreground">
-                    {user.email}
+                    {user?.email}
                   </p>
-                  {user.is_subscribed ? (
+                  {user?.is_subscribed ? (
                     <Badge className="mt-1 w-fit bg-blue-700">
                       Premium Plan
                     </Badge>
@@ -109,7 +107,7 @@ export default function DashboardHeader() {
                 className="cursor-pointer"
                 onSelect={(e) => {
                   e.preventDefault();
-                  handleLogout();
+                  handleLogoutClick();
                 }}
               >
                 Log out

@@ -8,11 +8,9 @@ import {
 } from "@/components/ui/card";
 import { ArrowUpRight, Users, Search, Clock, BarChart3 } from "lucide-react";
 import Link from "next/link";
-import { getUserData } from "@/lib/utils/auth";
-import { useUserSession } from "../context/UserSessionContext";
 import DashboardUi from "@/components/dashboard/DashboardUi";
-import DashboardPageWrapper from "@/components/dashboard/DashboardPageWrapper";
-
+// import DashboardPageWrapper from "@/components/dashboard/DashboardPageWrapper";
+// import { getUser } from "@/utils/auth";
 
 export const metadata: Metadata = {
   title: "Dashboard | Leadify",
@@ -20,7 +18,5 @@ export const metadata: Metadata = {
 };
 
 export default async function DashboardPage() {
-  return (
-      <DashboardUi />
-  );
+  return <DashboardUi />;
 }

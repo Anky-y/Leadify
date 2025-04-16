@@ -1,46 +1,34 @@
-// components/DashboardPageWrapper.tsx
-"use client";
+// // components/DashboardPageWrapper.tsx
+// "use client";
 
-import { useRouter } from "next/navigation";
-import { ReactNode, useEffect } from "react";
-import { useUserContext } from "@/app/context/UserContext"; // interface DashboardUIProps {
-import { LoadingPage } from "../loading-page";
+// import { useRouter } from "next/navigation";
+// import { ReactNode, useEffect } from "react";
+// import LoadingScreen from "../loading-screen";
 
-export default function DashboardPageWrapper({
-  children,
-}: {
-  children: ReactNode;
-}) {
-  const router = useRouter();
-  const { session, loading } = useUserContext();
+// export default function DashboardPageWrapper({
+//   children,
+// }: {
+//   children: ReactNode;
+// }) {
+//   const router = useRouter();
+//   const { session, loading } = useUserContext();
 
-  useEffect(() => {
-    console.log("inside use effect, session:", session);
-    if (session === null) {
-      console.log("Session is null, redirecting to login...");
-      router.replace("/login");
-    }
-  }, [session]);
+//   // If session is null after loading, redirect to login
+//   useEffect(() => {
+//     if (session === null) {
+//       router.replace("/login"); // Replace to prevent back navigation to protected route
+//     }
+//   }, [session, loading, router]);
 
-  console.log(session);
+//   // If loading, show a loading screen
+//   if (loading) {
+//     return <LoadingScreen />;
+//   }
 
-  // if (session.session === null) {
-  //   return (
-  //     <LoadingPage
-  //       title="Loading Dashboard"
-  //       subtitle="Please wait while we prepare your content..."
-  //     />
-  //   );
-  // }
+//   // If session exists, prevent rendering guest content
+//   if (session === null) {
+//     return <LoadingScreen />; 
+//   }
 
-  if (loading) {
-    return (
-      <LoadingPage
-        title="Loading Dashboard"
-        subtitle="Please wait while we prepare your content..."
-      />
-    );
-  }
-
-  return <>{children}</>;
-}
+//   return <>{children}</>;
+// }
