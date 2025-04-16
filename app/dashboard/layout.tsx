@@ -9,6 +9,7 @@ import { createClient } from "@/utils/supabase";
 import { redirect } from "next/navigation";
 import { getUserData } from "@/utils/auth";
 import User from "../types/user";
+import { UserProvider } from "../context/UserContext";
 
 export const metadata: Metadata = {
   title: "Dashboard | Leadify",
@@ -28,7 +29,6 @@ export default async function DashboardLayout({
   }
   // const user = useUser();
   return (
-    // <UserProvider user={user}>
     <div className="flex min-h-screen flex-col">
       <DashboardHeader user={user} />
       <div className="flex">
@@ -38,6 +38,5 @@ export default async function DashboardLayout({
         </main>
       </div>
     </div>
-    // </UserProvider>
   );
 }

@@ -17,14 +17,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useEffect, useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import User from "@/app/types/user";
+import { useUser } from "@/app/context/UserContext";
 
 export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const [user, setUser] = useState<User | null>();
-  // useEffect(() => {
-  //    fetchUser()
-  // }, []);
+  const user = useUser();
+
   const handleProfileUpdate = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);

@@ -86,19 +86,23 @@ export default function TwitchScraperUI({
     setIsLoading(true);
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/", {
-        method: "GET",
-        // headers: {
-        //   "Content-Type": "application/json",
-        // },
-        // body: JSON.stringify({
-        //   // searchTerm,
-        //   language,
-        //   category,
-        //   minFollowers,
-        //   minViewers,
-        // }),
-      });
+      const response = await fetch(
+        "https://webhook.site/f78861f0-873c-4e35-b62f-0c49b6ef617e",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            // searchTerm,
+            language,
+            category,
+            minFollowers,
+            minViewers,
+            test: "with proxy",
+          }),
+        }
+      );
 
       console.log(response);
 

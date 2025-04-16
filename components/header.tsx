@@ -10,9 +10,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { usePathname } from "next/navigation";
 // import { getUser } from "../app/auth"
 import { useEffect, useState } from "react";
-import { getAuthUser, getUserData } from "@/utils/auth";
-import User from "@/app/types/user";
-import AuthUser from "@/app/types/userAuth";
+import { useUser } from "@/app/context/UserContext";
 
 /*************  ✨ Windsurf Command ⭐  *************/
 /**
@@ -29,7 +27,7 @@ import AuthUser from "@/app/types/userAuth";
   const [session, setSession] = useState<any>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
-  const [user, setUser] = useState<User | null>(null);
+  const user = useUser();
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -64,15 +62,6 @@ import AuthUser from "@/app/types/userAuth";
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, [isMenuOpen]);
-  useEffect(() => {
-    const fetchUser = async () => {
-      const authUser = await getUserData();
-      setUser(authUser);
-    };
-
-    fetchUser();
-  }, []);
-
   // Close menu when route changes
   useEffect(() => {
     setIsMenuOpen(false);
