@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button"
-import { ThemeToggle } from "@/components/theme-toggle"
-import { Bell, HelpCircle } from "lucide-react"
+import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { Bell, HelpCircle } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,32 +10,39 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { logout } from "@/app/auth"
-import Link from "next/link"
-import { Badge } from "@/components/ui/badge"
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+// import { logout } from "@/app/auth"
+import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
+import type User from "../../app/types/user";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { getUserData } from "@/utils/auth";
+import { handleLogout } from "./logout";
 
-interface DashboardHeaderProps {
-  user: {
-    id: string
-    email: string
-    name: string
-    subscribed: boolean
-  }
-}
+export default function DashboardHeader({ user }: { user: User | null }) {
+  const router = useRouter();
 
-export default function DashboardHeader({ user }: DashboardHeaderProps) {
-  const initials = user.name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
+  const initials = user?.first_name;
 
+  const handleLogoutClick = async () => {
+    const { error } = await handleLogout();
+
+    if (error) {
+      console.error("Logout failed:", error);
+      return;
+    }
+
+    // Redirect to login page after logout
+    router.push("/");
+  };
   return (
     <header className="sticky top-0 z-30 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center justify-between">
-        <div className="hidden md:block">{/* Empty div to maintain spacing */}</div>
+        <div className="hidden md:block">
+          {/* Empty div to maintain spacing */}
+        </div>
 
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" className="relative">
@@ -57,7 +64,10 @@ export default function DashboardHeader({ user }: DashboardHeaderProps) {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={`https://avatar.vercel.sh/${user.id}`} alt={user.name} />
+                  <AvatarImage
+                    src={`https://avatar.vercel.sh/${user?.id}`}
+                    alt={user?.first_name}
+                  />
                   <AvatarFallback>{initials}</AvatarFallback>
                 </Avatar>
               </Button>
@@ -65,10 +75,16 @@ export default function DashboardHeader({ user }: DashboardHeaderProps) {
             <DropdownMenuContent className="w-56" align="end" forceMount>
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">{user.name}</p>
-                  <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
-                  {user.subscribed ? (
-                    <Badge className="mt-1 w-fit bg-blue-700">Premium Plan</Badge>
+                  <p className="text-sm font-medium leading-none">
+                    {user?.first_name}
+                  </p>
+                  <p className="text-xs leading-none text-muted-foreground">
+                    {user?.email}
+                  </p>
+                  {user?.is_subscribed ? (
+                    <Badge className="mt-1 w-fit bg-blue-700">
+                      Premium Plan
+                    </Badge>
                   ) : (
                     <Badge className="mt-1 w-fit" variant="outline">
                       Free Plan
@@ -90,8 +106,8 @@ export default function DashboardHeader({ user }: DashboardHeaderProps) {
               <DropdownMenuItem
                 className="cursor-pointer"
                 onSelect={(e) => {
-                  e.preventDefault()
-                  logout()
+                  e.preventDefault();
+                  handleLogoutClick();
                 }}
               >
                 Log out
@@ -101,5 +117,5 @@ export default function DashboardHeader({ user }: DashboardHeaderProps) {
         </div>
       </div>
     </header>
-  )
+  );
 }

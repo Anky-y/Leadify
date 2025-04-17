@@ -1,11 +1,27 @@
-import Header from "@/components/header"
-import Footer from "@/components/footer"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { CheckCircle, ChevronRight, ArrowRight, Star, Users, TrendingUp, Shield, Zap, Globe } from "lucide-react"
-import Image from "next/image"
-import Link from "next/link"
+import Header from "@/components/header";
+import Footer from "@/components/footer";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  CheckCircle,
+  ChevronRight,
+  ArrowRight,
+  Star,
+  Users,
+  TrendingUp,
+  Shield,
+  Zap,
+  Globe,
+} from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
 
 export default function LandingPage() {
   return (
@@ -25,8 +41,9 @@ export default function LandingPage() {
                     Find the Perfect Content Creators for Your Brand
                   </h1>
                   <p className="max-w-[600px] text-gray-500 md:text-xl">
-                    Leadify helps you discover, connect with, and manage relationships with the right content creators
-                    to amplify your brand's message.
+                    Leadify helps you discover, connect with, and manage
+                    relationships with the right content creators to amplify
+                    your brand's message.
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 min-[400px]:flex-row">
@@ -37,7 +54,10 @@ export default function LandingPage() {
                     </Button>
                   </Link>
                   <Link href="/features">
-                    <Button variant="outline" className="border-blue-200 text-blue-700 hover:bg-blue-50">
+                    <Button
+                      variant="outline"
+                      className="border-blue-200 text-blue-700 hover:bg-blue-50"
+                    >
                       See How It Works
                     </Button>
                   </Link>
@@ -74,21 +94,20 @@ export default function LandingPage() {
               <p className="text-gray-500 text-sm uppercase font-medium tracking-wider">
                 Trusted by marketing teams at
               </p>
-              <div className="flex flex-wrap justify-center gap-8 md:gap-12 lg:gap-16">
+              <div className="flex flex-wrap justify-center gap-12 md:gap-12 lg:gap-16">
                 <div className="flex items-center justify-center">
-                  <div className="h-8 w-auto text-gray-400 text-xl font-bold">ACME Inc.</div>
-                </div>
-                <div className="flex items-center justify-center">
-                  <div className="h-8 w-auto text-gray-400 text-xl font-bold">TechCorp</div>
-                </div>
-                <div className="flex items-center justify-center">
-                  <div className="h-8 w-auto text-gray-400 text-xl font-bold">GlobalBrand</div>
-                </div>
-                <div className="flex items-center justify-center">
-                  <div className="h-8 w-auto text-gray-400 text-xl font-bold">FutureTech</div>
-                </div>
-                <div className="flex items-center justify-center">
-                  <div className="h-8 w-auto text-gray-400 text-xl font-bold">InnovateCo</div>
+                  <div className="h-8 m-4 w-auto text-gray-400 text-xl font-bold">
+                    ThreeCloverMedia
+                  </div>
+                  <div className="h-8 m-4 w-auto text-gray-400 text-xl font-bold">
+                    Organix
+                  </div>
+                  <div className="h-8 m-4 w-auto text-gray-400 text-xl font-bold">
+                    Nexus Ai
+                  </div>
+                  <div className="h-8 m-4 w-auto text-gray-400 text-xl font-bold">
+                    Fulfilledge
+                  </div>
                 </div>
               </div>
             </div>
@@ -108,7 +127,8 @@ export default function LandingPage() {
                   Why Choose Leadify?
                 </h2>
                 <p className="max-w-[900px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                  Our platform offers unique advantages to help you succeed in your influencer marketing campaigns.
+                  Our platform offers unique advantages to help you succeed in
+                  your influencer marketing campaigns.
                 </p>
               </div>
             </div>
@@ -119,12 +139,16 @@ export default function LandingPage() {
                     <TrendingUp className="h-5 w-5 text-blue-700" />
                   </div>
                   <CardTitle>Data-Driven Decisions</CardTitle>
-                  <CardDescription>Make informed choices based on comprehensive analytics and insights</CardDescription>
+                  <CardDescription>
+                    Make informed choices based on comprehensive analytics and
+                    insights
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-gray-500">
-                    Access detailed metrics on content creators, including engagement rates, audience demographics, and
-                    performance trends to identify the perfect partners for your brand.
+                    Access detailed metrics on content creators, including
+                    engagement rates, audience demographics, and performance
+                    trends to identify the perfect partners for your brand.
                   </p>
                 </CardContent>
               </Card>
@@ -134,12 +158,15 @@ export default function LandingPage() {
                     <Zap className="h-5 w-5 text-purple-700" />
                   </div>
                   <CardTitle>Time-Saving Automation</CardTitle>
-                  <CardDescription>Streamline your workflow with powerful automation tools</CardDescription>
+                  <CardDescription>
+                    Streamline your workflow with powerful automation tools
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-gray-500">
-                    Automate repetitive tasks like data collection, filtering, and outreach to focus on building
-                    meaningful relationships with content creators.
+                    Automate repetitive tasks like data collection, filtering,
+                    and outreach to focus on building meaningful relationships
+                    with content creators.
                   </p>
                 </CardContent>
               </Card>
@@ -149,12 +176,15 @@ export default function LandingPage() {
                     <Globe className="h-5 w-5 text-indigo-700" />
                   </div>
                   <CardTitle>Global Reach</CardTitle>
-                  <CardDescription>Connect with content creators from around the world</CardDescription>
+                  <CardDescription>
+                    Connect with content creators from around the world
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-gray-500">
-                    Discover creators in multiple languages and regions to expand your brand's global presence and
-                    connect with diverse audiences.
+                    Discover creators in multiple languages and regions to
+                    expand your brand's global presence and connect with diverse
+                    audiences.
                   </p>
                 </CardContent>
               </Card>
@@ -164,12 +194,15 @@ export default function LandingPage() {
                     <Users className="h-5 w-5 text-green-700" />
                   </div>
                   <CardTitle>Team Collaboration</CardTitle>
-                  <CardDescription>Work together seamlessly with your marketing team</CardDescription>
+                  <CardDescription>
+                    Work together seamlessly with your marketing team
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-gray-500">
-                    Share saved searches, notes, and outreach history with team members to ensure everyone is aligned
-                    and working efficiently.
+                    Share saved searches, notes, and outreach history with team
+                    members to ensure everyone is aligned and working
+                    efficiently.
                   </p>
                 </CardContent>
               </Card>
@@ -179,12 +212,15 @@ export default function LandingPage() {
                     <Shield className="h-5 w-5 text-amber-700" />
                   </div>
                   <CardTitle>Compliance & Privacy</CardTitle>
-                  <CardDescription>Stay compliant with data protection regulations</CardDescription>
+                  <CardDescription>
+                    Stay compliant with data protection regulations
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-gray-500">
-                    Our platform is designed with privacy in mind, ensuring that all data collection and processing
-                    complies with relevant regulations.
+                    Our platform is designed with privacy in mind, ensuring that
+                    all data collection and processing complies with relevant
+                    regulations.
                   </p>
                 </CardContent>
               </Card>
@@ -194,12 +230,15 @@ export default function LandingPage() {
                     <ArrowRight className="h-5 w-5 text-pink-700" />
                   </div>
                   <CardTitle>Seamless Integrations</CardTitle>
-                  <CardDescription>Connect with your favorite tools and platforms</CardDescription>
+                  <CardDescription>
+                    Connect with your favorite tools and platforms
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-gray-500">
-                    Integrate with popular CRM systems, email marketing platforms, and spreadsheet applications to
-                    incorporate Leadify into your existing workflow.
+                    Integrate with popular CRM systems, email marketing
+                    platforms, and spreadsheet applications to incorporate
+                    Leadify into your existing workflow.
                   </p>
                 </CardContent>
               </Card>
@@ -221,8 +260,9 @@ export default function LandingPage() {
                     Powerful Tools for Influencer Discovery
                   </h2>
                   <p className="max-w-[600px] text-gray-500 md:text-xl/relaxed">
-                    Our platform provides everything you need to find, analyze, and connect with the perfect content
-                    creators for your brand.
+                    Our platform provides everything you need to find, analyze,
+                    and connect with the perfect content creators for your
+                    brand.
                   </p>
                 </div>
                 <div className="space-y-4">
@@ -231,9 +271,12 @@ export default function LandingPage() {
                       <CheckCircle className="h-4 w-4" />
                     </div>
                     <div>
-                      <h3 className="font-medium">Advanced Search & Filtering</h3>
+                      <h3 className="font-medium">
+                        Advanced Search & Filtering
+                      </h3>
                       <p className="text-sm text-gray-500">
-                        Find creators based on language, follower count, viewer count, content type, and more.
+                        Find creators based on language, follower count, viewer
+                        count, content type, and more.
                       </p>
                     </div>
                   </div>
@@ -244,7 +287,8 @@ export default function LandingPage() {
                     <div>
                       <h3 className="font-medium">Comprehensive Analytics</h3>
                       <p className="text-sm text-gray-500">
-                        Access detailed metrics and insights to make data-driven decisions.
+                        Access detailed metrics and insights to make data-driven
+                        decisions.
                       </p>
                     </div>
                   </div>
@@ -253,9 +297,12 @@ export default function LandingPage() {
                       <CheckCircle className="h-4 w-4" />
                     </div>
                     <div>
-                      <h3 className="font-medium">Contact Information Access</h3>
+                      <h3 className="font-medium">
+                        Contact Information Access
+                      </h3>
                       <p className="text-sm text-gray-500">
-                        Get public contact details and social media profiles to streamline your outreach.
+                        Get public contact details and social media profiles to
+                        streamline your outreach.
                       </p>
                     </div>
                   </div>
@@ -266,7 +313,8 @@ export default function LandingPage() {
                     <div>
                       <h3 className="font-medium">Data Export & Integration</h3>
                       <p className="text-sm text-gray-500">
-                        Export data in multiple formats and integrate with your existing tools.
+                        Export data in multiple formats and integrate with your
+                        existing tools.
                       </p>
                     </div>
                   </div>
@@ -288,7 +336,9 @@ export default function LandingPage() {
                       <div className="h-3 w-3 rounded-full bg-red-500"></div>
                       <div className="h-3 w-3 rounded-full bg-yellow-500"></div>
                       <div className="h-3 w-3 rounded-full bg-green-500"></div>
-                      <div className="ml-2 text-sm font-medium text-gray-500">Twitch Scraper</div>
+                      <div className="ml-2 text-sm font-medium text-gray-500">
+                        Twitch Scraper
+                      </div>
                     </div>
                   </div>
                   <div className="p-4">
@@ -324,7 +374,8 @@ export default function LandingPage() {
                   What Our Customers Say
                 </h2>
                 <p className="max-w-[900px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                  Don't just take our word for it. Here's what marketing professionals have to say about Leadify.
+                  Don't just take our word for it. Here's what marketing
+                  professionals have to say about Leadify.
                 </p>
               </div>
             </div>
@@ -337,7 +388,9 @@ export default function LandingPage() {
                     </div>
                     <div>
                       <div className="font-medium">Jane Doe</div>
-                      <div className="text-sm text-gray-500">Marketing Director, TechCorp</div>
+                      <div className="text-sm text-gray-500">
+                        Marketing Director, TechCorp
+                      </div>
                     </div>
                   </div>
                   <div className="mt-4 flex text-yellow-400">
@@ -348,8 +401,10 @@ export default function LandingPage() {
                     <Star className="h-4 w-4 fill-current" />
                   </div>
                   <blockquote className="mt-4 text-gray-500">
-                    "Leadify has transformed our influencer marketing strategy. We've been able to find creators who
-                    truly align with our brand values, resulting in more authentic partnerships and higher ROI."
+                    "Leadify has transformed our influencer marketing strategy.
+                    We've been able to find creators who truly align with our
+                    brand values, resulting in more authentic partnerships and
+                    higher ROI."
                   </blockquote>
                 </CardContent>
               </Card>
@@ -361,7 +416,9 @@ export default function LandingPage() {
                     </div>
                     <div>
                       <div className="font-medium">Michael Smith</div>
-                      <div className="text-sm text-gray-500">Growth Lead, StartupX</div>
+                      <div className="text-sm text-gray-500">
+                        Growth Lead, StartupX
+                      </div>
                     </div>
                   </div>
                   <div className="mt-4 flex text-yellow-400">
@@ -372,8 +429,10 @@ export default function LandingPage() {
                     <Star className="h-4 w-4 fill-current" />
                   </div>
                   <blockquote className="mt-4 text-gray-500">
-                    "The time we save using Leadify is incredible. What used to take days of manual research now takes
-                    minutes. The advanced filtering options help us pinpoint exactly the type of creators we need."
+                    "The time we save using Leadify is incredible. What used to
+                    take days of manual research now takes minutes. The advanced
+                    filtering options help us pinpoint exactly the type of
+                    creators we need."
                   </blockquote>
                 </CardContent>
               </Card>
@@ -385,7 +444,9 @@ export default function LandingPage() {
                     </div>
                     <div>
                       <div className="font-medium">Sarah Johnson</div>
-                      <div className="text-sm text-gray-500">CMO, GlobalBrand</div>
+                      <div className="text-sm text-gray-500">
+                        CMO, GlobalBrand
+                      </div>
                     </div>
                   </div>
                   <div className="mt-4 flex text-yellow-400">
@@ -396,8 +457,10 @@ export default function LandingPage() {
                     <Star className="h-4 w-4 fill-current" />
                   </div>
                   <blockquote className="mt-4 text-gray-500">
-                    "As a global brand, we needed a solution that could help us find creators in multiple markets and
-                    languages. Leadify delivers exactly that, with reliable data and excellent support."
+                    "As a global brand, we needed a solution that could help us
+                    find creators in multiple markets and languages. Leadify
+                    delivers exactly that, with reliable data and excellent
+                    support."
                   </blockquote>
                 </CardContent>
               </Card>
@@ -414,8 +477,8 @@ export default function LandingPage() {
                   Ready to Transform Your Influencer Marketing?
                 </h2>
                 <p className="max-w-[600px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                  Choose the plan that works best for your business needs. All plans include access to our core
-                  features.
+                  Choose the plan that works best for your business needs. All
+                  plans include access to our core features.
                 </p>
               </div>
               <div className="flex flex-col gap-2 min-[400px]:flex-row">
@@ -426,7 +489,10 @@ export default function LandingPage() {
                   </Button>
                 </Link>
                 <Link href="/pricing">
-                  <Button variant="outline" className="border-blue-200 text-blue-700 hover:bg-blue-50">
+                  <Button
+                    variant="outline"
+                    className="border-blue-200 text-blue-700 hover:bg-blue-50"
+                  >
                     View Pricing
                   </Button>
                 </Link>
@@ -451,5 +517,5 @@ export default function LandingPage() {
       </main>
       <Footer />
     </div>
-  )
+  );
 }

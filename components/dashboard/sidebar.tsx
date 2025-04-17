@@ -123,7 +123,7 @@ export default function DashboardSidebar() {
         )}
       >
         <div className="p-4 border-b">
-          <Link href="/dashboard" className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2">
             <Image
               src="/images/leadifylogo.png"
               alt="Leadify Logo"

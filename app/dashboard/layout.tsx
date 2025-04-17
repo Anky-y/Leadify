@@ -1,8 +1,15 @@
 import type React from "react";
 import type { Metadata } from "next";
-import { requireAuth } from "@/app/auth";
+// import { requireAuth } from "@/app/auth";
 import DashboardSidebar from "@/components/dashboard/sidebar";
 import DashboardHeader from "@/components/dashboard/header";
+
+// import DashboardPageWrapper from "@/components/dashboard/DashboardPageWrapper";
+import { createClient } from "@/utils/supabase";
+import { redirect } from "next/navigation";
+import { getUserData } from "@/utils/auth";
+import User from "../types/user";
+import { UserProvider } from "../context/UserContext";
 
 export const metadata: Metadata = {
   title: "Dashboard | Leadify",
@@ -14,9 +21,13 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // This will redirect to login if user is not authenticated
-  const user = await requireAuth();
-
+  // Fetch user data on component mount
+  const user: User | null = await getUserData();
+  if (!user) {
+    // Redirect to login if no user is found
+    return redirect("/login");
+  }
+  // const user = useUser();
   return (
     <div className="flex min-h-screen flex-col">
       <DashboardHeader user={user} />

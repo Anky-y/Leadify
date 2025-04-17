@@ -1,29 +1,48 @@
-"use client"
+"use client";
 
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { DiscordLogo, FacebookLogo, InstagramLogo, TwitterLogo, YoutubeLogo, EnvelopeSimple } from "./social-icons"
-import { ExternalLink, Eye, EyeOff } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { useState } from "react"
-import type { TwitchData } from "./types"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DiscordLogo,
+  FacebookLogo,
+  InstagramLogo,
+  TwitterLogo,
+  YoutubeLogo,
+  EnvelopeSimple,
+} from "./social-icons";
+import { ExternalLink, Eye, EyeOff } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import type { TwitchData } from "./types";
 
 interface TwitchDataTableProps {
-  data: TwitchData[]
-  subscribed: boolean
+  data: TwitchData[];
+  subscribed: boolean;
 }
 
-export default function TwitchDataTable({ data, subscribed }: TwitchDataTableProps) {
+export default function TwitchDataTable({
+  data,
+  subscribed,
+}: TwitchDataTableProps) {
   // State to track which emails are revealed
-  const [revealedEmails, setRevealedEmails] = useState<Record<string, boolean>>({})
+  const [revealedEmails, setRevealedEmails] = useState<Record<string, boolean>>(
+    {}
+  );
 
   // Toggle email visibility for a specific row
   const toggleEmailVisibility = (id: string) => {
     setRevealedEmails((prev) => ({
       ...prev,
       [id]: !prev[id],
-    }))
-  }
+    }));
+  };
 
   return (
     <div className="border rounded-lg overflow-hidden">
@@ -43,7 +62,10 @@ export default function TwitchDataTable({ data, subscribed }: TwitchDataTablePro
           <TableBody>
             {data.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                <TableCell
+                  colSpan={7}
+                  className="text-center py-8 text-gray-500"
+                >
                   No data found. Try adjusting your search or filters.
                 </TableCell>
               </TableRow>
@@ -64,8 +86,12 @@ export default function TwitchDataTable({ data, subscribed }: TwitchDataTablePro
                       </a>
                     </div>
                   </TableCell>
-                  <TableCell className="text-right">{row.followers.toLocaleString()}</TableCell>
-                  <TableCell className="text-right">{row.viewers.toLocaleString()}</TableCell>
+                  <TableCell className="text-right">
+                    {row.followers.toLocaleString()}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {row.viewers.toLocaleString()}
+                  </TableCell>
                   <TableCell>
                     <Badge variant="outline">{row.language}</Badge>
                   </TableCell>
@@ -79,7 +105,11 @@ export default function TwitchDataTable({ data, subscribed }: TwitchDataTablePro
                           href={subscribed ? row.discord : "#"}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className={`${subscribed ? "text-gray-500 hover:text-indigo-600" : "text-gray-300 cursor-not-allowed"}`}
+                          className={`${
+                            subscribed
+                              ? "text-gray-500 hover:text-indigo-600"
+                              : "text-gray-300 cursor-not-allowed"
+                          }`}
                           title={subscribed ? "Discord" : "Upgrade to view"}
                           onClick={(e) => !subscribed && e.preventDefault()}
                         >
@@ -113,7 +143,11 @@ export default function TwitchDataTable({ data, subscribed }: TwitchDataTablePro
                           href={subscribed ? row.facebook : "#"}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className={`${subscribed ? "text-gray-500 hover:text-blue-600" : "text-gray-300 cursor-not-allowed"}`}
+                          className={`${
+                            subscribed
+                              ? "text-gray-500 hover:text-blue-600"
+                              : "text-gray-300 cursor-not-allowed"
+                          }`}
                           title={subscribed ? "Facebook" : "Upgrade to view"}
                           onClick={(e) => !subscribed && e.preventDefault()}
                         >
@@ -125,7 +159,11 @@ export default function TwitchDataTable({ data, subscribed }: TwitchDataTablePro
                           href={subscribed ? row.instagram : "#"}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className={`${subscribed ? "text-gray-500 hover:text-pink-600" : "text-gray-300 cursor-not-allowed"}`}
+                          className={`${
+                            subscribed
+                              ? "text-gray-500 hover:text-pink-600"
+                              : "text-gray-300 cursor-not-allowed"
+                          }`}
                           title={subscribed ? "Instagram" : "Upgrade to view"}
                           onClick={(e) => !subscribed && e.preventDefault()}
                         >
@@ -138,7 +176,10 @@ export default function TwitchDataTable({ data, subscribed }: TwitchDataTablePro
                     {row.email ? (
                       subscribed || revealedEmails[row.id] ? (
                         <div className="flex items-center">
-                          <a href={`mailto:${row.email}`} className="text-blue-600 hover:underline flex items-center">
+                          <a
+                            href={`mailto:${row.email}`}
+                            className="text-blue-600 hover:underline flex items-center"
+                          >
                             <EnvelopeSimple className="h-4 w-4 mr-1" />
                             <span className="text-xs">{row.email}</span>
                           </a>
@@ -171,7 +212,9 @@ export default function TwitchDataTable({ data, subscribed }: TwitchDataTablePro
                         </div>
                       )
                     ) : (
-                      <span className="text-gray-400 text-xs">Not available</span>
+                      <span className="text-gray-400 text-xs">
+                        Not available
+                      </span>
                     )}
                   </TableCell>
                 </TableRow>
@@ -181,5 +224,5 @@ export default function TwitchDataTable({ data, subscribed }: TwitchDataTablePro
         </Table>
       </div>
     </div>
-  )
+  );
 }
