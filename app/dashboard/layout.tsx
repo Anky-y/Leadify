@@ -10,7 +10,6 @@ import { redirect } from "next/navigation";
 import { getUserData } from "@/utils/auth";
 import User from "../types/user";
 import { UserProvider } from "../context/UserContext";
-import DashboardUi from "@/components/dashboard/DashboardUi";
 
 export const metadata: Metadata = {
   title: "Dashboard | Leadify",
@@ -35,7 +34,6 @@ export default async function DashboardLayout({
       <div className="flex">
         <DashboardSidebar />
         <main className="flex-1 p-4 md:p-6 overflow-auto md:ml-64">
-          <DashboardUi user={user} />
           {children}
         </main>
       </div>

@@ -15,15 +15,13 @@ import {
   CardTitle,
 } from "../ui/card";
 import User from "../../app/types/user";
-import { useEffect, useState } from "react";
-import type { Session as SupabaseSession } from "@supabase/supabase-js";
-import { getUserData } from "@/utils/auth";
 import { useUser } from "@/app/context/UserContext";
 // import { useUser } from "@/app/context/UserContext";
 // interface DashboardUIProps {
 //   user: User; // You will get the user prop from the server-side page
 // }
-export default function DashboardUi({ user }: { user: User | null }) {
+export default function DashboardUi() {
+  const user: User | null = useUser();
   return (
     <div className="space-y-6">
       <div>
