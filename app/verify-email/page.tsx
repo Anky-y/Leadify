@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Mail, RefreshCw } from "lucide-react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { resendEmail } from "./verify-email-functions";
 
 export default function VerifyEmailPageClient() {
@@ -20,7 +20,7 @@ export default function VerifyEmailPageClient() {
   const email = searchParams.get("email") || "your email";
 
   const [isResending, setIsResending] = useState(false);
-  const [secondsLeft, setSecondsLeft] = useState(10);
+  const [secondsLeft, setSecondsLeft] = useState(60);
 
   //   const router = useRouter();
 

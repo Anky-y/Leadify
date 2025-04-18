@@ -12,31 +12,35 @@ export default function VerifyEmailPageApi() {
   console.log("in email verifier");
 
   useEffect(() => {
-    const code = searchParams.get("code");
+    const tokenHash = searchParams.get("token_hash");
+    console.log("Token hash:", tokenHash);
     // utils/parseHash.ts
     const { error } = parseHashParams(window.location.hash);
 
-    console.log("Code from email verification:", code);
-
     console.log(error);
-    if (!code) {
+    if (!tokenHash) {
       setStatus("error");
-      setErrorMessage("Invalid token.");
-      if (error && error === "access_denied") {
-        console.log("redirecting to invalid link");
-        router.push("/dashboard");
-      }
+      setErrorMessage(error);
+      router.push("/api/invalid-link");
       return;
+    }
+    if (error) {
+      console.log(error);
+      if (error === "access_denied") {
+        console.log("redirecting to invalid link");
+        router.push("/api/invalid-link");
+      }
     }
     const verifyEmail = async () => {
       try {
-        const result = await verifyEmailCode(code);
+        const result = await verifyEmailCode(tokenHash);
 
         if (result.success) {
           setStatus("success");
           router.push("/dashboard"); // Redirect to dashboard after successful verification
         }
       } catch (error: any) {
+        console.log(error);
         setStatus("error");
       }
     };

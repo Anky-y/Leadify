@@ -1,6 +1,5 @@
-"use server";
 
-import { createClient } from "@/utils/supabase";
+import { createClient } from "@/utils/supabase-browser";
 import { redirect } from "next/navigation";
 
 export async function handleSignup(formData: FormData) {
@@ -9,7 +8,7 @@ export async function handleSignup(formData: FormData) {
   const firstName = formData.get("first-name") as string;
   const lastName = formData.get("last-name") as string;
 
-  const supabase = await createClient();
+  const supabase = createClient();
 
   const { error, data } = await supabase.auth.signUp({
     email,

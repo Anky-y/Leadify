@@ -1,21 +1,19 @@
 import { createClient } from "@/utils/supabase-browser";
 
-export async function verifyEmailCode(code: string) {
-  if (!code) throw new Error("Code is required.");
+export async function verifyEmailCode(token_hash: string | null) {
+  if (!token_hash) throw new Error("Code is required.");
 
   const supabase = createClient();
 
-  const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-
+  const { data, error } = await supabase.auth.verifyOtp({
+    token_hash: token_hash,
+    type: "email",
+  });
+  console.log(token_hash);
+  console.log("Data from verifyEmailCode:", data);
+  console.log(error);
   if (error) {
     throw new Error(error.message);
-  }
-
-  if (data.session) {
-    await supabase.auth.setSession({
-      access_token: data.session.access_token,
-      refresh_token: data.session.refresh_token,
-    });
   }
 
   return { success: true, user: data.user };

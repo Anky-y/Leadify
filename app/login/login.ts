@@ -1,12 +1,10 @@
-"use server";
-
-import { createClient } from "@/utils/supabase";
+import { createClient } from "@/utils/supabase-browser";
 
 export async function handleLogin(
   email: string,
   password: string
 ): Promise<{ error: string | null }> {
-  const supabase = await createClient();
+  const supabase = createClient();
 
   const { error } = await supabase.auth.signInWithPassword({
     email,
