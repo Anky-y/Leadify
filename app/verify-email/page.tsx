@@ -13,16 +13,16 @@ import {
 import { Mail, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-// import {  resendEmail } from "./verify-email-functions";
+import { resendEmail } from "./verify-email-functions";
 
 export default function VerifyEmailPageClient() {
   const searchParams = useSearchParams();
   const email = searchParams.get("email") || "your email";
 
   const [isResending, setIsResending] = useState(false);
-  const [secondsLeft, setSecondsLeft] = useState(60);
+  const [secondsLeft, setSecondsLeft] = useState(10);
 
-  const router = useRouter();
+  //   const router = useRouter();
 
   // Countdown for resend button
   useEffect(() => {
@@ -35,9 +35,6 @@ export default function VerifyEmailPageClient() {
     return () => clearInterval(interval);
   }, [secondsLeft]);
 
-//   const handleResendEmail = async () =>
-    // resendEmail(setIsResending, setSecondsLeft, email);
-
   //   useEffect(() => {
   //     const checkEmailVerificationData = async () => {
   //       const user = await checkEmailVerification();
@@ -49,6 +46,14 @@ export default function VerifyEmailPageClient() {
 
   //     return () => clearInterval(interval);
   //   }, [router]);
+  const handleResendEmail = async () => {
+    setIsResending(true);
+    resendEmail(email);
+    setTimeout(() => {
+      setIsResending(false);
+      setSecondsLeft(60);
+    }, 1500);
+  };
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-blue-50 to-purple-50 p-4">
@@ -78,7 +83,7 @@ export default function VerifyEmailPageClient() {
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
           <Button
-            // onClick={handleResendEmail}
+            onClick={handleResendEmail}
             variant="outline"
             className="w-full"
             disabled={secondsLeft > 0 || isResending}

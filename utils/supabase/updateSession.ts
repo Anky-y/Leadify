@@ -55,24 +55,24 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // 3. Verify-email protection logic
-  if (pathname === "/verify-email") {
-    const url = request.nextUrl.clone();
+  // // 3. Verify-email protection logic
+  // if (pathname === "/verify-email") {
+  //   const url = request.nextUrl.clone();
 
-    const emailParam = url.searchParams.get("email");
+  //   const emailParam = url.searchParams.get("email");
 
-    // If email query param is missing or not valid format
-    if (!emailParam || !emailParam.includes("@")) {
-      url.pathname = "/login";
-      return NextResponse.redirect(url);
-    }
+  //   // If email query param is missing or not valid format
+  //   if (!emailParam || !emailParam.includes("@")) {
+  //     url.pathname = "/login";
+  //     return NextResponse.redirect(url);
+  //   }
 
-    // If logged-in user is already verified, redirect away
-    if (user?.email_confirmed_at) {
-      url.pathname = "/dashboard";
-      return NextResponse.redirect(url);
-    }
-  }
+  //   // If logged-in user is already verified, redirect away
+  //   if (user?.email_confirmed_at) {
+  //     url.pathname = "/dashboard";
+  //     return NextResponse.redirect(url);
+  //   }
+  // }
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're
   // creating a new response object with NextResponse.next() make sure to:

@@ -23,9 +23,7 @@ import { useUser } from "@/app/context/UserContext";
 // interface DashboardUIProps {
 //   user: User; // You will get the user prop from the server-side page
 // }
-export default function DashboardUi() {
-  const user = useUser();
-
+export default function DashboardUi({ user }: { user: User | null }) {
   return (
     <div className="space-y-6">
       <div>

@@ -10,6 +10,7 @@ export async function verifyEmailCode(code: string) {
 
   const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
+  
   if (error) {
     throw new Error(error.message);
   }

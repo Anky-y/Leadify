@@ -1,7 +1,8 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams, useRouter, redirect } from "next/navigation";
 import { verifyEmailCode } from "./verifyEmailCode";
+import { parseHashParams } from "@/utils/parseHash";
 
 export default function VerifyEmailPageApi() {
   const router = useRouter();
@@ -12,12 +13,19 @@ export default function VerifyEmailPageApi() {
 
   useEffect(() => {
     const code = searchParams.get("code");
+    // utils/parseHash.ts
+    const { error } = parseHashParams(window.location.hash);
 
     console.log("Code from email verification:", code);
 
+    console.log(error);
     if (!code) {
       setStatus("error");
       setErrorMessage("Invalid token.");
+      if (error && error === "access_denied") {
+        console.log("redirecting to invalid link");
+        redirect("/api/invalid-link");
+      }
       return;
     }
     const verifyEmail = async () => {
@@ -30,7 +38,6 @@ export default function VerifyEmailPageApi() {
         }
       } catch (error: any) {
         setStatus("error");
-        setErrorMessage(error.message || "Something went wrong.");
       }
     };
 

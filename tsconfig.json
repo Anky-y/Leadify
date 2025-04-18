@@ -30,6 +30,6 @@
     ".next/types/**/*.ts",
     "lib/utils.ts",
     "lib/utils/auth.ts"
-  ],
+, "app/api/invalid-link"  ],
   "exclude": ["node_modules"]
 }
