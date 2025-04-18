@@ -17,20 +17,22 @@ import {
 import User from "../../app/types/user";
 import { useUser } from "@/app/context/UserContext";
 import { useEffect, useState } from "react";
+import Spinner from "../spinner";
 // import { useUser } from "@/app/context/UserContext";
 // interface DashboardUIProps {
 //   user: User; // You will get the user prop from the server-side page
 // }
 export default function DashboardUi() {
-    const user = useUser();
-    const [isMounted, setIsMounted] = useState(false);
+  const { user, loading } = useUser();
 
-    useEffect(() => {
-      // Only set mounted to true on the client
-      setIsMounted(true);
-    }, []);
+  if (loading) {
+    return <Spinner/>; // Show a loading state while fetching user data
+  }
 
-    if (!isMounted) return null;
+  if (!user) {
+    return <div>Error: User not found</div>; // Handle the case where no user is found
+  }
+
   return (
     <div className="space-y-6">
       <div>

@@ -22,7 +22,7 @@ import { useUser } from "@/app/context/UserContext";
 export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const user = useUser();
+  const {user} = useUser();
 
   const handleProfileUpdate = (e: React.FormEvent) => {
     e.preventDefault();
