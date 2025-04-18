@@ -14,6 +14,9 @@ export async function handleSignup(formData: FormData) {
   const { error, data } = await supabase.auth.signUp({
     email,
     password,
+    options: {
+      emailRedirectTo: `http://localhost:3000/api/verify-email`, // Make sure to pass the page user was on
+    },
   });
 
   if (error) {
@@ -31,5 +34,5 @@ export async function handleSignup(formData: FormData) {
     },
   ]);
 
-  redirect("/dashboard"); // redirect to dashboard if signup works
+  redirect(`/verify-email?email=${encodeURIComponent(email)}`);
 }
