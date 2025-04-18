@@ -18,11 +18,20 @@ import { useEffect, useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import User from "@/app/types/user";
 import { useUser } from "@/app/context/UserContext";
+import Spinner from "@/components/spinner";
 
 export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const {user} = useUser();
+  const { user, loading } = useUser();
+
+  if (loading) {
+    return <Spinner />; // Show a loading state while fetching user data
+  }
+
+  if (!user) {
+    return <div>Error: User not found</div>; // Handle the case where no user is found
+  }
 
   const handleProfileUpdate = (e: React.FormEvent) => {
     e.preventDefault();

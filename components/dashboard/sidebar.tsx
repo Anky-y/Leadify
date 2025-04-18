@@ -125,7 +125,7 @@ export default function DashboardSidebar() {
         <div className="p-4 border-b">
           <Link href="/" className="flex items-center gap-2">
             <Image
-              src="/images/leadifylogo.png"
+              src="/images/leadifylogowhitenobg.png"
               alt="Leadify Logo"
               width={32}
               height={32}
