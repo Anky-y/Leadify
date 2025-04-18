@@ -16,12 +16,21 @@ import {
 } from "../ui/card";
 import User from "../../app/types/user";
 import { useUser } from "@/app/context/UserContext";
+import { useEffect, useState } from "react";
 // import { useUser } from "@/app/context/UserContext";
 // interface DashboardUIProps {
 //   user: User; // You will get the user prop from the server-side page
 // }
 export default function DashboardUi() {
-  const user: User | null = useUser();
+    const user = useUser();
+    const [isMounted, setIsMounted] = useState(false);
+
+    useEffect(() => {
+      // Only set mounted to true on the client
+      setIsMounted(true);
+    }, []);
+
+    if (!isMounted) return null;
   return (
     <div className="space-y-6">
       <div>

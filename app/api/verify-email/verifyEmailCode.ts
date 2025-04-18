@@ -1,16 +1,12 @@
-"use server";
-import { createClient } from "@/utils/supabase";
+import { createClient } from "@/utils/supabase-browser";
 
 export async function verifyEmailCode(code: string) {
-  if (!code) {
-    throw new Error("Code is required.");
-  }
+  if (!code) throw new Error("Code is required.");
 
-  const supabase = await createClient();
+  const supabase = createClient();
 
   const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
-  
   if (error) {
     throw new Error(error.message);
   }

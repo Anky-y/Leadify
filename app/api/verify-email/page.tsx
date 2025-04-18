@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { useSearchParams, useRouter, redirect } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { verifyEmailCode } from "./verifyEmailCode";
 import { parseHashParams } from "@/utils/parseHash";
 
@@ -24,7 +24,7 @@ export default function VerifyEmailPageApi() {
       setErrorMessage("Invalid token.");
       if (error && error === "access_denied") {
         console.log("redirecting to invalid link");
-        redirect("/api/invalid-link");
+        router.push("/dashboard");
       }
       return;
     }

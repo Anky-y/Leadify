@@ -47,6 +47,7 @@ export default function VerifyEmailPageClient() {
   //     return () => clearInterval(interval);
   //   }, [router]);
   const handleResendEmail = async () => {
+    console.log("Resending email in page:", email);
     setIsResending(true);
     resendEmail(email);
     setTimeout(() => {
