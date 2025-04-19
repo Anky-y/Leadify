@@ -15,17 +15,32 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useEffect, useState } from "react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import User from "@/app/types/user";
 import { useUser } from "@/app/context/UserContext";
 import Spinner from "@/components/spinner";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { updateName } from "@/utils/userActions";
 
 export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const { user, loading } = useUser();
+  const [loading, setLoading] = useState(false);
+  const { user, loading: userLoading } = useUser();
+  const [firstName, setFirstName] = useState(user?.first_name || "");
+  const [lastName, setLastName] = useState(user?.last_name || "");
 
-  if (loading) {
+  useEffect(() => {
+    setFirstName(user?.first_name || "");
+    setLastName(user?.last_name || "");
+  }, [user]);
+
+  if (userLoading) {
     return <Spinner />; // Show a loading state while fetching user data
   }
 
@@ -33,18 +48,25 @@ export default function ProfilePage() {
     return <div>Error: User not found</div>; // Handle the case where no user is found
   }
 
-  const handleProfileUpdate = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
+  const handleProfileUpdate = async (e: React.FormEvent) => {
+    setLoading(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
+    const { error } = await updateName({ firstName, lastName });
+
+    if (error) {
       toast({
-        title: "Profile updated",
-        description: "Your profile information has been updated successfully.",
+        title: "Error",
+        description: "Failed to update name",
+        variant: "destructive", // You can use "default" or "destructive"
       });
-    }, 1000);
+    } else {
+      toast({
+        title: "Success",
+        description: "Your profile has been updated successfully.",
+        variant: "default", // You can use "default" or "destructive"
+      });
+    }
+    setLoading(false);
   };
 
   const handlePasswordUpdate = (e: React.FormEvent) => {
@@ -103,19 +125,43 @@ export default function ProfilePage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="first-name">First Name</Label>
-                    <Input id="first-name" defaultValue={user?.first_name} />
+                    <Input
+                      id="first-name"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="last-name">Last Name</Label>
-                    <Input id="last-name" defaultValue={user?.last_name} />
+                    <Input
+                      id="last-name"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                    />
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" defaultValue={user?.email} />
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div>
+                          <Input
+                            id="email"
+                            type="email"
+                            defaultValue={user?.email}
+                            disabled
+                            className="cursor-help"
+                          />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" align="start" sideOffset={8}>
+                        <p>You can't change your email at this time.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
-
                 <div className="space-y-2">
                   <Label htmlFor="company">Company</Label>
                   <Input id="company" defaultValue="Acme Inc." />
@@ -123,7 +169,7 @@ export default function ProfilePage() {
               </CardContent>
               <CardFooter>
                 <Button type="submit" disabled={isLoading}>
-                  {isLoading ? "Saving..." : "Save Changes"}
+                  {loading ? "Saving..." : "Save Changes"}
                 </Button>
               </CardFooter>
             </form>

@@ -3,6 +3,7 @@ import "./globals.css";
 import { Inter } from "next/font/google";
 import { UserProvider } from "./context/UserContext";
 import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "@/components/ui/toaster";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -21,7 +22,10 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
         <UserProvider>
-          <ThemeProvider>{children} </ThemeProvider>
+          <ThemeProvider>
+            {children}
+            <Toaster /> {/* This ensures toasts are displayed */}
+          </ThemeProvider>
         </UserProvider>
       </body>
     </html>
