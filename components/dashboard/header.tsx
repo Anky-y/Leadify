@@ -23,9 +23,6 @@ import { handleLogout } from "./logout";
 
 export default function DashboardHeader({ user }: { user: User | null }) {
   const router = useRouter();
-
-  const initials = user?.first_name;
-
   const handleLogoutClick = async () => {
     const { error } = await handleLogout();
 
@@ -68,7 +65,7 @@ export default function DashboardHeader({ user }: { user: User | null }) {
                     src={`https://avatar.vercel.sh/${user?.id}`}
                     alt={user?.first_name}
                   />
-                  <AvatarFallback>{initials}</AvatarFallback>
+                  <AvatarFallback>{user?.first_name}</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>

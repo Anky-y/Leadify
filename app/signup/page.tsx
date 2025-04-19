@@ -15,21 +15,53 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+import { use, useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { redirect, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase";
-import { handleSignup } from "./signup";
 const initialState = { error: null };
 export default function SignupPage() {
+  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [password, setPassword] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
   const [firstName, setFirstName] = useState<string | null>(null);
   const [lastName, setLastName] = useState<string | null>(null);
 
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    if (!email || !password || !firstName || !lastName) {
+      setError("All fields are required.");
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append("email", email);
+      formData.append("password", password);
+      formData.append("first-name", firstName);
+      formData.append("last-name", lastName);
+
+      const res = await fetch("/api/signup", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Something went wrong.");
+      }
+
+      // Redirect to verify email page
+      router.push(`/verify-email?email=${encodeURIComponent(email)}`);
+    } catch (error: any) {
+      setError(error.message);
+    }
+  };
   function SignupButton() {
     const { pending } = useFormStatus();
     return (
@@ -73,10 +105,7 @@ export default function SignupPage() {
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
-              <form
-                action={async (formData) => handleSignup(formData)}
-                className="space-y-4"
-              >
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="first-name">First name</Label>

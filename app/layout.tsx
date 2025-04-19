@@ -2,6 +2,7 @@ import type React from "react";
 import "./globals.css";
 import { Inter } from "next/font/google";
 import { UserProvider } from "./context/UserContext";
+import { ThemeProvider } from "@/components/theme-provider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -17,9 +18,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <UserProvider>{children}</UserProvider>
+        <UserProvider>
+          <ThemeProvider>{children} </ThemeProvider>
+        </UserProvider>
       </body>
     </html>
   );

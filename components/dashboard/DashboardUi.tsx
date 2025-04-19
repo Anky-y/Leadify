@@ -15,16 +15,23 @@ import {
   CardTitle,
 } from "../ui/card";
 import User from "../../app/types/user";
-import { useEffect, useState } from "react";
-import type { Session as SupabaseSession } from "@supabase/supabase-js";
-import { getUserData } from "@/utils/auth";
 import { useUser } from "@/app/context/UserContext";
+import { useEffect, useState } from "react";
+import Spinner from "../spinner";
 // import { useUser } from "@/app/context/UserContext";
 // interface DashboardUIProps {
 //   user: User; // You will get the user prop from the server-side page
 // }
 export default function DashboardUi() {
-  const user = useUser();
+  const { user, loading } = useUser();
+
+  if (loading) {
+    return <Spinner/>; // Show a loading state while fetching user data
+  }
+
+  if (!user) {
+    return <div>Error: User not found</div>; // Handle the case where no user is found
+  }
 
   return (
     <div className="space-y-6">
