@@ -13,6 +13,7 @@ import { getUserData } from "@/utils/auth";
 interface UserContextValue {
   user: User | null;
   loading: boolean;
+  refreshUser: () => Promise<void>; // Add a function to refresh user data
 }
 
 const UserContext = createContext<UserContextValue | null>(null);
@@ -20,16 +21,18 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
+  const refreshUser = async () => {
+    setLoading(true);
+    const userData = await getUserData();
+    setUser(userData);
+    setLoading(false);
+  };
+
   useEffect(() => {
-    const loadUser = async () => {
-      const userData = await getUserData();
-      setUser(userData);
-      setLoading(false);
-    };
-    loadUser();
+    refreshUser(); // Fetch user data on mount
   }, []);
   return (
-    <UserContext.Provider value={{ user, loading }}>
+    <UserContext.Provider value={{ user, loading, refreshUser }}>
       {children}
     </UserContext.Provider>
   );

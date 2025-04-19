@@ -18,15 +18,24 @@ import User from "../../app/types/user";
 import { useUser } from "@/app/context/UserContext";
 import { useEffect, useState } from "react";
 import Spinner from "../spinner";
+import Loading from "@/app/loading";
 // import { useUser } from "@/app/context/UserContext";
 // interface DashboardUIProps {
 //   user: User; // You will get the user prop from the server-side page
 // }
 export default function DashboardUi() {
-  const { user, loading } = useUser();
+  const [user, setUser] = useState<User | null>(null);
+  const { user: contextUser, loading } = useUser();
+
+  // Load user after component is mounted
+  useEffect(() => {
+    if (!loading) {
+      setUser(contextUser);
+    }
+  }, [contextUser, loading]);
 
   if (loading) {
-    return <Spinner/>; // Show a loading state while fetching user data
+    return <Loading />; // Show a loading state while fetching user data
   }
 
   if (!user) {

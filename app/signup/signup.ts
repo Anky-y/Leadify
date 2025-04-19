@@ -1,4 +1,3 @@
-
 import { createClient } from "@/utils/supabase-browser";
 import { redirect } from "next/navigation";
 
@@ -24,14 +23,16 @@ export async function handleSignup(formData: FormData) {
   }
 
   // Insert user info to `users` table (optional)
-  await supabase.from("users").insert([
-    {
-      id: data.user?.id,
-      email,
-      first_name: firstName,
-      last_name: lastName,
-    },
-  ]);
+  const { error: insertError, data: insertData } = await supabase
+    .from("users")
+    .insert([
+      {
+        id: data.user?.id,
+        email,
+        first_name: firstName,
+        last_name: lastName,
+      },
+    ]);
 
   redirect(`/verify-email?email=${encodeURIComponent(email)}`);
 }

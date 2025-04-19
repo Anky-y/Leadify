@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { verifyEmailCode } from "./verifyEmailCode";
 import { parseHashParams } from "@/utils/parseHash";
+import { useUser } from "@/app/context/UserContext";
 
 export default function VerifyEmailPageApi() {
   const router = useRouter();
@@ -10,6 +11,7 @@ export default function VerifyEmailPageApi() {
   const [status, setStatus] = useState("verifying"); // States: verifying, success, error
   const [errorMessage, setErrorMessage] = useState("");
   console.log("in email verifier");
+  const { refreshUser } = useUser(); // Access refreshUser from the context
 
   useEffect(() => {
     const tokenHash = searchParams.get("token_hash");
@@ -37,6 +39,7 @@ export default function VerifyEmailPageApi() {
 
         if (result.success) {
           setStatus("success");
+          await refreshUser(); // Refresh user data after verification
           router.push("/dashboard"); // Redirect to dashboard after successful verification
         }
       } catch (error: any) {

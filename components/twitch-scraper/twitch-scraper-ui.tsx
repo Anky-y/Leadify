@@ -42,6 +42,7 @@ export default function TwitchScraperUI({
   const [data, setData] = useState<TwitchData[]>([]);
   const [subscribed, setSubscribed] = useState(initialSubscribed);
   const [activeTab, setActiveTab] = useState("search");
+  const [percentage, setPercentage] = useState(0);
 
   // New state for detailed progress tracking
   const [currentStageIndex, setCurrentStageIndex] = useState(0);
@@ -80,11 +81,15 @@ export default function TwitchScraperUI({
   const [statusMessage, setStatusMessage] = useState("");
 
   // Function to handle search with detailed progress updates
-  const handleSearch = () => {
+  const handleSearch = async () => {
     setIsLoading(true);
     setLoadingProgress(0);
+    setStatusMessage("Initializing search...");
 
-    // Reset progress tracking
+    if (data.length > 0) {
+      setData([]);
+    }
+
     setCurrentStageIndex(0);
     const initialStages = [
       {
@@ -95,19 +100,19 @@ export default function TwitchScraperUI({
       },
       {
         name: "Stage 1",
-        description: "Collecting channel data",
+        description: "Collecting Streamers",
         itemsProcessed: 0,
         totalItems: 0,
       },
       {
         name: "Stage 2",
-        description: "Fetching social media links",
+        description: "Filtering streamers",
         itemsProcessed: 0,
         totalItems: 0,
       },
       {
         name: "Stage 3",
-        description: "Processing contact information",
+        description: "Getting streamers socials",
         itemsProcessed: 0,
         totalItems: 0,
       },
@@ -119,152 +124,120 @@ export default function TwitchScraperUI({
       },
     ];
     setScrapingStages(initialStages);
-    setStatusMessage("Initializing search...");
 
-    // Clear previous results when starting a new search
-    if (data.length > 0) {
-      setData([]);
-    }
-
-    // Simulate the initialization stage
-    setTimeout(() => {
-      // Update initialization stage
-      const updatedStages = [...initialStages];
-      updatedStages[0].itemsProcessed = 1;
-      setScrapingStages(updatedStages);
-      setLoadingProgress(5);
-
-      // Move to Stage 1: Collecting channel data
-      setCurrentStageIndex(1);
-      setStatusMessage("Collecting channel data...");
-
-      // Filter data based on search criteria to determine how many items we'll process
-      const filteredData = mockTwitchData.filter((item) => {
-        // Filter by search term
-        if (
-          searchTerm &&
-          !item.username.toLowerCase().includes(searchTerm.toLowerCase())
-        ) {
-          return false;
-        }
-
-        // Filter by language
-        if (
-          language &&
-          language !== "any" &&
-          item.language.toLowerCase() !== language.toLowerCase()
-        ) {
-          return false;
-        }
-
-        // Filter by category
-        if (
-          category &&
-          category !== "any" &&
-          item.category.toLowerCase() !== category.toLowerCase()
-        ) {
-          return false;
-        }
-
-        // Filter by follower count
-        if (item.followers < minFollowers || item.followers > maxFollowers) {
-          return false;
-        }
-
-        // Filter by viewer count
-        if (item.viewers < minViewers || item.viewers > maxViewers) {
-          return false;
-        }
-
-        return true;
+    try {
+      // ✅ Step 1: Trigger the scrape
+      const queryParams = new URLSearchParams({
+        category: category || "32399",
+        minimum_followers: minFollowers.toString(),
+        maximum_followers: maxFollowers.toString(),
+        language: language || "en",
+        viewer_count: minViewers.toString(),
       });
 
-      // Apply result limit if not subscribed
-      const limitedData = subscribed ? filteredData : filteredData.slice(0, 3);
-      const totalItems = limitedData.length;
-
-      // Update stage 1 total items
-      updatedStages[1].totalItems = totalItems;
-      setScrapingStages(updatedStages);
-
-      // Simulate Stage 1 progress updates
-      simulateStageProgress(1, totalItems, 50, 100, () => {
-        // Move to Stage 2: Fetching social media links
-        setCurrentStageIndex(2);
-        setStatusMessage("Fetching social media links...");
-
-        // Update stage 2 total items
-        const stage2UpdatedStages = [...updatedStages];
-        stage2UpdatedStages[2].totalItems = totalItems;
-        setScrapingStages(stage2UpdatedStages);
-
-        // Simulate Stage 2 progress updates
-        simulateStageProgress(2, totalItems, 70, 50, () => {
-          // Move to Stage 3: Processing contact information
-          setCurrentStageIndex(3);
-          setStatusMessage("Processing contact information...");
-
-          // Update stage 3 total items
-          const stage3UpdatedStages = [...stage2UpdatedStages];
-          stage3UpdatedStages[3].totalItems = totalItems;
-          setScrapingStages(stage3UpdatedStages);
-
-          // Simulate Stage 3 progress updates
-          simulateStageProgress(3, totalItems, 90, 75, () => {
-            // Move to Finalizing stage
-            setCurrentStageIndex(4);
-            setStatusMessage("Finalizing results...");
-
-            // Update finalizing stage
-            const finalizingStages = [...stage3UpdatedStages];
-            finalizingStages[4].itemsProcessed = 1;
-            setScrapingStages(finalizingStages);
-            setLoadingProgress(100);
-
-            // Complete the search
-            setTimeout(() => {
-              setData(limitedData);
-              setIsLoading(false);
-              setStatusMessage("");
-            }, 500);
-          });
-        });
-      });
-    }, 500);
-  };
-
-  // Helper function to simulate progress updates for a stage
-  const simulateStageProgress = (
-    stageIndex: number,
-    totalItems: number,
-    targetProgress: number,
-    updateSpeed: number,
-    onComplete: () => void
-  ) => {
-    let processed = 0;
-
-    const interval = setInterval(() => {
-      processed++;
-
-      // Update the stage's processed items
-      const updatedStages = [...scrapingStages];
-      updatedStages[stageIndex].itemsProcessed = processed;
-      setScrapingStages(updatedStages);
-
-      // Calculate overall progress based on current stage and items processed
-      const stageProgressContribution =
-        (targetProgress - loadingProgress) * (processed / totalItems);
-      setLoadingProgress(
-        Math.min(loadingProgress + stageProgressContribution, targetProgress)
+      const triggerRes = await fetch(
+        `http://127.0.0.1:8000/Twitch_scraper?category=32399&minimum_followers=${minFollowers}&language=en&viewer_count=${minViewers}&maximum_followers=${maxFollowers}`,
+        {
+          method: "GET",
+          headers: {
+            accept: "application/json",
+          },
+        }
       );
 
-      // If all items in this stage are processed, move to the next stage
-      if (processed >= totalItems) {
-        clearInterval(interval);
-        onComplete();
+      if (!triggerRes.ok) {
+        throw new Error("Failed to start the scraping process");
       }
-    }, updateSpeed);
+
+      const pollInterval = 100;
+
+      const pollingInterval = setInterval(async () => {
+        try {
+          const progressRes = await fetch(
+            "http://127.0.0.1:8000/Twitch_scraper/get_progress",
+            {
+              method: "GET",
+              headers: {
+                accept: "application/json",
+              },
+            }
+          );
+
+          if (!progressRes.ok) {
+            throw new Error("Failed to fetch scrape progress");
+          }
+
+          const progressData = await progressRes.json();
+          console.log("Scrape Progress:", progressData);
+
+          const { Stage, Rate, ETA, Streamers, Completed } = progressData;
+
+          const computedPercentage = Math.min(Math.round(Rate * 100), 100);
+
+          setCurrentStageIndex(Stage);
+          setLoadingProgress(computedPercentage);
+          setPercentage(computedPercentage);
+          setStatusMessage(
+            `Stage ${Stage}: ${Completed}/${Streamers} streamers processed`
+          );
+
+          // if (Rate >= 1.0) {
+          //   clearInterval(pollingInterval);
+          //   setIsLoading(false);
+          //   setStatusMessage("Scrape complete!");
+          // }
+        } catch (error) {
+          console.error("Error polling scrape progress:", error);
+          clearInterval(pollingInterval);
+          setIsLoading(false);
+          setStatusMessage("An error occurred while fetching scrape progress.");
+        }
+      }, pollInterval);
+
+      // Start first poll immediately
+      setTimeout(() => {
+        // Small delay to give backend a head start
+        pollingInterval;
+      }, 500);
+    } catch (error) {
+      console.error("Error starting scrape:", error);
+      setIsLoading(false);
+      setStatusMessage("An error occurred while starting the scrape.");
+    }
   };
+
+  // // Helper function to simulate progress updates for a stage
+  // const simulateStageProgress = (
+  //   stageIndex: number,
+  //   totalItems: number,
+  //   targetProgress: number,
+  //   updateSpeed: number,
+  //   onComplete: () => void
+  // ) => {
+  //   let processed = 0;
+
+  //   const interval = setInterval(() => {
+  //     processed++;
+
+  //     // Update the stage's processed items
+  //     const updatedStages = [...scrapingStages];
+  //     updatedStages[stageIndex].itemsProcessed = processed;
+  //     setScrapingStages(updatedStages);
+
+  //     // Calculate overall progress based on current stage and items processed
+  //     const stageProgressContribution =
+  //       (targetProgress - loadingProgress) * (processed / totalItems);
+  //     setLoadingProgress(
+  //       Math.min(loadingProgress + stageProgressContribution, targetProgress)
+  //     );
+
+  //     // If all items in this stage are processed, move to the next stage
+  //     if (processed >= totalItems) {
+  //       clearInterval(interval);
+  //       onComplete();
+  //     }
+  //   }, updateSpeed);
+  // };
 
   return (
     <div className="space-y-6">

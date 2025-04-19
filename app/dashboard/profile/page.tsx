@@ -15,17 +15,39 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useEffect, useState } from "react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import User from "@/app/types/user";
 import { useUser } from "@/app/context/UserContext";
 import Spinner from "@/components/spinner";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { updateName } from "@/utils/userActions";
+import { createClient } from "@/utils/supabase-browser";
 
 export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const { user, loading } = useUser();
+  const [loading, setLoading] = useState(false);
+  const { user, loading: userLoading } = useUser();
+  const [firstName, setFirstName] = useState(user?.first_name || "");
+  const [lastName, setLastName] = useState(user?.last_name || "");
 
-  if (loading) {
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  const supabase = createClient();
+
+  useEffect(() => {
+    setFirstName(user?.first_name || "");
+    setLastName(user?.last_name || "");
+  }, [user]);
+
+  if (userLoading) {
     return <Spinner />; // Show a loading state while fetching user data
   }
 
@@ -33,32 +55,87 @@ export default function ProfilePage() {
     return <div>Error: User not found</div>; // Handle the case where no user is found
   }
 
-  const handleProfileUpdate = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
+  const handleProfileUpdate = async (e: React.FormEvent) => {
+    setLoading(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
+    const { error } = await updateName({ firstName, lastName });
+
+    if (error) {
       toast({
-        title: "Profile updated",
-        description: "Your profile information has been updated successfully.",
+        title: "Error",
+        description: "Failed to update name",
+        variant: "destructive", // You can use "default" or "destructive"
       });
-    }, 1000);
+    } else {
+      toast({
+        title: "Success",
+        description: "Your profile has been updated successfully.",
+        variant: "default", // You can use "default" or "destructive"
+      });
+    }
+    setLoading(false);
   };
 
-  const handlePasswordUpdate = (e: React.FormEvent) => {
+  const handlePasswordUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
+    if (newPassword !== confirmPassword) {
       toast({
-        title: "Password updated",
-        description: "Your password has been updated successfully.",
+        title: "Error",
+        description: "New passwords do not match.",
+        variant: "destructive",
       });
-    }, 1000);
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: currentPassword,
+      });
+
+      if (signInError) {
+        toast({
+          title: "Invalid password",
+          description: "The current password is incorrect.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (updateError) {
+        toast({
+          title: "Error",
+          description: "Could not update password.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: "Your password has been updated.",
+        });
+
+        // Optional: clear fields
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -103,19 +180,43 @@ export default function ProfilePage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="first-name">First Name</Label>
-                    <Input id="first-name" defaultValue={user?.first_name} />
+                    <Input
+                      id="first-name"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="last-name">Last Name</Label>
-                    <Input id="last-name" defaultValue={user?.last_name} />
+                    <Input
+                      id="last-name"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                    />
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" defaultValue={user?.email} />
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div>
+                          <Input
+                            id="email"
+                            type="email"
+                            defaultValue={user?.email}
+                            disabled
+                            className="cursor-help"
+                          />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" align="start" sideOffset={8}>
+                        <p>You can't change your email at this time.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
-
                 <div className="space-y-2">
                   <Label htmlFor="company">Company</Label>
                   <Input id="company" defaultValue="Acme Inc." />
@@ -123,7 +224,7 @@ export default function ProfilePage() {
               </CardContent>
               <CardFooter>
                 <Button type="submit" disabled={isLoading}>
-                  {isLoading ? "Saving..." : "Save Changes"}
+                  {loading ? "Saving..." : "Save Changes"}
                 </Button>
               </CardFooter>
             </form>
@@ -161,17 +262,32 @@ export default function ProfilePage() {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="current-password">Current password</Label>
-                  <Input id="current-password" type="password" />
+                  <Input
+                    id="current-password"
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                  />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="new-password">New password</Label>
-                  <Input id="new-password" type="password" />
+                  <Input
+                    id="new-password"
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                  />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="confirm-password">Confirm password</Label>
-                  <Input id="confirm-password" type="password" />
+                  <Input
+                    id="confirm-password"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                  />
                 </div>
               </CardContent>
               <CardFooter>
