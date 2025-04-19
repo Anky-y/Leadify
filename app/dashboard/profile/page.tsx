@@ -26,6 +26,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { updateName } from "@/utils/userActions";
+import { createClient } from "@/utils/supabase-browser";
 
 export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -34,6 +35,12 @@ export default function ProfilePage() {
   const { user, loading: userLoading } = useUser();
   const [firstName, setFirstName] = useState(user?.first_name || "");
   const [lastName, setLastName] = useState(user?.last_name || "");
+
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  const supabase = createClient();
 
   useEffect(() => {
     setFirstName(user?.first_name || "");
@@ -69,18 +76,66 @@ export default function ProfilePage() {
     setLoading(false);
   };
 
-  const handlePasswordUpdate = (e: React.FormEvent) => {
+  const handlePasswordUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
+    if (newPassword !== confirmPassword) {
       toast({
-        title: "Password updated",
-        description: "Your password has been updated successfully.",
+        title: "Error",
+        description: "New passwords do not match.",
+        variant: "destructive",
       });
-    }, 1000);
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: currentPassword,
+      });
+
+      if (signInError) {
+        toast({
+          title: "Invalid password",
+          description: "The current password is incorrect.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (updateError) {
+        toast({
+          title: "Error",
+          description: "Could not update password.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: "Your password has been updated.",
+        });
+
+        // Optional: clear fields
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -207,17 +262,32 @@ export default function ProfilePage() {
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="current-password">Current password</Label>
-                  <Input id="current-password" type="password" />
+                  <Input
+                    id="current-password"
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                  />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="new-password">New password</Label>
-                  <Input id="new-password" type="password" />
+                  <Input
+                    id="new-password"
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                  />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="confirm-password">Confirm password</Label>
-                  <Input id="confirm-password" type="password" />
+                  <Input
+                    id="confirm-password"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                  />
                 </div>
               </CardContent>
               <CardFooter>

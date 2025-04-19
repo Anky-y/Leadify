@@ -11,6 +11,8 @@ import { usePathname } from "next/navigation";
 // import { getUser } from "../app/auth"
 import { useEffect, useState } from "react";
 import { useUser } from "@/app/context/UserContext";
+import User from "@/app/types/user";
+import Spinner from "./spinner";
 
 /*************  ✨ Windsurf Command ⭐  *************/
 /**
@@ -24,10 +26,17 @@ import { useUser } from "@/app/context/UserContext";
  */
 /*******  d13f2080-228c-429e-9fa5-c532c1e6f7ea  *******/ export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [session, setSession] = useState<any>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
-  const user = useUser();
+  const { user: contextUser, loading: userLoading } = useUser();
+  const [user, setUser] = useState<User | null>(null);
+
+  // Load user after component is mounted
+  useEffect(() => {
+    if (!userLoading) {
+      setUser(contextUser);
+    }
+  }, [contextUser, userLoading]);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -239,7 +248,7 @@ import { useUser } from "@/app/context/UserContext";
           </nav>
 
           <div className="flex gap-2 mt-3 pt-2 border-t border-gray-100 dark:border-gray-800">
-            {session ? (
+            {user ? (
               <Link href="/dashboard" className="w-full">
                 <Button
                   size="sm"

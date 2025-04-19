@@ -17,11 +17,11 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import type User from "../../app/types/user";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { getUserData } from "@/utils/auth";
 import { handleLogout } from "./logout";
+import { useUser } from "@/app/context/UserContext";
 
 export default function DashboardHeader({ user }: { user: User | null }) {
+  const { refreshUser } = useUser();
   const router = useRouter();
   const handleLogoutClick = async () => {
     const { error } = await handleLogout();
@@ -31,8 +31,10 @@ export default function DashboardHeader({ user }: { user: User | null }) {
       return;
     }
 
+    
     // Redirect to login page after logout
-    router.push("/");
+    router.replace("/");
+    refreshUser();
   };
   return (
     <header className="sticky top-0 z-30 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
