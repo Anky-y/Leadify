@@ -10,7 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Mail, RefreshCw } from "lucide-react";
+import { Mail, RefreshCw, MailOpen } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { resendEmail } from "./verify-email-functions";
@@ -35,17 +35,6 @@ export default function VerifyEmailPageClient() {
     return () => clearInterval(interval);
   }, [secondsLeft]);
 
-  //   useEffect(() => {
-  //     const checkEmailVerificationData = async () => {
-  //       const user = await checkEmailVerification();
-  //       if (user?.email_confirmed_at) {
-  //         router.replace("/dashboard");
-  //       }
-  //     };
-  //     const interval = setInterval(checkEmailVerificationData, 5000);
-
-  //     return () => clearInterval(interval);
-  //   }, [router]);
   const handleResendEmail = async () => {
     console.log("Resending email in page:", email);
     setIsResending(true);
@@ -68,19 +57,21 @@ export default function VerifyEmailPageClient() {
           </CardTitle>
           <CardDescription>
             We've sent a verification link to{" "}
-            <span className="font-medium">{email}</span>
+            <span className="font-medium">{email}</span>. Please check your
+            inbox.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="rounded-lg bg-blue-50 p-4 text-sm text-blue-800">
             <p>
-              Please check your inbox and click the verification link. It will
-              automatically redirect you to our website after confirmation.
+              After clicking the verification link, you’ll be redirected to our
+              site automatically.
             </p>
           </div>
-          <div className="text-center text-sm text-gray-500">
-            <p>Didn't receive the email? Check your spam folder or</p>
-          </div>
+          <p>
+            Didn't receive the email? Check your spam folder or click below to
+            resend.
+          </p>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
           <Button
@@ -100,6 +91,15 @@ export default function VerifyEmailPageClient() {
               "Resend verification email"
             )}
           </Button>
+          <a
+            href="https://mail.google.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-700 hover:underline inline-flex items-center"
+          >
+            Check Gmail
+            <MailOpen className="h-4 w-4 ms-1" />
+          </a>
           <div className="text-center text-sm">
             <Link href="/login" className="text-blue-700 hover:underline">
               Back to login

@@ -61,11 +61,11 @@ const navItems = [
     href: "/dashboard/profile",
     icon: User,
   },
-  {
-    name: "Integrations",
-    href: "/dashboard/integrations",
-    icon: Plug,
-  },
+  // {
+  //   name: "Integrations",
+  //   href: "/dashboard/integrations",
+  //   icon: Plug,
+  // },
   {
     name: "Settings",
     href: "/dashboard/settings",
