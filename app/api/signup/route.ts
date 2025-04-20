@@ -16,7 +16,7 @@ export async function POST(req: Request) {
       email,
       password,
       options: {
-        emailRedirectTo: `http://localhost:3000/api/verify-email`,
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/api/verify-email`,
       },
     });
 
