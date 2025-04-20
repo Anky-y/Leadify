@@ -27,21 +27,23 @@ export default function ForgotPasswordPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
+    setError("");
     setIsLoading(true);
+    const res = await fetch("/api/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+      headers: { "Content-Type": "application/json" },
+    });
 
-    // Simulate API call
-    setTimeout(() => {
-      if (!email.includes("@")) {
-        setError("Please enter a valid email address");
-        setIsLoading(false);
-        return;
-      }
+    const data = await res.json();
 
-      setIsLoading(false);
+    if (!res.ok) {
+      setError(data.error);
+    } else {
       setIsSubmitted(true);
-    }, 1500);
+    }
   };
+
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-blue-50 to-purple-50 p-4 sm:p-8">
