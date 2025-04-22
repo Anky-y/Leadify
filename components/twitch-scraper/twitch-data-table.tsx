@@ -21,6 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import type { TwitchData } from "./types";
+import { subscribe } from "diagnostics_channel";
 
 interface TwitchDataTableProps {
   data: TwitchData[];
@@ -29,12 +30,13 @@ interface TwitchDataTableProps {
 
 export default function TwitchDataTable({
   data,
-  subscribed,
 }: TwitchDataTableProps) {
   // State to track which emails are revealed
   const [revealedEmails, setRevealedEmails] = useState<Record<string, boolean>>(
     {}
   );
+
+  const subscribed = true
 
   // Toggle email visibility for a specific row
   const toggleEmailVisibility = (id: string) => {
@@ -90,13 +92,13 @@ export default function TwitchDataTable({
                     {row.followers.toLocaleString()}
                   </TableCell>
                   <TableCell className="text-right">
-                    {row.viewers.toLocaleString()}
+                    {row.viewer_count.toLocaleString()}
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline">{row.language}</Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="secondary">{row.category}</Badge>
+                    <Badge variant="secondary">{row.game_name}</Badge>
                   </TableCell>
                   <TableCell>
                     <div className="flex space-x-1">
@@ -173,15 +175,15 @@ export default function TwitchDataTable({
                     </div>
                   </TableCell>
                   <TableCell>
-                    {row.email ? (
+                    {row.gmail ? (
                       subscribed || revealedEmails[row.id] ? (
                         <div className="flex items-center">
                           <a
-                            href={`mailto:${row.email}`}
+                            href={`mailto:${row.gmail}`}
                             className="text-blue-600 hover:underline flex items-center"
                           >
                             <EnvelopeSimple className="h-4 w-4 mr-1" />
-                            <span className="text-xs">{row.email}</span>
+                            <span className="text-xs">{row.gmail}</span>
                           </a>
                           {!subscribed && (
                             <Button
@@ -198,7 +200,7 @@ export default function TwitchDataTable({
                       ) : (
                         <div className="flex items-center">
                           <span className="text-gray-400 text-xs blur-sm select-none">
-                            {row.email.replace(/./g, "•")}
+                            {row.gmail.replace(/./g, "•")}
                           </span>
                           <Button
                             variant="ghost"

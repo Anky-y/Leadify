@@ -45,6 +45,7 @@ export default function VerifyEmailPageApi() {
       } catch (error: any) {
         console.log(error);
         setStatus("error");
+        router.push("/api/invalid-link");
       }
     };
 
