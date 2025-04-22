@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
@@ -10,7 +10,10 @@ import SearchHistoryTab from "./tabs/search-history-tab";
 
 // Import types and mock data
 import { mockTwitchData } from "./mock-data";
-import type { TwitchData } from "./types";
+import type { ScrapingProgress, TwitchData } from "./types";
+import { set } from "date-fns";
+import User from "@/app/types/user";
+import { useUser } from "@/app/context/UserContext";
 
 // Define the scraping stages
 type ScrapingStage = {
@@ -42,101 +45,36 @@ export default function TwitchScraperUI({
   const [data, setData] = useState<TwitchData[]>([]);
   const [subscribed, setSubscribed] = useState(initialSubscribed);
   const [activeTab, setActiveTab] = useState("search");
-  const [percentage, setPercentage] = useState(0);
+  const [progressData, setProgressData] = useState<ScrapingProgress | null>();
+  const progressDataRef = useRef<ScrapingProgress | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const { user: contextUser, loading } = useUser();
 
-  // New state for detailed progress tracking
-  const [currentStageIndex, setCurrentStageIndex] = useState(0);
-  const [scrapingStages, setScrapingStages] = useState<ScrapingStage[]>([
-    {
-      name: "Initializing",
-      description: "Setting up scraper",
-      itemsProcessed: 0,
-      totalItems: 1,
-    },
-    {
-      name: "Stage 1",
-      description: "Collecting channel data",
-      itemsProcessed: 0,
-      totalItems: 0,
-    },
-    {
-      name: "Stage 2",
-      description: "Fetching social media links",
-      itemsProcessed: 0,
-      totalItems: 0,
-    },
-    {
-      name: "Stage 3",
-      description: "Processing contact information",
-      itemsProcessed: 0,
-      totalItems: 0,
-    },
-    {
-      name: "Finalizing",
-      description: "Preparing results",
-      itemsProcessed: 0,
-      totalItems: 1,
-    },
-  ]);
-  const [statusMessage, setStatusMessage] = useState("");
+  // Load user after component is mounted
+  useEffect(() => {
+    if (!loading) {
+      setUser(contextUser);
+    }
+  }, [contextUser, loading]);
+
+  // Update the ref whenever progressData changes
+  const updateProgressData = (data: ScrapingProgress) => {
+    setProgressData(data);
+    progressDataRef.current = data; // Keep the ref in sync with the state
+  };
 
   // Function to handle search with detailed progress updates
   const handleSearch = async () => {
     setIsLoading(true);
     setLoadingProgress(0);
-    setStatusMessage("Initializing search...");
 
-    if (data.length > 0) {
-      setData([]);
+    if (progressData !== null) {
+      setProgressData(null);
     }
 
-    setCurrentStageIndex(0);
-    const initialStages = [
-      {
-        name: "Initializing",
-        description: "Setting up scraper",
-        itemsProcessed: 0,
-        totalItems: 1,
-      },
-      {
-        name: "Stage 1",
-        description: "Collecting Streamers",
-        itemsProcessed: 0,
-        totalItems: 0,
-      },
-      {
-        name: "Stage 2",
-        description: "Filtering streamers",
-        itemsProcessed: 0,
-        totalItems: 0,
-      },
-      {
-        name: "Stage 3",
-        description: "Getting streamers socials",
-        itemsProcessed: 0,
-        totalItems: 0,
-      },
-      {
-        name: "Finalizing",
-        description: "Preparing results",
-        itemsProcessed: 0,
-        totalItems: 1,
-      },
-    ];
-    setScrapingStages(initialStages);
-
     try {
-      // ✅ Step 1: Trigger the scrape
-      const queryParams = new URLSearchParams({
-        category: category || "32399",
-        minimum_followers: minFollowers.toString(),
-        maximum_followers: maxFollowers.toString(),
-        language: language || "en",
-        viewer_count: minViewers.toString(),
-      });
-
       const triggerRes = await fetch(
-        `http://127.0.0.1:8000/Twitch_scraper?category=32399&minimum_followers=${minFollowers}&language=en&viewer_count=${minViewers}&maximum_followers=${maxFollowers}`,
+        `http://localhost:8000/Twitch_scraper?category=29595&minimum_followers=10&viewer_count=10&user_id=${user?.id}&language=en&maximum_followers=100005`,
         {
           method: "GET",
           headers: {
@@ -149,12 +87,12 @@ export default function TwitchScraperUI({
         throw new Error("Failed to start the scraping process");
       }
 
-      const pollInterval = 100;
+      const pollInterval = 500;
 
       const pollingInterval = setInterval(async () => {
         try {
           const progressRes = await fetch(
-            "http://127.0.0.1:8000/Twitch_scraper/get_progress",
+            "http://localhost:8000/Twitch_scraper/get_progress",
             {
               method: "GET",
               headers: {
@@ -167,30 +105,23 @@ export default function TwitchScraperUI({
             throw new Error("Failed to fetch scrape progress");
           }
 
-          const progressData = await progressRes.json();
-          console.log("Scrape Progress:", progressData);
+          const data = await progressRes.json();
 
-          const { Stage, Rate, ETA, Streamers, Completed } = progressData;
+          console.log(data);
 
-          const computedPercentage = Math.min(Math.round(Rate * 100), 100);
+          setProgressData(data);
 
-          setCurrentStageIndex(Stage);
-          setLoadingProgress(computedPercentage);
-          setPercentage(computedPercentage);
-          setStatusMessage(
-            `Stage ${Stage}: ${Completed}/${Streamers} streamers processed`
-          );
+          if (data?.Done) {
+            clearInterval(pollingInterval);
+            setIsLoading(false);
 
-          // if (Rate >= 1.0) {
-          //   clearInterval(pollingInterval);
-          //   setIsLoading(false);
-          //   setStatusMessage("Scrape complete!");
-          // }
+            // setSearchId(searchId);
+            // setDownloadUrl(downloadUrl);
+          }
         } catch (error) {
           console.error("Error polling scrape progress:", error);
           clearInterval(pollingInterval);
           setIsLoading(false);
-          setStatusMessage("An error occurred while fetching scrape progress.");
         }
       }, pollInterval);
 
@@ -202,42 +133,8 @@ export default function TwitchScraperUI({
     } catch (error) {
       console.error("Error starting scrape:", error);
       setIsLoading(false);
-      setStatusMessage("An error occurred while starting the scrape.");
     }
   };
-
-  // // Helper function to simulate progress updates for a stage
-  // const simulateStageProgress = (
-  //   stageIndex: number,
-  //   totalItems: number,
-  //   targetProgress: number,
-  //   updateSpeed: number,
-  //   onComplete: () => void
-  // ) => {
-  //   let processed = 0;
-
-  //   const interval = setInterval(() => {
-  //     processed++;
-
-  //     // Update the stage's processed items
-  //     const updatedStages = [...scrapingStages];
-  //     updatedStages[stageIndex].itemsProcessed = processed;
-  //     setScrapingStages(updatedStages);
-
-  //     // Calculate overall progress based on current stage and items processed
-  //     const stageProgressContribution =
-  //       (targetProgress - loadingProgress) * (processed / totalItems);
-  //     setLoadingProgress(
-  //       Math.min(loadingProgress + stageProgressContribution, targetProgress)
-  //     );
-
-  //     // If all items in this stage are processed, move to the next stage
-  //     if (processed >= totalItems) {
-  //       clearInterval(interval);
-  //       onComplete();
-  //     }
-  //   }, updateSpeed);
-  // };
 
   return (
     <div className="space-y-6">
@@ -296,9 +193,7 @@ export default function TwitchScraperUI({
             setSubscribed={setSubscribed}
             initialSubscribed={initialSubscribed}
             handleSearch={handleSearch}
-            // Pass the new progress tracking props
-            currentStage={scrapingStages[currentStageIndex]}
-            statusMessage={statusMessage}
+            progressData={progressData}
           />
         </TabsContent>
 

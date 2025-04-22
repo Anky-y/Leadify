@@ -3,15 +3,15 @@ export interface TwitchData {
   username: string;
   channelUrl: string;
   followers: number;
-  viewers: number;
+  viewer_count: number;
   language: string;
-  category: string;
+  game_name: string;
   discord: string;
   youtube: string;
   twitter: string;
   facebook: string;
   instagram: string;
-  email: string;
+  gmail: string;
 }
 
 export interface FilterValues {
@@ -30,9 +30,13 @@ export interface SavedSearch {
   filters: FilterValues;
 }
 
-export interface ScrapingStage {
-  name: string;
-  description: string;
-  itemsProcessed: number;
-  totalItems: number;
+
+export interface ScrapingProgress {
+  Stage: number; // Current stage (1-4)
+  Rate?: number; // Items per second (if applicable to stage)
+  ETA: string; // Estimated time remaining
+  Streamers: number; // Total number of streamers to process
+  Completed: number; // Number of streamers processed so far
+  Percentage: number; // Completion percentage (0-100)
+  done: boolean; // Whether the scraping is complete
 }
