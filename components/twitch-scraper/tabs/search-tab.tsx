@@ -34,12 +34,14 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
+import Papa from "papaparse";
+
 // Import components
 import FilterSection from "../filter-section";
 import TwitchDataTable from "../twitch-data-table";
 
 // Import types
-import type { ScrapingProgress, TwitchData } from "../types";
+import type { ScrapingProgress, Streamer, TwitchData } from "../types";
 
 // Define the scraping stage type
 type ScrapingStage = {
@@ -72,6 +74,8 @@ interface SearchTabProps {
   initialSubscribed: boolean;
   handleSearch: () => void;
   progressData: ScrapingProgress | null | undefined;
+  streamers: TwitchData[];
+  loadingStreamers: boolean;
 }
 
 export default function SearchTab({
@@ -97,6 +101,8 @@ export default function SearchTab({
   initialSubscribed,
   handleSearch,
   progressData,
+  streamers,
+  loadingStreamers,
 }: SearchTabProps) {
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [searchName, setSearchName] = useState("");
@@ -115,6 +121,8 @@ export default function SearchTab({
       }
     }
   }, [progressData?.Percentage]);
+
+  console.log(streamers);
 
   const { toast } = useToast();
 
@@ -346,9 +354,11 @@ export default function SearchTab({
                 <Search className="w-4 h-4 text-blue-700" />
               </div>
               <div>
-                <div className="text-xs text-gray-500">Total Streamers</div>
+                <div className="text-xs text-gray-500">
+                  Total live streamers
+                </div>
                 <div className="text-sm font-medium">
-                  {progressData.Streamers}
+                  {progressData.Total_Streamers}
                 </div>
               </div>
             </div>
@@ -480,7 +490,6 @@ export default function SearchTab({
               </div>
             </div>
           </div>
-
           <div className="flex items-center justify-between mb-4">
             <div className="text-sm text-gray-500">
               {data.length} results{" "}
@@ -500,103 +509,57 @@ export default function SearchTab({
               </div>
             )}
           </div>
-
-          {data.length > 0 ? (
-            <>
-              {isLoading ? (
-                <Card className="border border-blue-100 shadow-sm overflow-hidden">
-                  <CardContent className="p-6">
-                    <div className="flex flex-col items-center justify-center py-4 mb-4">
-                      <RefreshCw className="h-12 w-12 text-blue-500 animate-spin mx-auto mb-4" />
-                      <h3 className="text-lg font-medium mt-4 text-gray-800">
-                        {getStatusMessage()}
-                      </h3>
+          <div className="space-y-6">
+            {isLoading ? (
+              <Card className="border border-blue-100 shadow-sm overflow-hidden">
+                <CardContent className="p-6">
+                  <div className="flex flex-col items-center justify-center py-4 mb-4">
+                    <RefreshCw className="h-12 w-12 text-blue-500 animate-spin mx-auto mb-4" />
+                    <h3 className="text-lg font-medium mt-4 text-gray-800">
+                      {getStatusMessage()}
+                    </h3>
+                  </div>
+                  <div className="w-full mx-auto">
+                    {renderProgressDetails()}
+                  </div>
+                </CardContent>
+              </Card>
+            ) : loadingStreamers ? (
+              <Card className="border border-blue-100 shadow-sm overflow-hidden">
+                <CardContent className="p-6">
+                  <div className="flex flex-col items-center justify-center py-4 mb-4">
+                    <RefreshCw className="h-12 w-12 text-blue-500 animate-spin mx-auto mb-4" />
+                    <h3 className="text-lg font-medium mt-4 text-gray-800">
+                      Loading data table...
+                    </h3>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : streamers.length > 0 ? (
+              <TwitchDataTable data={streamers} subscribed={subscribed} />
+            ) : (
+              <Card className="border border-blue-100 shadow-sm overflow-hidden">
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <div className="text-center space-y-4 w-full max-w-md">
+                    <div className="bg-gray-50 p-6 rounded-full inline-block mx-auto">
+                      <Search className="h-12 w-12 text-blue-400" />
                     </div>
-                    <div className="w-full mx-auto">
-                      {renderProgressDetails()}
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : (
-                <TwitchDataTable data={data} subscribed={subscribed} />
-              )}
-              <div className="flex justify-end mt-4">
-                <Dialog
-                  open={showAddToCrmDialog}
-                  onOpenChange={setShowAddToCrmDialog}
-                >
-                  <DialogTrigger asChild>
-                    <Button className="bg-blue-700 hover:bg-blue-800">
-                      <PlusCircle className="mr-2 h-4 w-4" />
-                      Add to CRM
+                    <h3 className="text-lg font-medium">No search results</h3>
+                    <p className="text-gray-500 max-w-md">
+                      Use the search bar and filters to find Twitch streamers
+                      that match your criteria.
+                    </p>
+                    <Button
+                      className="mt-4 bg-blue-700 hover:bg-blue-800 transition-all duration-300 transform hover:scale-105"
+                      onClick={handleSearch}
+                    >
+                      Search Now
                     </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Add to CRM</DialogTitle>
-                      <DialogDescription>
-                        Add these {data.length} Twitch streamers to your CRM as
-                        leads.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="py-4">
-                      <p className="text-sm text-gray-500">
-                        This will add all {data.length} streamers from your
-                        current search results to your CRM. You can manage these
-                        leads, add them to email sequences, and track your
-                        outreach from the CRM dashboard.
-                      </p>
-                    </div>
-                    <DialogFooter>
-                      <Button
-                        variant="outline"
-                        onClick={() => setShowAddToCrmDialog(false)}
-                      >
-                        Cancel
-                      </Button>
-                      <Button onClick={handleAddToCrm}>Add to CRM</Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-              </div>
-            </>
-          ) : (
-            <Card className="border border-blue-100 shadow-sm overflow-hidden">
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <div className="text-center space-y-4 w-full max-w-md">
-                  {isLoading ? (
-                    <>
-                      <RefreshCw className="h-12 w-12 text-blue-500 animate-spin mx-auto mb-4" />
-
-                      <h3 className="text-lg font-medium mt-4">
-                        {getStatusMessage()}
-                      </h3>
-                      <div className="w-full mx-auto mt-4">
-                        {renderProgressDetails()}
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="bg-gray-50 p-6 rounded-full inline-block mx-auto">
-                        <Search className="h-12 w-12 text-blue-400" />
-                      </div>
-                      <h3 className="text-lg font-medium">No search results</h3>
-                      <p className="text-gray-500 max-w-md">
-                        Use the search bar and filters to find Twitch streamers
-                        that match your criteria.
-                      </p>
-                      <Button
-                        className="mt-4 bg-blue-700 hover:bg-blue-800 transition-all duration-300 transform hover:scale-105"
-                        onClick={handleSearch}
-                      >
-                        Search Now
-                      </Button>
-                    </>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </div>
       </div>
     </div>

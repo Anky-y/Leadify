@@ -30,7 +30,6 @@ export interface SavedSearch {
   filters: FilterValues;
 }
 
-
 export interface ScrapingProgress {
   Stage: number; // Current stage (1-4)
   Rate?: number; // Items per second (if applicable to stage)
@@ -39,4 +38,15 @@ export interface ScrapingProgress {
   Completed: number; // Number of streamers processed so far
   Percentage: number; // Completion percentage (0-100)
   done: boolean; // Whether the scraping is complete
+  Total_Streamers: number;
+  search_id: string;
+  download_url: string;
+}
+
+export interface Streamer {
+  username: string;
+  followers: number;
+  viewers: number;
+  language: string;
+  category: string;
 }
