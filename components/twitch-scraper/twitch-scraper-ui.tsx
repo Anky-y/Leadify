@@ -14,6 +14,7 @@ import type { ScrapingProgress, TwitchData } from "./types";
 import { set } from "date-fns";
 import User from "@/app/types/user";
 import { useUser } from "@/app/context/UserContext";
+import Papa from "papaparse";
 
 // Define the scraping stages
 type ScrapingStage = {
@@ -49,7 +50,8 @@ export default function TwitchScraperUI({
   const progressDataRef = useRef<ScrapingProgress | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const { user: contextUser, loading } = useUser();
-
+  const [streamers, setStreamers] = useState<TwitchData[]>([]);
+  const [loadingStreamers, setLoadingStreamers] = useState(false);
   // Load user after component is mounted
   useEffect(() => {
     if (!loading) {
@@ -63,6 +65,34 @@ export default function TwitchScraperUI({
     progressDataRef.current = data; // Keep the ref in sync with the state
   };
 
+  // useEffect(() => {
+  //   if (
+  //     !progressData?.download_url ||
+  //     !progressData?.download_url.startsWith("http") ||
+  //     !streamers.length
+  //   ) {
+  //     return;
+  //   }
+  //   setLoadingStreamers(true);
+  //   fetch(progressData.download_url)
+  //     .then((res) => res.text())
+  //     .then((csvText) => {
+  //       Papa.parse<TwitchData>(csvText, {
+  //         header: true,
+  //         skipEmptyLines: true,
+  //         complete: (result) => {
+  //           console.log(result);
+  //           setStreamers(result.data);
+  //         },
+  //         error: (err: any) => {
+  //           console.error("CSV parsing error:", err);
+  //         },
+  //       });
+  //     });
+  //   setLoadingStreamers(false);
+  //   return;
+  // }, [progressData?.download_url]);
+
   // Function to handle search with detailed progress updates
   const handleSearch = async () => {
     setIsLoading(true);
@@ -71,10 +101,11 @@ export default function TwitchScraperUI({
     if (progressData !== null) {
       setProgressData(null);
     }
+    setStreamers([]);
 
     try {
       const triggerRes = await fetch(
-        `http://localhost:8000/Twitch_scraper?category=29595&minimum_followers=10&viewer_count=10&user_id=${user?.id}&language=en&maximum_followers=100005`,
+        `http://localhost:8000/Twitch_scraper?category=516575&minimum_followers=10&viewer_count=10&language=en&user_id=${user?.id}&maximum_followers=100005`,
         {
           method: "GET",
           headers: {
@@ -113,10 +144,25 @@ export default function TwitchScraperUI({
 
           if (data?.Done) {
             clearInterval(pollingInterval);
+            setLoadingStreamers(true);
             setIsLoading(false);
-
-            // setSearchId(searchId);
-            // setDownloadUrl(downloadUrl);
+            fetch(data.download_url)
+              .then((res) => res.text())
+              .then((csvText) => {
+                Papa.parse<TwitchData>(csvText, {
+                  header: true,
+                  skipEmptyLines: true,
+                  complete: (result) => {
+                    console.log(result);
+                    setStreamers(result.data);
+                    setLoadingStreamers(false);
+                  },
+                  error: (err: any) => {
+                    console.error("CSV parsing error:", err);
+                    setLoadingStreamers(true);
+                  },
+                });
+              });
           }
         } catch (error) {
           console.error("Error polling scrape progress:", error);
@@ -194,6 +240,8 @@ export default function TwitchScraperUI({
             initialSubscribed={initialSubscribed}
             handleSearch={handleSearch}
             progressData={progressData}
+            streamers={streamers}
+            loadingStreamers={loadingStreamers}
           />
         </TabsContent>
 

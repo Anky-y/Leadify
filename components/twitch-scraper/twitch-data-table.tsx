@@ -73,7 +73,7 @@ export default function TwitchDataTable({
               </TableRow>
             ) : (
               data.map((row) => (
-                <TableRow key={row.id}>
+                <TableRow key={row.username}>
                   <TableCell className="font-medium">
                     <div className="flex flex-col">
                       <span>{row.username}</span>
