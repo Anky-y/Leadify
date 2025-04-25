@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
-import { requireAuth } from "@/app/auth"
 import YouTubeScraperUI from "@/components/youtube-scraper/youtube-scraper-ui"
+import { useUser } from "@/app/context/UserContext"
 
 export const metadata: Metadata = {
   title: "YouTube Scraper | Leadify",
@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 }
 
 export default async function YouTubeScraperPage() {
-  const user = await requireAuth()
+  const {user} = useUser()
 
-  return <YouTubeScraperUI initialSubscribed={user.subscribed} />
+  return <YouTubeScraperUI initialSubscribed={user?.is_subscribed} />
 }
