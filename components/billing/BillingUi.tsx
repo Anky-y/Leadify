@@ -380,7 +380,13 @@ export default function BillingUi() {
                         plans[billingCycle].findIndex(
                           (p) => p.id === currentPlan
                         ) ? (
-                      <Button className="w-full bg-primary hover:bg-primary/90 transition-colors">
+                      <Button
+                        className="w-full bg-primary hover:bg-primary/90 transition-colors"
+                        onClick={() =>
+                          (window.location.href =
+                            "https://leadifysolutions.lemonsqueezy.com/buy/665b1780-574b-4bab-bbe6-e4de27a8191e")
+                        }
+                      >
                         Upgrade Plan
                       </Button>
                     ) : (
