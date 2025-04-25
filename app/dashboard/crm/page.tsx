@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
-import { requireAuth } from "@/app/auth"
 import CrmUI from "@/components/crm/crm-ui"
+import { useUser } from "@/app/context/UserContext"
 
 export const metadata: Metadata = {
   title: "CRM | Leadify",
@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 }
 
 export default async function CrmPage() {
-  const user = await requireAuth()
+  const {user} = useUser()
 
-  return <CrmUI initialSubscribed={user.subscribed} />
+  return <CrmUI initialSubscribed={user?.is_subscribed} />
 }
