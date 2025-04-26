@@ -104,8 +104,9 @@ export default function TwitchScraperUI({
     setStreamers([]);
 
     try {
+      console.log(process.env.NEXT_PUBLIC_BACKEND_URL);
       const triggerRes = await fetch(
-        `http://localhost:8000/Twitch_scraper?category=516575&minimum_followers=10&viewer_count=10&language=en&user_id=${user?.id}&maximum_followers=100005`,
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}Twitch_scraper?category=516575&minimum_followers=10&viewer_count=10&user_id=${user?.id}&language=en&maximum_followers=100005`,
         {
           method: "GET",
           headers: {
@@ -123,7 +124,7 @@ export default function TwitchScraperUI({
       const pollingInterval = setInterval(async () => {
         try {
           const progressRes = await fetch(
-            "http://localhost:8000/Twitch_scraper/get_progress",
+            `${process.env.NEXT_PUBLIC_BACKEND_URL}Twitch_scraper/get_progress?user_id=${user?.id}`,
             {
               method: "GET",
               headers: {
