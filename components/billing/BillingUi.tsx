@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AlertCircle, CheckCircle, CreditCard, Download } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
@@ -31,195 +31,32 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import { cn } from "@/lib/utils";
-
-// Sample plan data with expanded options
-const plans = {
-  monthly: [
-    {
-      id: "free",
-      name: "Free",
-      price: 0,
-      description: "Basic features for personal use",
-      features: [
-        "5 searches per day",
-        "Basic analytics",
-        "Email support",
-        "1 user account",
-      ],
-    },
-    {
-      id: "basic",
-      name: "Basic",
-      price: 9.99,
-      description: "Essential features for individuals",
-      features: [
-        "10 searches per day",
-        "Basic analytics",
-        "Email support",
-        "1 user account",
-        "Standard exports",
-      ],
-    },
-    {
-      id: "pro",
-      name: "Professional",
-      price: 29.99,
-      description: "Advanced features for professionals",
-      features: [
-        "Unlimited searches",
-        "Advanced analytics",
-        "Priority email support",
-        "5 user accounts",
-        "Advanced exports",
-        "API access",
-      ],
-    },
-    {
-      id: "enterprise",
-      name: "Enterprise",
-      price: 99.99,
-      description: "Complete solution for teams",
-      features: [
-        "Unlimited everything",
-        "Custom analytics",
-        "24/7 phone support",
-        "Unlimited user accounts",
-        "Custom exports",
-        "Advanced API access",
-        "Dedicated account manager",
-      ],
-    },
-    {
-      id: "ultimate",
-      name: "Ultimate",
-      price: 199.99,
-      description: "Everything plus white-glove service",
-      features: [
-        "All Enterprise features",
-        "White-label solution",
-        "Custom development",
-        "Quarterly business reviews",
-        "Strategic consulting",
-        "On-site training",
-        "Custom integrations",
-      ],
-    },
-  ],
-  yearly: [
-    {
-      id: "free",
-      name: "Free",
-      price: 0,
-      description: "Basic features for personal use",
-      features: [
-        "5 searches per day",
-        "Basic analytics",
-        "Email support",
-        "1 user account",
-      ],
-    },
-    {
-      id: "basic",
-      name: "Basic",
-      price: 99.99,
-      description: "Essential features for individuals",
-      features: [
-        "10 searches per day",
-        "Basic analytics",
-        "Email support",
-        "1 user account",
-        "Standard exports",
-      ],
-    },
-    {
-      id: "pro",
-      name: "Professional",
-      price: 299.99,
-      description: "Advanced features for professionals",
-      features: [
-        "Unlimited searches",
-        "Advanced analytics",
-        "Priority email support",
-        "5 user accounts",
-        "Advanced exports",
-        "API access",
-      ],
-    },
-    {
-      id: "enterprise",
-      name: "Enterprise",
-      price: 999.99,
-      description: "Complete solution for teams",
-      features: [
-        "Unlimited everything",
-        "Custom analytics",
-        "24/7 phone support",
-        "Unlimited user accounts",
-        "Custom exports",
-        "Advanced API access",
-        "Dedicated account manager",
-      ],
-    },
-    {
-      id: "ultimate",
-      name: "Ultimate",
-      price: 1999.99,
-      description: "Everything plus white-glove service",
-      features: [
-        "All Enterprise features",
-        "White-label solution",
-        "Custom development",
-        "Quarterly business reviews",
-        "Strategic consulting",
-        "On-site training",
-        "Custom integrations",
-      ],
-    },
-  ],
-};
-
-// Sample invoice data
-const invoices = [
-  {
-    id: "INV-2025-0412",
-    planName: "Professional Plan",
-    amount: 29.99,
-    purchaseDate: "April 12, 2025",
-    endDate: "May 12, 2025",
-    status: "Paid",
-  },
-  {
-    id: "INV-2025-0312",
-    planName: "Professional Plan",
-    amount: 29.99,
-    purchaseDate: "March 12, 2025",
-    endDate: "April 12, 2025",
-    status: "Paid",
-  },
-  {
-    id: "INV-2025-0212",
-    planName: "Basic Plan",
-    amount: 9.99,
-    purchaseDate: "February 12, 2025",
-    endDate: "March 12, 2025",
-    status: "Paid",
-  },
-  {
-    id: "INV-2025-0112",
-    planName: "Basic Plan",
-    amount: 9.99,
-    purchaseDate: "January 12, 2025",
-    endDate: "February 12, 2025",
-    status: "Paid",
-  },
-];
+import User from "@/app/types/user";
+import { useUser } from "@/app/context/UserContext";
+import Loading from "@/app/loading";
 
 export default function BillingUi() {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">(
     "monthly"
   );
   const [currentPlan, setCurrentPlan] = useState<string>("pro");
+  const [user, setUser] = useState<User | null>(null);
+  const { user: contextUser, loading } = useUser();
 
+  // Load user after component is mounted
+  useEffect(() => {
+    if (!loading) {
+      setUser(contextUser);
+    }
+  }, [contextUser, loading]);
+
+  if (loading) {
+    return <Loading />; // Show a loading state while fetching user data
+  }
+
+  if (!user) {
+    return <div>Error: User not found</div>; // Handle the case where no user is found
+  }
   // Calculate yearly savings
   const calculateSavings = (monthlyPrice: number, yearlyPrice: number) => {
     if (monthlyPrice === 0) return 0;
@@ -228,6 +65,198 @@ export default function BillingUi() {
     const savings = ((monthlyCost - yearlyCost) / monthlyCost) * 100;
     return Math.round(savings);
   };
+
+  // Sample plan data with expanded options
+  const plans = {
+    monthly: [
+      {
+        id: "free",
+        name: "Free",
+        price: 0,
+        description: "Basic features for personal use",
+        features: [
+          "5 searches per day",
+          "Basic analytics",
+          "Email support",
+          "1 user account",
+        ],
+        checkoutUrl: "", // Add the checkout URL here
+      },
+      {
+        id: "basic",
+        name: "Basic",
+        price: 9.99,
+        description: "Essential features for individuals",
+        features: [
+          "10 searches per day",
+          "Basic analytics",
+          "Email support",
+          "1 user account",
+          "Standard exports",
+        ],
+        checkoutUrl: `https://leadifysolutions.lemonsqueezy.com/buy/388c8ce7-30f0-417a-9133-c40ad1b17717?checkout[custom][user_id]=${user.id}`, // Add the checkout URL here
+      },
+      {
+        id: "pro",
+        name: "Professional",
+        price: 29.99,
+        description: "Advanced features for professionals",
+        features: [
+          "Unlimited searches",
+          "Advanced analytics",
+          "Priority email support",
+          "5 user accounts",
+          "Advanced exports",
+          "API access",
+        ],
+        checkoutUrl: `https://leadifysolutions.lemonsqueezy.com/buy/1ad56af8-67c0-4197-bf8a-83b501e1d20c?checkout[custom][user_id]=${user.id}`, // Add the checkout URL here
+      },
+      {
+        id: "enterprise",
+        name: "Enterprise",
+        price: 99.99,
+        description: "Complete solution for teams",
+        features: [
+          "Unlimited everything",
+          "Custom analytics",
+          "24/7 phone support",
+          "Unlimited user accounts",
+          "Custom exports",
+          "Advanced API access",
+          "Dedicated account manager",
+        ],
+        checkoutUrl: `https://leadifysolutions.lemonsqueezy.com/buy/d71bf8fe-3a5c-4dea-b13d-8fe1696701af?checkout[custom][user_id]=${user.id}`, // Add the checkout URL here
+      },
+      {
+        id: "ultimate",
+        name: "Ultimate",
+        price: 199.99,
+        description: "Everything plus white-glove service",
+        features: [
+          "All Enterprise features",
+          "White-label solution",
+          "Custom development",
+          "Quarterly business reviews",
+          "Strategic consulting",
+          "On-site training",
+          "Custom integrations",
+        ],
+        checkoutUrl: `https://leadifysolutions.lemonsqueezy.com/buy/21674ff5-007b-4c6c-a383-8e0e7d49ce17?checkout[custom][user_id]=${user.id}`, // Add the checkout URL here
+      },
+    ],
+    yearly: [
+      {
+        id: "free",
+        name: "Free",
+        price: 0,
+        description: "Basic features for personal use",
+        features: [
+          "5 searches per day",
+          "Basic analytics",
+          "Email support",
+          "1 user account",
+        ],
+        checkoutUrl: "", // Add the checkout URL here
+      },
+      {
+        id: "basic",
+        name: "Basic",
+        price: 99.99,
+        description: "Essential features for individuals",
+        features: [
+          "10 searches per day",
+          "Basic analytics",
+          "Email support",
+          "1 user account",
+          "Standard exports",
+        ],
+        checkoutUrl: `https://leadifysolutions.lemonsqueezy.com/buy/304818d8-1024-4455-8bdd-b8545625cd35?checkout[custom][user_id]=${user.id}`, // Add the checkout URL here
+      },
+      {
+        id: "pro",
+        name: "Professional",
+        price: 299.99,
+        description: "Advanced features for professionals",
+        features: [
+          "Unlimited searches",
+          "Advanced analytics",
+          "Priority email support",
+          "5 user accounts",
+          "Advanced exports",
+          "API access",
+        ],
+        checkoutUrl: `https://leadifysolutions.lemonsqueezy.com/buy/b4ca9d9d-d9c8-4152-8295-eed06a568fdb?checkout[custom][user_id]=${user.id}`, // Add the checkout URL here
+      },
+      {
+        id: "enterprise",
+        name: "Enterprise",
+        price: 999.99,
+        description: "Complete solution for teams",
+        features: [
+          "Unlimited everything",
+          "Custom analytics",
+          "24/7 phone support",
+          "Unlimited user accounts",
+          "Custom exports",
+          "Advanced API access",
+          "Dedicated account manager",
+        ],
+        checkoutUrl: `https://leadifysolutions.lemonsqueezy.com/buy/665b1780-574b-4bab-bbe6-e4de27a8191e?checkout[custom][user_id]=${user.id}`, // Add the checkout URL here
+      },
+      {
+        id: "ultimate",
+        name: "Ultimate",
+        price: 1999.99,
+        description: "Everything plus white-glove service",
+        features: [
+          "All Enterprise features",
+          "White-label solution",
+          "Custom development",
+          "Quarterly business reviews",
+          "Strategic consulting",
+          "On-site training",
+          "Custom integrations",
+        ],
+        checkoutUrl: `https://leadifysolutions.lemonsqueezy.com/checkout/buy/93a8bea4-491a-47fb-b8ad-4ea32f8bd0ea?checkout[custom][user_id]=${user.id}`, // Add the checkout URL here
+      },
+    ],
+  };
+
+  // Sample invoice data
+  const invoices = [
+    {
+      id: "INV-2025-0412",
+      planName: "Professional Plan",
+      amount: 29.99,
+      purchaseDate: "April 12, 2025",
+      endDate: "May 12, 2025",
+      status: "Paid",
+    },
+    {
+      id: "INV-2025-0312",
+      planName: "Professional Plan",
+      amount: 29.99,
+      purchaseDate: "March 12, 2025",
+      endDate: "April 12, 2025",
+      status: "Paid",
+    },
+    {
+      id: "INV-2025-0212",
+      planName: "Basic Plan",
+      amount: 9.99,
+      purchaseDate: "February 12, 2025",
+      endDate: "March 12, 2025",
+      status: "Paid",
+    },
+    {
+      id: "INV-2025-0112",
+      planName: "Basic Plan",
+      amount: 9.99,
+      purchaseDate: "January 12, 2025",
+      endDate: "February 12, 2025",
+      status: "Paid",
+    },
+  ];
 
   return (
     <div className="space-y-8">
@@ -383,8 +412,7 @@ export default function BillingUi() {
                       <Button
                         className="w-full bg-primary hover:bg-primary/90 transition-colors"
                         onClick={() =>
-                          (window.location.href =
-                            "https://leadifysolutions.lemonsqueezy.com/buy/665b1780-574b-4bab-bbe6-e4de27a8191e")
+                          (window.location.href = plan.checkoutUrl)
                         }
                       >
                         Upgrade Plan
@@ -516,7 +544,7 @@ export default function BillingUi() {
       </Card>
 
       {/* Payment Methods */}
-      {/* <Card>
+      <Card>
         <CardHeader>
           <CardTitle>Payment Methods</CardTitle>
           <CardDescription>Manage your payment methods.</CardDescription>
@@ -545,7 +573,78 @@ export default function BillingUi() {
             Add Payment Method
           </Button>
         </CardContent>
-      </Card> */}
+      </Card>
     </div>
   );
 }
+// "use client";
+// import { Product } from "@/app/types/lemonSqueezy";
+// import React, { useState, useEffect } from "react";
+
+// const BillingUi = () => {
+//   const [products, setProducts] = useState<Product[]>([]);
+
+//   useEffect(() => {
+//     const fetchProducts = async () => {
+//       const cachedProducts = localStorage.getItem("products");
+
+//       if (cachedProducts) {
+//         setProducts(JSON.parse(cachedProducts));
+//       } else {
+//         const apiKey = process.env.NEXT_PUBLIC_LEMON_SQUEEZY_API_KEY; // Get API key from environment
+//         const url = "https://api.lemonsqueezy.com/v1/products"; // Your API route for fetching products
+
+//         try {
+//           const response = await fetch(url, {
+//             method: "GET",
+//             headers: {
+//               Authorization: `Bearer ${apiKey}`,
+//               Accept: "application/json",
+//             },
+//           });
+
+//           if (!response.ok) {
+//             throw new Error("Failed to fetch products");
+//           }
+
+//           const data = await response.json();
+//           setProducts(data.data);
+//           localStorage.setItem("products", JSON.stringify(data.data)); // Cache products in localStorage
+//         } catch (error) {
+//           console.error("Error fetching products:", error);
+//         }
+//       }
+//     };
+
+//     fetchProducts();
+//   }, []);
+
+//   if (products.length === 0) return <p>Loading products...</p>;
+
+//   return (
+//     <div>
+//       {products.map((product) => (
+//         <div key={product.id} className="product-card">
+//           <h3>{product.name}</h3>
+//           <p>{product.description}</p>
+//           <div>
+//             {product.variants && product.variants.length > 0 ? (
+//               product.variants.map((variant) => (
+//                 <div key={variant.id} className="variant-card">
+//                   <h4>{variant.name}</h4>
+//                   <p>${variant.price}</p>
+//                   <p>Billing cycle: {variant.billing_cycle}</p>
+//                   <a href={variant.checkout_url}>Manage Subscription</a>
+//                 </div>
+//               ))
+//             ) : (
+//               <p>No variants available</p>
+//             )}
+//           </div>
+//         </div>
+//       ))}
+//     </div>
+//   );
+// };
+
+// export default BillingUi;

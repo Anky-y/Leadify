@@ -34,6 +34,19 @@ export async function POST(req: Request) {
         email,
         first_name: firstName,
         last_name: lastName,
+        subscription_status: false, 
+      },
+    ]);
+
+    // Insert the 'free' subscription into the `subscriptions` table (without Lemon Squeezy)
+    await supabase.from("subscriptions").insert([
+      {
+        user_id: data.user?.id,
+        plan_id: null, // Use the internal 'free' plan ID
+        subscription_id: null, // No subscription ID, since they're on free
+        status: "inactive", // Status set as 'inactive'
+        current_period_end: null, // No end date for free users
+        product_name: "Free",
       },
     ]);
 
