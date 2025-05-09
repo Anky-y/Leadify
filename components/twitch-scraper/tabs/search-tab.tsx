@@ -1,5 +1,7 @@
 "use client";
 
+import { DialogTrigger } from "@/components/ui/dialog";
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +9,6 @@ import {
   Search,
   Download,
   Save,
-  PlusCircle,
   CheckCircle2,
   Loader2,
   AlertCircle,
@@ -21,7 +22,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import {
@@ -31,25 +31,13 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
-
-import Papa from "papaparse";
-
 // Import components
 import FilterSection from "../filter-section";
 import TwitchDataTable from "../twitch-data-table";
 
 // Import types
-import type { ScrapingProgress, Streamer, TwitchData } from "../types";
-
-// Define the scraping stage type
-type ScrapingStage = {
-  name: string;
-  description: string;
-  itemsProcessed: number;
-  totalItems: number;
-};
+import type { ScrapingProgress, TwitchData } from "../types";
 
 interface SearchTabProps {
   searchTerm: string;
@@ -94,7 +82,6 @@ export default function SearchTab({
   maxViewers,
   setMaxViewers,
   isLoading,
-  loadingProgress,
   data,
   subscribed,
   setSubscribed,
@@ -106,7 +93,6 @@ export default function SearchTab({
 }: SearchTabProps) {
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [searchName, setSearchName] = useState("");
-  const [showAddToCrmDialog, setShowAddToCrmDialog] = useState(false);
   const [exportFormat, setExportFormat] = useState("csv");
 
   // Add animation effect for progress changes
@@ -159,24 +145,6 @@ export default function SearchTab({
     });
     setSaveDialogOpen(false);
     setSearchName("");
-  };
-
-  const handleAddToCrm = () => {
-    if (data.length === 0) {
-      toast({
-        title: "No data to add",
-        description: "Please perform a search first to get data for the CRM.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setShowAddToCrmDialog(false);
-
-    toast({
-      title: "Added to CRM",
-      description: `${data.length} leads have been added to your CRM.`,
-    });
   };
 
   const resetFilters = () => {
@@ -402,113 +370,8 @@ export default function SearchTab({
           onResetFilters={resetFilters}
         />
 
-        <div className="space-y-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Input
-                  placeholder="Search by username..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pr-10"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleSearch();
-                  }}
-                />
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="absolute right-0 top-0 h-full"
-                  onClick={handleSearch}
-                  disabled={isLoading}
-                >
-                  <Search className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
-            <div className="flex gap-2">
-              <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="border-blue-200 text-blue-700 hover:bg-blue-50"
-                  >
-                    <Save className="mr-2 h-4 w-4" />
-                    Save Search
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Save Search</DialogTitle>
-                    <DialogDescription>
-                      Give your search a name to save it for future use.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="py-4">
-                    <Label htmlFor="search-name">Search Name</Label>
-                    <Input
-                      id="search-name"
-                      value={searchName}
-                      onChange={(e) => setSearchName(e.target.value)}
-                      placeholder="e.g., English Fortnite Streamers"
-                      className="mt-2"
-                    />
-                  </div>
-                  <DialogFooter>
-                    <Button
-                      variant="outline"
-                      onClick={() => setSaveDialogOpen(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button onClick={handleSaveSearch}>Save</Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-
-              <div className="flex items-center gap-2">
-                <Select value={exportFormat} onValueChange={setExportFormat}>
-                  <SelectTrigger className="w-[110px]">
-                    <SelectValue placeholder="Format" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="csv">CSV</SelectItem>
-                    <SelectItem value="excel">Excel</SelectItem>
-                    <SelectItem value="json">JSON</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <Button
-                  variant="outline"
-                  className="border-blue-200 text-blue-700 hover:bg-blue-50"
-                  onClick={handleExport}
-                >
-                  <Download className="mr-2 h-4 w-4" />
-                  Export
-                </Button>
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center justify-between mb-4">
-            <div className="text-sm text-gray-500">
-              {data.length} results{" "}
-              {!subscribed && data.length === 3 && "(limited)"}
-            </div>
-
-            {!initialSubscribed && (
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="subscription-toggle"
-                  checked={subscribed}
-                  onCheckedChange={setSubscribed}
-                />
-                <Label htmlFor="subscription-toggle" className="text-sm">
-                  Simulate Premium Account
-                </Label>
-              </div>
-            )}
-          </div>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between mb-4"></div>
           <div className="space-y-6">
             {isLoading ? (
               <Card className="border border-blue-100 shadow-sm overflow-hidden">
@@ -536,7 +399,90 @@ export default function SearchTab({
                 </CardContent>
               </Card>
             ) : streamers.length > 0 ? (
-              <TwitchDataTable data={streamers} subscribed={subscribed} />
+              <div>
+                <TwitchDataTable data={streamers} subscribed={subscribed} />
+                <div className="flex justify-between items-center mt-2 text-sm text-gray-500">
+                  <div>
+                    {streamers.length} results{" "}
+                    {!subscribed && streamers.length === 3 && "(limited)"}
+                  </div>
+                  {streamers.length > 15 && (
+                    <div className="text-sm text-gray-500">
+                      Showing 15 results per page
+                    </div>
+                  )}
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <div className="flex gap-2">
+                      <Dialog
+                        open={saveDialogOpen}
+                        onOpenChange={setSaveDialogOpen}
+                      >
+                        <DialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="border-blue-200 text-blue-700 hover:bg-blue-50"
+                          >
+                            <Save className="mr-2 h-4 w-4" />
+                            Save Search
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Save Search</DialogTitle>
+                            <DialogDescription>
+                              Give your search a name to save it for future use.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="py-4">
+                            <Label htmlFor="search-name">Search Name</Label>
+                            <Input
+                              id="search-name"
+                              value={searchName}
+                              onChange={(e) => setSearchName(e.target.value)}
+                              placeholder="e.g., English Fortnite Streamers"
+                              className="mt-2"
+                            />
+                          </div>
+                          <DialogFooter>
+                            <Button
+                              variant="outline"
+                              onClick={() => setSaveDialogOpen(false)}
+                            >
+                              Cancel
+                            </Button>
+                            <Button onClick={handleSaveSearch}>Save</Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+
+                      <div className="flex items-center gap-2">
+                        <Select
+                          value={exportFormat}
+                          onValueChange={setExportFormat}
+                        >
+                          <SelectTrigger className="w-[110px]">
+                            <SelectValue placeholder="Format" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="csv">CSV</SelectItem>
+                            <SelectItem value="excel">Excel</SelectItem>
+                            <SelectItem value="json">JSON</SelectItem>
+                          </SelectContent>
+                        </Select>
+
+                        <Button
+                          variant="outline"
+                          className="border-blue-200 text-blue-700 hover:bg-blue-50"
+                          onClick={handleExport}
+                        >
+                          <Download className="mr-2 h-4 w-4" />
+                          Export
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             ) : (
               <Card className="border border-blue-100 shadow-sm overflow-hidden">
                 <CardContent className="flex flex-col items-center justify-center py-12">

@@ -16,27 +16,47 @@ import {
   YoutubeLogo,
   EnvelopeSimple,
 } from "./social-icons";
-import { ExternalLink, Eye, EyeOff } from "lucide-react";
+import {
+  ExternalLink,
+  Eye,
+  EyeOff,
+  ArrowDownAZ,
+  ArrowUpAZ,
+  ArrowDown01,
+  ArrowUp01,
+  ArrowDownUp,
+  SortAsc,
+  SortDesc,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import type { TwitchData } from "./types";
-import { subscribe } from "diagnostics_channel";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 interface TwitchDataTableProps {
   data: TwitchData[];
   subscribed: boolean;
 }
 
-export default function TwitchDataTable({
-  data,
-}: TwitchDataTableProps) {
+export default function TwitchDataTable({ data }: TwitchDataTableProps) {
   // State to track which emails are revealed
   const [revealedEmails, setRevealedEmails] = useState<Record<string, boolean>>(
     {}
   );
 
-  const subscribed = true
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 7;
+
+  const subscribed = true;
 
   // Toggle email visibility for a specific row
   const toggleEmailVisibility = (id: string) => {
@@ -46,19 +66,191 @@ export default function TwitchDataTable({
     }));
   };
 
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<
+    "asc" | "desc" | "default"
+  >("default");
+
+  const handleSort = (column: string) => {
+    // If clicking the same column, cycle through sort states: default -> asc -> desc -> default
+    if (sortColumn === column) {
+      if (sortDirection === "default") {
+        setSortDirection("asc");
+      } else if (sortDirection === "asc") {
+        setSortDirection("desc");
+      } else {
+        setSortDirection("default");
+        setSortColumn(null); // Reset column when returning to default
+      }
+    } else {
+      // If clicking a new column, set it as the sort column with default ascending direction
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+  };
+
+  // Sort the data based on current sort column and direction
+  const sortData = (items: TwitchData[]) => {
+    if (!sortColumn || sortDirection === "default") return items;
+
+    return [...items].sort((a, b) => {
+      // Handle different column types
+      if (sortColumn === "username") {
+        const valueA = a.username.toLowerCase();
+        const valueB = b.username.toLowerCase();
+        return sortDirection === "asc"
+          ? valueA.localeCompare(valueB)
+          : valueB.localeCompare(valueA);
+      }
+
+      if (sortColumn === "followers") {
+        // Ensure we're working with numbers for correct sorting
+        const valueA = Number(a.followers) || 0;
+        const valueB = Number(b.followers) || 0;
+        return sortDirection === "asc" ? valueA - valueB : valueB - valueA;
+      }
+
+      if (sortColumn === "viewer_count") {
+        // Ensure we're working with numbers for correct sorting
+        const valueA = Number(a.viewer_count) || 0;
+        const valueB = Number(b.viewer_count) || 0;
+        return sortDirection === "asc" ? valueA - valueB : valueB - valueA;
+      }
+
+      if (sortColumn === "gmail") {
+        // Sort by presence of valid email
+        const hasEmailA = Boolean(a.gmail);
+        const hasEmailB = Boolean(b.gmail);
+
+        if (hasEmailA === hasEmailB) {
+          // If both have or don't have emails, sort alphabetically
+          const valueA = (a.gmail || "").toLowerCase();
+          const valueB = (b.gmail || "").toLowerCase();
+          return sortDirection === "asc"
+            ? valueA.localeCompare(valueB)
+            : valueB.localeCompare(valueA);
+        }
+
+        // One has email and one doesn't
+        return sortDirection === "asc"
+          ? hasEmailA
+            ? -1
+            : 1
+          : hasEmailA
+          ? 1
+          : -1;
+      }
+
+      return 0;
+    });
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  // Apply sorting before pagination
+  const sortedData = sortData(data);
+
+  // Calculate pagination
+  const totalPages = Math.ceil(sortedData.length / itemsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = sortedData.slice(indexOfFirstItem, indexOfLastItem);
+
   return (
     <div className="border rounded-lg overflow-hidden">
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[180px]">Username</TableHead>
-              <TableHead className="text-right">Followers</TableHead>
-              <TableHead className="text-right">Viewers</TableHead>
+              <TableHead
+                className="w-[180px] cursor-pointer"
+                onClick={() => handleSort("username")}
+              >
+                <div className="flex items-center">
+                  Username
+                  <div className="ml-1">
+                    {sortColumn === "username" ? (
+                      sortDirection === "asc" ? (
+                        <ArrowDownAZ className="h-4 w-4 text-blue-600" />
+                      ) : sortDirection === "desc" ? (
+                        <ArrowUpAZ className="h-4 w-4 text-blue-600" />
+                      ) : (
+                        <ArrowDownUp className="h-4 w-4 text-gray-400" />
+                      )
+                    ) : (
+                      <ArrowDownUp className="h-4 w-4 text-gray-400 opacity-50" />
+                    )}
+                  </div>
+                </div>
+              </TableHead>
+              <TableHead
+                className="text-right cursor-pointer"
+                onClick={() => handleSort("followers")}
+              >
+                <div className="flex items-center justify-end">
+                  Followers
+                  <div className="ml-1">
+                    {sortColumn === "followers" ? (
+                      sortDirection === "asc" ? (
+                        <ArrowDown01 className="h-4 w-4 text-blue-600" />
+                      ) : sortDirection === "desc" ? (
+                        <ArrowUp01 className="h-4 w-4 text-blue-600" />
+                      ) : (
+                        <ArrowDownUp className="h-4 w-4 text-gray-400" />
+                      )
+                    ) : (
+                      <ArrowDownUp className="h-4 w-4 text-gray-400 opacity-50" />
+                    )}
+                  </div>
+                </div>
+              </TableHead>
+              <TableHead
+                className="text-right cursor-pointer"
+                onClick={() => handleSort("viewer_count")}
+              >
+                <div className="flex items-center justify-end">
+                  Viewers
+                  <div className="ml-1">
+                    {sortColumn === "viewer_count" ? (
+                      sortDirection === "asc" ? (
+                        <ArrowDown01 className="h-4 w-4 text-blue-600" />
+                      ) : sortDirection === "desc" ? (
+                        <ArrowUp01 className="h-4 w-4 text-blue-600" />
+                      ) : (
+                        <ArrowDownUp className="h-4 w-4 text-gray-400" />
+                      )
+                    ) : (
+                      <ArrowDownUp className="h-4 w-4 text-gray-400 opacity-50" />
+                    )}
+                  </div>
+                </div>
+              </TableHead>
               <TableHead>Language</TableHead>
               <TableHead>Category</TableHead>
               <TableHead>Social Media</TableHead>
-              <TableHead>Email</TableHead>
+              <TableHead
+                className="cursor-pointer"
+                onClick={() => handleSort("gmail")}
+              >
+                <div className="flex items-center">
+                  Email
+                  <div className="ml-1">
+                    {sortColumn === "gmail" ? (
+                      sortDirection === "asc" ? (
+                        <SortAsc className="h-4 w-4 text-blue-600" />
+                      ) : sortDirection === "desc" ? (
+                        <SortDesc className="h-4 w-4 text-blue-600" />
+                      ) : (
+                        <ArrowDownUp className="h-4 w-4 text-gray-400" />
+                      )
+                    ) : (
+                      <ArrowDownUp className="h-4 w-4 text-gray-400 opacity-50" />
+                    )}
+                  </div>
+                </div>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -72,7 +264,7 @@ export default function TwitchDataTable({
                 </TableCell>
               </TableRow>
             ) : (
-              data.map((row) => (
+              currentItems.map((row) => (
                 <TableRow key={row.username}>
                   <TableCell className="font-medium">
                     <div className="flex flex-col">
@@ -215,7 +407,7 @@ export default function TwitchDataTable({
                       )
                     ) : (
                       <span className="text-gray-400 text-xs">
-                        Not available
+                        Couldn't find a valid mail
                       </span>
                     )}
                   </TableCell>
@@ -225,6 +417,77 @@ export default function TwitchDataTable({
           </TableBody>
         </Table>
       </div>
+      {data.length > itemsPerPage && (
+        <div className="flex justify-center py-4">
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  onClick={() =>
+                    currentPage > 1 && handlePageChange(currentPage - 1)
+                  }
+                  className={
+                    currentPage === 1
+                      ? "pointer-events-none opacity-50"
+                      : "cursor-pointer"
+                  }
+                />
+              </PaginationItem>
+
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                (page) => {
+                  // Show first page, last page, and pages around current page
+                  if (
+                    page === 1 ||
+                    page === totalPages ||
+                    (page >= currentPage - 1 && page <= currentPage + 1)
+                  ) {
+                    return (
+                      <PaginationItem key={page}>
+                        <PaginationLink
+                          onClick={() => handlePageChange(page)}
+                          isActive={page === currentPage}
+                          className="cursor-pointer"
+                        >
+                          {page}
+                        </PaginationLink>
+                      </PaginationItem>
+                    );
+                  }
+
+                  // Show ellipsis for gaps
+                  if (
+                    (page === 2 && currentPage > 3) ||
+                    (page === totalPages - 1 && currentPage < totalPages - 2)
+                  ) {
+                    return (
+                      <PaginationItem key={`ellipsis-${page}`}>
+                        <PaginationEllipsis />
+                      </PaginationItem>
+                    );
+                  }
+
+                  return null;
+                }
+              )}
+
+              <PaginationItem>
+                <PaginationNext
+                  onClick={() =>
+                    currentPage < totalPages &&
+                    handlePageChange(currentPage + 1)
+                  }
+                  className={
+                    currentPage === totalPages
+                      ? "pointer-events-none opacity-50"
+                      : "cursor-pointer"
+                  }
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
+      )}
     </div>
   );
 }
