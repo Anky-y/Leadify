@@ -34,8 +34,32 @@ export async function POST(req: Request) {
         email,
         first_name: firstName,
         last_name: lastName,
+        subscription_status: false,
       },
     ]);
+
+    // // Insert the 'free' subscription into the `subscriptions` table (without Lemon Squeezy)
+    // const { error: subInsertError, data: subInsertData } = await supabase
+    //   .from("subscriptions")
+    //   .insert([
+    //     {
+    //       user_id: data.user?.id,
+    //       plan_id: null, // Use the internal 'free' plan ID
+    //       subscription_id: null, // No subscription ID, since they're on free
+    //       status: "inactive", // Status set as 'inactive'
+    //       product_name: "Free",
+    //     },
+    //   ]);
+
+    // console.log(subInsertData);
+
+    // if (subInsertError) {
+    //   console.error("Error inserting subscription:", subInsertError.message);
+    //   return NextResponse.json(
+    //     { success: false, error: subInsertError.message },
+    //     { status: 500 }
+    //   );
+    // }
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
