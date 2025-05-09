@@ -9,15 +9,6 @@ import {
 } from "react";
 import { getUserSubscription } from "@/utils/subscription"; // Adjust path as needed
 
-export interface Subscription {
-  id: number;
-  user_id: string;
-  subscription_id: string;
-  plan_id: string;
-  status: string;
-  renews_at: string | null;
-  ends_at: string | null;
-}
 
 interface SubscriptionContextValue {
   subscription: Subscription | null;

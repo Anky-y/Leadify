@@ -34,29 +34,222 @@ import { cn } from "@/lib/utils";
 import User from "@/app/types/user";
 import { useUser } from "@/app/context/UserContext";
 import Loading from "@/app/loading";
+import { useSubscription } from "@/app/context/SubscriptionContext";
+import { PlanConfig } from "@/app/types/plans";
+const plansConfig: Record<"monthly" | "yearly", PlanConfig[]> = {
+  monthly: [
+    {
+      id: 0,
+      name: "Free",
+      price: 0,
+      description: "Basic features for personal use",
+      features: [
+        "5 searches per day",
+        "Basic analytics",
+        "Email support",
+        "1 user account",
+      ],
+      variantId: null,
+      checkoutUrl: "",
+    },
+    {
+      id: 783425,
+      name: "Basic",
+      price: 9.99,
+      description: "Essential features for individuals",
+      features: [
+        "10 searches per day",
+        "Basic analytics",
+        "Email support",
+        "1 user account",
+        "Standard exports",
+      ],
+      variantId: "81a494e3-c10f-45c1-b768-3089d750219f",
+      checkoutUrl: `https://leadifysolutions.lemonsqueezy.com/buy/81a494e3-c10f-45c1-b768-3089d750219f`,
+    },
+    {
+      id: 783455,
+      name: "Professional",
+      price: 29.99,
+      description: "Advanced features for professionals",
+      features: [
+        "Unlimited searches",
+        "Advanced analytics",
+        "Priority email support",
+        "5 user accounts",
+        "Advanced exports",
+        "API access",
+      ],
+      variantId: "3df6e0cf-c654-4323-8149-825b59c05c7f",
+      checkoutUrl: `https://leadifysolutions.lemonsqueezy.com/buy/3df6e0cf-c654-4323-8149-825b59c05c7f`,
+    },
+    {
+      id: 783452,
+      name: "Enterprise",
+      price: 99.99,
+      description: "Complete solution for teams",
+      features: [
+        "Unlimited everything",
+        "Custom analytics",
+        "24/7 phone support",
+        "Unlimited user accounts",
+        "Custom exports",
+        "Advanced API access",
+        "Dedicated account manager",
+      ],
+      variantId: "d74fff53-9d86-4447-85ed-1590c7157d74",
+      checkoutUrl: `https://leadifysolutions.lemonsqueezy.com/buy/d74fff53-9d86-4447-85ed-1590c7157d74`,
+    },
+    {
+      id: 783459,
+      name: "Ultimate",
+      price: 199.99,
+      description: "Everything plus white-glove service",
+      features: [
+        "All Enterprise features",
+        "White-label solution",
+        "Custom development",
+        "Quarterly business reviews",
+        "Strategic consulting",
+        "On-site training",
+        "Custom integrations",
+      ],
+      variantId: "5491d18d-ca9d-409e-ab0f-4c5063c77e76",
+      checkoutUrl: `https://leadifysolutions.lemonsqueezy.com/buy/5491d18d-ca9d-409e-ab0f-4c5063c77e76`,
+    },
+  ],
+  yearly: [
+    {
+      id: 0,
+      name: "Free",
+      price: 0,
+      description: "Basic features for personal use",
+      features: [
+        "5 searches per day",
+        "Basic analytics",
+        "Email support",
+        "1 user account",
+      ],
+      variantId: null,
+      checkoutUrl: "",
+    },
+    {
+      id: 783451,
+      name: "Basic",
+      price: 99.99,
+      description: "Essential features for individuals",
+      features: [
+        "10 searches per day",
+        "Basic analytics",
+        "Email support",
+        "1 user account",
+        "Standard exports",
+      ],
+      variantId: "67939b0a-52be-45fd-9306-94d29241d78a",
+      checkoutUrl: `https://leadifysolutions.lemonsqueezy.com/buy/67939b0a-52be-45fd-9306-94d29241d78a`,
+    },
+    {
+      id: 783457,
+      name: "Professional",
+      price: 299.99,
+      description: "Advanced features for professionals",
+      features: [
+        "Unlimited searches",
+        "Advanced analytics",
+        "Priority email support",
+        "5 user accounts",
+        "Advanced exports",
+        "API access",
+      ],
+      variantId: "7aee438c-cd9a-4691-b71c-81407b0d273f",
+      checkoutUrl: `https://leadifysolutions.lemonsqueezy.com/buy/7aee438c-cd9a-4691-b71c-81407b0d273f`,
+    },
+    {
+      id: 783454,
+      name: "Enterprise",
+      price: 999.99,
+      description: "Complete solution for teams",
+      features: [
+        "Unlimited everything",
+        "Custom analytics",
+        "24/7 phone support",
+        "Unlimited user accounts",
+        "Custom exports",
+        "Advanced API access",
+        "Dedicated account manager",
+      ],
+      variantId: "638aae02-d3f3-4e7a-8d10-f2694f1c4f5f",
+      checkoutUrl: `https://leadifysolutions.lemonsqueezy.com/buy/638aae02-d3f3-4e7a-8d10-f2694f1c4f5f`,
+    },
+    {
+      id: 783464,
+      name: "Ultimate",
+      price: 1999.99,
+      description: "Everything plus white-glove service",
+      features: [
+        "All Enterprise features",
+        "White-label solution",
+        "Custom development",
+        "Quarterly business reviews",
+        "Strategic consulting",
+        "On-site training",
+        "Custom integrations",
+      ],
+      variantId: "24794d79-deba-4f60-af21-451537124c87",
+      checkoutUrl: `https://leadifysolutions.lemonsqueezy.com/buy/24794d79-deba-4f60-af21-451537124c87`,
+    },
+  ],
+};
 
+type Cycle = "monthly" | "yearly";
 export default function BillingUi() {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">(
     "monthly"
   );
-  const [currentPlan, setCurrentPlan] = useState<string>("pro");
+  const [currentPlan, setCurrentPlan] = useState<number>(0);
   const [user, setUser] = useState<User | null>(null);
-  const { user: contextUser, loading } = useUser();
+  const [subscription, setSubscription] = useState<any>(null);
+  const { user: contextUser, loading: userLoading } = useUser();
+  const { subscription: contextSubscription, loading: subscriptionLoading } =
+    useSubscription();
 
   // Load user after component is mounted
   useEffect(() => {
-    if (!loading) {
+    if (!userLoading && !subscriptionLoading) {
       setUser(contextUser);
+      setSubscription(contextSubscription);
     }
-  }, [contextUser, loading]);
+  }, [contextUser, userLoading]);
 
-  if (loading) {
+  useEffect(() => {
+    if (!userLoading && !subscriptionLoading && subscription?.plan_name) {
+      const parsed = parsePlanName(subscription.plan_name);
+      if (parsed) {
+        const { name, cycle } = parsed;
+        const matchedPlan = plansConfig[cycle].find((p) => p.name === name);
+        if (matchedPlan) {
+          setBillingCycle(cycle);
+          setCurrentPlan(matchedPlan.id);
+        } else {
+          setBillingCycle("monthly");
+          setCurrentPlan(0);
+        }
+      } else {
+        setBillingCycle("monthly");
+        setCurrentPlan(0);
+      }
+    }
+  }, [subscriptionLoading, subscription]);
+
+  if (userLoading || subscriptionLoading) {
     return <Loading />; // Show a loading state while fetching user data
   }
 
   if (!user) {
     return <div>Error: User not found</div>; // Handle the case where no user is found
   }
+
+  console.log(subscription);
   // Calculate yearly savings
   const calculateSavings = (monthlyPrice: number, yearlyPrice: number) => {
     if (monthlyPrice === 0) return 0;
@@ -94,7 +287,7 @@ export default function BillingUi() {
           "1 user account",
           "Standard exports",
         ],
-        checkoutUrl: `https://leadifysolutions.lemonsqueezy.com/buy/388c8ce7-30f0-417a-9133-c40ad1b17717?checkout[custom][user_id]=${user.id}`, // Add the checkout URL here
+        checkoutUrl: `https://leadifysolutions.lemonsqueezy.com/buy/81a494e3-c10f-45c1-b768-3089d750219f?checkout[custom][user_id]=${user.id}`, // Add the checkout URL here
       },
       {
         id: "pro",
@@ -109,7 +302,7 @@ export default function BillingUi() {
           "Advanced exports",
           "API access",
         ],
-        checkoutUrl: `https://leadifysolutions.lemonsqueezy.com/buy/1ad56af8-67c0-4197-bf8a-83b501e1d20c?checkout[custom][user_id]=${user.id}`, // Add the checkout URL here
+        checkoutUrl: `https://leadifysolutions.lemonsqueezy.com/buy/3df6e0cf-c654-4323-8149-825b59c05c7f?checkout[custom][user_id]=${user.id}`, // Add the checkout URL here
       },
       {
         id: "enterprise",
@@ -125,7 +318,7 @@ export default function BillingUi() {
           "Advanced API access",
           "Dedicated account manager",
         ],
-        checkoutUrl: `https://leadifysolutions.lemonsqueezy.com/buy/d71bf8fe-3a5c-4dea-b13d-8fe1696701af?checkout[custom][user_id]=${user.id}`, // Add the checkout URL here
+        checkoutUrl: `https://leadifysolutions.lemonsqueezy.com/buy/d74fff53-9d86-4447-85ed-1590c7157d74?checkout[custom][user_id]=${user.id}`, // Add the checkout URL here
       },
       {
         id: "ultimate",
@@ -141,7 +334,7 @@ export default function BillingUi() {
           "On-site training",
           "Custom integrations",
         ],
-        checkoutUrl: `https://leadifysolutions.lemonsqueezy.com/buy/21674ff5-007b-4c6c-a383-8e0e7d49ce17?checkout[custom][user_id]=${user.id}`, // Add the checkout URL here
+        checkoutUrl: `https://leadifysolutions.lemonsqueezy.com/buy/5491d18d-ca9d-409e-ab0f-4c5063c77e76?checkout[custom][user_id]=${user.id}`, // Add the checkout URL here
       },
     ],
     yearly: [
@@ -170,7 +363,7 @@ export default function BillingUi() {
           "1 user account",
           "Standard exports",
         ],
-        checkoutUrl: `https://leadifysolutions.lemonsqueezy.com/buy/304818d8-1024-4455-8bdd-b8545625cd35?checkout[custom][user_id]=${user.id}`, // Add the checkout URL here
+        checkoutUrl: `https://leadifysolutions.lemonsqueezy.com/buy/67939b0a-52be-45fd-9306-94d29241d78a?checkout[custom][user_id]=${user.id}`, // Add the checkout URL here
       },
       {
         id: "pro",
@@ -185,7 +378,7 @@ export default function BillingUi() {
           "Advanced exports",
           "API access",
         ],
-        checkoutUrl: `https://leadifysolutions.lemonsqueezy.com/buy/b4ca9d9d-d9c8-4152-8295-eed06a568fdb?checkout[custom][user_id]=${user.id}`, // Add the checkout URL here
+        checkoutUrl: `https://leadifysolutions.lemonsqueezy.com/buy/7aee438c-cd9a-4691-b71c-81407b0d273f?checkout[custom][user_id]=${user.id}`, // Add the checkout URL here
       },
       {
         id: "enterprise",
@@ -201,7 +394,7 @@ export default function BillingUi() {
           "Advanced API access",
           "Dedicated account manager",
         ],
-        checkoutUrl: `https://leadifysolutions.lemonsqueezy.com/buy/665b1780-574b-4bab-bbe6-e4de27a8191e?checkout[custom][user_id]=${user.id}`, // Add the checkout URL here
+        checkoutUrl: `https://leadifysolutions.lemonsqueezy.com/buy/638aae02-d3f3-4e7a-8d10-f2694f1c4f5f?checkout[custom][user_id]=${user.id}`, // Add the checkout URL here
       },
       {
         id: "ultimate",
@@ -217,7 +410,7 @@ export default function BillingUi() {
           "On-site training",
           "Custom integrations",
         ],
-        checkoutUrl: `https://leadifysolutions.lemonsqueezy.com/checkout/buy/93a8bea4-491a-47fb-b8ad-4ea32f8bd0ea?checkout[custom][user_id]=${user.id}`, // Add the checkout URL here
+        checkoutUrl: `https://leadifysolutions.lemonsqueezy.com/checkout/buy/24794d79-deba-4f60-af21-451537124c87?checkout[custom][user_id]=${user.id}`, // Add the checkout URL here
       },
     ],
   };
@@ -257,6 +450,58 @@ export default function BillingUi() {
       status: "Paid",
     },
   ];
+  function parsePlanName(
+    planName: string
+  ): { name: string; cycle: Cycle } | null {
+    const match = planName.match(/^(.+?)\s*\((monthly|yearly)\)$/i);
+    if (!match) return null;
+    const [, name, cycle] = match;
+    return {
+      name: name.trim(),
+      cycle: cycle.toLowerCase() as Cycle,
+    };
+  }
+
+  async function handleUpdate(plan: any, user: any, subscription: any) {
+    console.log(plan.id);
+    console.log(Number(subscription.plan_id));
+    if (!plan?.id || !user?.id) {
+      console.error("Missing plan variant or user ID.");
+      return;
+    }
+
+    // If user isn't paid, send them to the normal checkout URL:
+    if (!user.subscription_status) {
+      window.location.href = `${plan.checkoutUrl}?checkout[custom][user_id]=${user.id}`;
+      return;
+    }
+
+    if (plan.name === parsePlanName(subscription.plan_name)?.name) {
+      alert("You are already on this plan.");
+      return;
+    }
+    // Otherwise, call your backend to update the existing subscription:
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_BACKEND_LOCAL_URL}update-subscription`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: user.id,
+          variant_id: plan.id,
+        }),
+      }
+    );
+
+    if (!res.ok) {
+      const err = await res.json();
+      console.error("Upgrade failed:", err);
+      alert("Could not change plan. Please try again.");
+    } else {
+      // Optionally show a spinner/toast until webhook arrives and DB updates
+      alert("Plan change in progress! Your subscription will update shortly.");
+    }
+  }
 
   return (
     <div className="space-y-8">
@@ -322,7 +567,7 @@ export default function BillingUi() {
           className="w-full"
         >
           <CarouselContent className="-ml-4">
-            {plans[billingCycle].map((plan) => (
+            {plansConfig[billingCycle].map((plan) => (
               <CarouselItem
                 key={plan.id}
                 className="pl-4 md:basis-1/2 lg:basis-1/3"
@@ -369,7 +614,7 @@ export default function BillingUi() {
                         >
                           Save{" "}
                           {calculateSavings(
-                            plans.monthly.find((p) => p.id === plan.id)
+                            plansConfig.monthly.find((p) => p.id === plan.id)
                               ?.price || 0,
                             plan.price
                           )}
@@ -405,20 +650,24 @@ export default function BillingUi() {
                         Current Plan
                       </Button>
                     ) : currentPlan &&
-                      plans[billingCycle].findIndex((p) => p.id === plan.id) >
-                        plans[billingCycle].findIndex(
+                      plansConfig[billingCycle].findIndex(
+                        (p) => p.id === plan.id
+                      ) >
+                        plansConfig[billingCycle].findIndex(
                           (p) => p.id === currentPlan
                         ) ? (
                       <Button
                         className="w-full bg-primary hover:bg-primary/90 transition-colors"
-                        onClick={() =>
-                          (window.location.href = plan.checkoutUrl)
-                        }
+                        onClick={() => handleUpdate(plan, user, subscription)}
                       >
                         Upgrade Plan
                       </Button>
                     ) : (
-                      <Button className="w-full" variant="outline">
+                      <Button
+                        className="w-full"
+                        variant="outline"
+                        onClick={() => handleUpdate(plan, user, subscription)}
+                      >
                         Downgrade
                       </Button>
                     )}
