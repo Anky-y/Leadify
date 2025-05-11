@@ -463,8 +463,6 @@ export default function BillingUi() {
   }
 
   async function handleUpdate(plan: any, user: any, subscription: any) {
-    console.log(plan.id);
-    console.log(Number(subscription.plan_id));
     if (!plan?.id || !user?.id) {
       console.error("Missing plan variant or user ID.");
       return;
@@ -475,6 +473,8 @@ export default function BillingUi() {
       window.location.href = `${plan.checkoutUrl}?checkout[custom][user_id]=${user.id}`;
       return;
     }
+    console.log(plan.id);
+    console.log(Number(subscription.plan_id));
 
     if (plan.name === parsePlanName(subscription.plan_name)?.name) {
       alert("You are already on this plan.");
