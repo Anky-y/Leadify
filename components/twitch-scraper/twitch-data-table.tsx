@@ -27,6 +27,13 @@ import {
   ArrowDownUp,
   SortAsc,
   SortDesc,
+  Save,
+  Download,
+  ChevronDown,
+  FileText,
+  Check,
+  FileSpreadsheet,
+  FileJson,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -41,6 +48,27 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
+import { toast } from "@/components/ui/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 
 interface TwitchDataTableProps {
   data: TwitchData[];
@@ -54,6 +82,15 @@ export default function TwitchDataTable({ data }: TwitchDataTableProps) {
   );
 
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedUsernames, setSelectedUsernames] = useState<
+    Record<string, boolean>
+  >({});
+  const [exportFormat, setExportFormat] = useState("csv");
+  const [searchName, setSearchName] = useState("");
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+
+  console.log(selectedUsernames);
+
   const itemsPerPage = 7;
 
   const subscribed = true;
@@ -149,6 +186,57 @@ export default function TwitchDataTable({ data }: TwitchDataTableProps) {
     setCurrentPage(page);
   };
 
+  // Function to handle "Select All" checkbox change
+  const handleSelectAllChange = (checked: boolean) => {
+    const newSelectedUsernames: Record<string, boolean> = {};
+
+    data.forEach((streamer) => {
+      newSelectedUsernames[streamer.username] = checked;
+    });
+
+    setSelectedUsernames(newSelectedUsernames);
+  };
+  const handleCheckboxChange = (username: string, checked: boolean) => {
+    setSelectedUsernames((prev) => ({
+      ...prev,
+      [username]: checked,
+    }));
+  };
+
+  const handleExport = () => {
+    if (data.length === 0) {
+      toast({
+        title: "No data to export",
+        description: "Please perform a search first to get data for export.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({
+      title: `Exporting data as ${exportFormat.toUpperCase()}`,
+      description: `${data.length} records will be exported.`,
+    });
+  };
+
+  const handleSaveSearch = () => {
+    if (!searchName.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a name for your saved search.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Save search logic would go here
+    toast({
+      title: "Search saved",
+      description: `Your search "${searchName}" has been saved.`,
+    });
+    setSaveDialogOpen(false);
+    setSearchName("");
+  };
   // Apply sorting before pagination
   const sortedData = sortData(data);
 
@@ -159,11 +247,152 @@ export default function TwitchDataTable({ data }: TwitchDataTableProps) {
   const currentItems = sortedData.slice(indexOfFirstItem, indexOfLastItem);
 
   return (
-    <div className="border rounded-lg overflow-hidden">
+    <div className="border rounded-lg overflow-hidden shadow-sm bg-white">
+      <div className="p-4 border-b flex flex-wrap items-center justify-between gap-3 bg-gray-100">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 ps-2">
+            <Checkbox
+              id="show-selected"
+              checked={
+                data.length > 0 &&
+                data.every((s) => selectedUsernames[s.username])
+              }
+              onCheckedChange={(checked) =>
+                handleSelectAllChange(checked === true)
+              }
+            />
+            <label
+              htmlFor="show-selected"
+              className="text-sm font-medium text-gray-700 cursor-pointer"
+            >
+              Across all pages
+            </label>
+          </div>
+          <div className="text-sm text-gray-500">
+            {Object.values(selectedUsernames).filter(Boolean).length} selected
+          </div>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex gap-2">
+            <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="border-blue-200 text-blue-700 hover:bg-blue-50"
+                >
+                  <Save className="mr-2 h-4 w-4" />
+                  Save Search
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Save Search</DialogTitle>
+                  <DialogDescription>
+                    Give your search a name to save it for future use.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="py-4">
+                  <Label htmlFor="search-name">Search Name</Label>
+                  <Input
+                    id="search-name"
+                    value={searchName}
+                    onChange={(e) => setSearchName(e.target.value)}
+                    placeholder="e.g., English Fortnite Streamers"
+                    className="mt-2"
+                  />
+                </div>
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => setSaveDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button onClick={handleSaveSearch}>Save</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            <div className="flex items-center gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="border-blue-200 text-blue-700 hover:bg-blue-50 flex items-center gap-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    Export as {exportFormat.toUpperCase()}
+                    <ChevronDown className="h-4 w-4 ml-1" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-[180px]">
+                  <DropdownMenuLabel>Export Format</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => setExportFormat("csv")}
+                    className="flex items-center gap-2 cursor-pointer"
+                  >
+                    <FileText className="h-4 w-4" />
+                    <span>CSV</span>
+                    {exportFormat === "csv" && (
+                      <Check className="h-4 w-4 ml-auto" />
+                    )}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setExportFormat("excel")}
+                    className="flex items-center gap-2 cursor-pointer"
+                  >
+                    <FileSpreadsheet className="h-4 w-4" />
+                    <span>Excel</span>
+                    {exportFormat === "excel" && (
+                      <Check className="h-4 w-4 ml-auto" />
+                    )}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setExportFormat("json")}
+                    className="flex items-center gap-2 cursor-pointer"
+                  >
+                    <FileJson className="h-4 w-4" />
+                    <span>JSON</span>
+                    {exportFormat === "json" && (
+                      <Check className="h-4 w-4 ml-auto" />
+                    )}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={handleExport}
+                    className="flex items-center gap-2 cursor-pointer"
+                  >
+                    <Download className="h-4 w-4" />
+                    <span>Download Now</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+        </div>
+      </div>
       <div className="overflow-x-auto">
         <Table>
-          <TableHeader>
-            <TableRow>
+          <TableHeader className="bg-gray-50">
+            <TableRow className="border-b border-gray-200">
+              <TableHead className="w-[50px]">
+                <Checkbox
+                  checked={currentItems.every(
+                    (item) => selectedUsernames[item.username]
+                  )}
+                  onCheckedChange={(checked) => {
+                    const isChecked = checked === true;
+                    const newSelectedRowIds = { ...selectedUsernames };
+                    currentItems.forEach((item) => {
+                      newSelectedRowIds[item.username] = isChecked;
+                    });
+                    setSelectedUsernames(newSelectedRowIds);
+                  }}
+                  aria-label="Select all"
+                  className="ml-2"
+                />
+              </TableHead>
               <TableHead
                 className="w-[180px] cursor-pointer"
                 onClick={() => handleSort("username")}
@@ -266,6 +495,16 @@ export default function TwitchDataTable({ data }: TwitchDataTableProps) {
             ) : (
               currentItems.map((row) => (
                 <TableRow key={row.username}>
+                  <TableCell>
+                    <Checkbox
+                      checked={!!selectedUsernames[row.username]}
+                      onCheckedChange={(checked) =>
+                        handleCheckboxChange(row.username, checked === true)
+                      }
+                      aria-label={`Select ${row.username}`}
+                      className="ml-2"
+                    />
+                  </TableCell>
                   <TableCell className="font-medium">
                     <div className="flex flex-col">
                       <span>{row.username}</span>
@@ -418,7 +657,7 @@ export default function TwitchDataTable({ data }: TwitchDataTableProps) {
         </Table>
       </div>
       {data.length > itemsPerPage && (
-        <div className="flex justify-center py-4">
+        <div className="flex justify-center py-4 bg-gray-100 border-t border-gray-200">
           <Pagination>
             <PaginationContent>
               <PaginationItem>

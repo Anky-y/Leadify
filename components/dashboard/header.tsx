@@ -80,7 +80,7 @@ export default function DashboardHeader({ user }: { user: User | null }) {
                   <p className="text-xs leading-none text-muted-foreground">
                     {user?.email}
                   </p>
-                  {user?.is_subscribed ? (
+                  {user?.subscription_status ? (
                     <Badge className="mt-1 w-fit bg-blue-700">
                       Premium Plan
                     </Badge>

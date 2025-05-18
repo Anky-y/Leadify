@@ -9,7 +9,6 @@ import SavedSearchesTab from "./tabs/saved-searches-tab";
 import SearchHistoryTab from "./tabs/search-history-tab";
 
 // Import types and mock data
-import { mockTwitchData } from "./mock-data";
 import type { ScrapingProgress, TwitchData } from "./types";
 import { set } from "date-fns";
 import User from "@/app/types/user";
@@ -192,7 +191,7 @@ export default function TwitchScraperUI({
         </p>
       </div>
 
-      {!subscribed && (
+      {/* {!subscribed && (
         <Alert className="border-amber-200 bg-amber-50 text-amber-800">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Free account limitations</AlertTitle>
@@ -208,7 +207,7 @@ export default function TwitchScraperUI({
             to unlock unlimited results and full contact details.
           </AlertDescription>
         </Alert>
-      )}
+      )} */}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList>

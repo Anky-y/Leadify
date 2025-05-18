@@ -15,13 +15,6 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import {
@@ -35,6 +28,21 @@ import {
 // Import components
 import FilterSection from "../filter-section";
 import TwitchDataTable from "../twitch-data-table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Check,
+  ChevronDown,
+  FileText,
+  FileSpreadsheet,
+  FileJson,
+} from "lucide-react";
 
 // Import types
 import type { ScrapingProgress, TwitchData } from "../types";
@@ -91,9 +99,6 @@ export default function SearchTab({
   streamers,
   loadingStreamers,
 }: SearchTabProps) {
-  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
-  const [searchName, setSearchName] = useState("");
-  const [exportFormat, setExportFormat] = useState("csv");
 
   // Add animation effect for progress changes
   useEffect(() => {
@@ -112,40 +117,9 @@ export default function SearchTab({
 
   const { toast } = useToast();
 
-  const handleExport = () => {
-    if (data.length === 0) {
-      toast({
-        title: "No data to export",
-        description: "Please perform a search first to get data for export.",
-        variant: "destructive",
-      });
-      return;
-    }
 
-    toast({
-      title: `Exporting data as ${exportFormat.toUpperCase()}`,
-      description: `${data.length} records will be exported.`,
-    });
-  };
 
-  const handleSaveSearch = () => {
-    if (!searchName.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter a name for your saved search.",
-        variant: "destructive",
-      });
-      return;
-    }
 
-    // Save search logic would go here
-    toast({
-      title: "Search saved",
-      description: `Your search "${searchName}" has been saved.`,
-    });
-    setSaveDialogOpen(false);
-    setSearchName("");
-  };
 
   const resetFilters = () => {
     setLanguage("");
@@ -406,81 +380,11 @@ export default function SearchTab({
                     {streamers.length} results{" "}
                     {!subscribed && streamers.length === 3 && "(limited)"}
                   </div>
-                  {streamers.length > 15 && (
+                  {streamers.length > 5 && (
                     <div className="text-sm text-gray-500">
                       Showing 15 results per page
                     </div>
                   )}
-                  <div className="flex flex-col sm:flex-row gap-4">
-                    <div className="flex gap-2">
-                      <Dialog
-                        open={saveDialogOpen}
-                        onOpenChange={setSaveDialogOpen}
-                      >
-                        <DialogTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className="border-blue-200 text-blue-700 hover:bg-blue-50"
-                          >
-                            <Save className="mr-2 h-4 w-4" />
-                            Save Search
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Save Search</DialogTitle>
-                            <DialogDescription>
-                              Give your search a name to save it for future use.
-                            </DialogDescription>
-                          </DialogHeader>
-                          <div className="py-4">
-                            <Label htmlFor="search-name">Search Name</Label>
-                            <Input
-                              id="search-name"
-                              value={searchName}
-                              onChange={(e) => setSearchName(e.target.value)}
-                              placeholder="e.g., English Fortnite Streamers"
-                              className="mt-2"
-                            />
-                          </div>
-                          <DialogFooter>
-                            <Button
-                              variant="outline"
-                              onClick={() => setSaveDialogOpen(false)}
-                            >
-                              Cancel
-                            </Button>
-                            <Button onClick={handleSaveSearch}>Save</Button>
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
-
-                      <div className="flex items-center gap-2">
-                        <Select
-                          value={exportFormat}
-                          onValueChange={setExportFormat}
-                        >
-                          <SelectTrigger className="w-[110px]">
-                            <SelectValue placeholder="Format" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="csv">CSV</SelectItem>
-                            <SelectItem value="excel">Excel</SelectItem>
-                            <SelectItem value="json">JSON</SelectItem>
-                          </SelectContent>
-                        </Select>
-
-                        <Button
-                          variant="outline"
-                          className="border-blue-200 text-blue-700 hover:bg-blue-50"
-                          onClick={handleExport}
-                        >
-                          <Download className="mr-2 h-4 w-4" />
-                          Export
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </div>
             ) : (
