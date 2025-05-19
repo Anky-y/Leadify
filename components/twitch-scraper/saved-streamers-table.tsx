@@ -330,6 +330,8 @@ export default function SavedStreamersTable({
     visible: { opacity: 1, transition: { duration: 0.3 } },
   };
 
+  console.log(data);
+
   return (
     <motion.div
       className="border rounded-lg overflow-hidden shadow-sm bg-white w-full"
@@ -694,7 +696,7 @@ export default function SavedStreamersTable({
                         Object.entries(selectedStreamers).forEach(
                           ([id, selected]) => {
                             if (selected) {
-                              onMoveToFolder(id, folder.name);
+                              onMoveToFolder(id, folder.id);
                             }
                           }
                         );
@@ -1039,7 +1041,9 @@ export default function SavedStreamersTable({
                           variant="outline"
                           className="bg-blue-50 text-blue-700 border-blue-200"
                         >
-                          {row.folder_id}
+                          {row.folder_id
+                            ? folders.find((f) => f.id === row.folder_id)?.name
+                            : "N/A"}
                         </Badge>
                       </TableCell>
                     )}
@@ -1093,9 +1097,7 @@ export default function SavedStreamersTable({
                           {folders.map((folder) => (
                             <DropdownMenuItem
                               key={folder.id}
-                              onClick={() =>
-                                onMoveToFolder(row.id, folder.name)
-                              }
+                              onClick={() => onMoveToFolder(row.id, folder.id)}
                               className="cursor-pointer"
                               disabled={row.folder_id === folder.id}
                             >

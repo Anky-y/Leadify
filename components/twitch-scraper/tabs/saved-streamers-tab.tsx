@@ -173,15 +173,26 @@ export default function SavedStreamersTab({}: SavedStreamersTabProps) {
     streamerId: string,
     folderId: string | null
   ) => {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+
+    if (user?.id) {
+      headers["x-user-id"] = user.id;
+    }
     try {
-      await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}saved-streamers/move`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: streamerId, folder_id: folderId }),
-        }
-      );
+      console.log("Sending move request:", {
+        streamer_id: streamerId,
+        folder_id: folderId,
+      });
+      await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}streamers/move`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          streamer_id: streamerId,
+          folder_id: folderId,
+        }),
+      });
       setSavedStreamers((prev) =>
         prev.map((s) =>
           s.id === streamerId
@@ -189,6 +200,7 @@ export default function SavedStreamersTab({}: SavedStreamersTabProps) {
             : s
         )
       );
+      fetchData(user?.id, selectedFolder?.id);
     } catch (err) {
       toast({
         title: "Error",
