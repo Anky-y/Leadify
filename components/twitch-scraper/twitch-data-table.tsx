@@ -29,17 +29,20 @@ import {
   SortDesc,
   SearchCheck,
   Download,
-  Save,
   ChevronDown,
   FileText,
   Check,
   FileSpreadsheet,
   FileJson,
   UserPlus,
+  MoreHorizontal,
+  Filter,
+  Settings,
+  Columns,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { TwitchData } from "./types";
 import {
   Pagination,
@@ -71,9 +74,10 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import * as XLSX from "xlsx";
 import { exportToCSV, exportToExcel, exportToJSON } from "@/utils/export";
 import { useUser } from "@/app/context/UserContext";
+import { motion, AnimatePresence } from "framer-motion";
+import { useMediaQuery } from "@/hooks/use-media-query";
 
 interface TwitchDataTableProps {
   data: TwitchData[];
@@ -85,7 +89,6 @@ export default function TwitchDataTable({ data }: TwitchDataTableProps) {
   const [revealedEmails, setRevealedEmails] = useState<Record<string, boolean>>(
     {}
   );
-
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedUsernames, setSelectedUsernames] = useState<
     Record<string, boolean>
@@ -94,10 +97,59 @@ export default function TwitchDataTable({ data }: TwitchDataTableProps) {
   const [searchName, setSearchName] = useState("");
   const [saveSearchDialogOpen, setSaveSearchDialogOpen] = useState(false);
   const [saveStreamersDialogOpen, setSaveStreamersDialogOpen] = useState(false);
+  const [visibleColumns, setVisibleColumns] = useState({
+    username: true,
+    followers: true,
+    viewers: true,
+    language: true,
+    category: true,
+    social: true,
+    email: true,
+  });
+  const [showColumnSelector, setShowColumnSelector] = useState(false);
+  const [exportColumns, setExportColumns] = useState({ ...visibleColumns });
+  const [exportOptionsDialogOpen, setExportOptionsDialogOpen] = useState(false);
 
-  console.log(selectedUsernames);
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
+  const isTablet = useMediaQuery("(min-width: 768px)");
+  const isMobile = useMediaQuery("(max-width: 640px)");
 
-  const itemsPerPage = 7;
+  // Adjust visible columns based on screen size
+  useEffect(() => {
+    if (isMobile) {
+      setVisibleColumns({
+        username: true,
+        followers: true,
+        viewers: false,
+        language: false,
+        category: false,
+        social: true,
+        email: true,
+      });
+    } else if (isTablet && !isDesktop) {
+      setVisibleColumns({
+        username: true,
+        followers: true,
+        viewers: true,
+        language: true,
+        category: false,
+        social: true,
+        email: true,
+      });
+    } else {
+      setVisibleColumns({
+        username: true,
+        followers: true,
+        viewers: true,
+        language: true,
+        category: true,
+        social: true,
+        email: true,
+      });
+    }
+  }, [isDesktop, isTablet, isMobile]);
+
+  const itemsPerPage = isDesktop ? 10 : isTablet ? 7 : 5;
 
   const subscribed = true;
 
@@ -227,17 +279,20 @@ export default function TwitchDataTable({ data }: TwitchDataTableProps) {
       return;
     }
 
+    // Pass column visibility to export functions
     if (exportFormat === "csv") {
-      exportToCSV(exportData, "twitch-data.csv");
+      exportToCSV(exportData, "twitch-data.csv", visibleColumns);
     } else if (exportFormat === "json") {
-      exportToJSON(exportData, "twitch-data.json");
+      exportToJSON(exportData, "twitch-data.json", visibleColumns);
     } else if (exportFormat === "excel") {
-      exportToExcel(exportData, "twitch-data.xlsx");
+      exportToExcel(exportData, "twitch-data.xlsx", visibleColumns);
     }
 
     toast({
       title: `Exporting data as ${exportFormat.toUpperCase()}`,
-      description: `${data.length} records will be exported.`,
+      description: `${exportData.length} records with ${
+        Object.values(visibleColumns).filter(Boolean).length
+      } columns will be exported.`,
     });
   };
 
@@ -330,9 +385,34 @@ export default function TwitchDataTable({ data }: TwitchDataTableProps) {
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = sortedData.slice(indexOfFirstItem, indexOfLastItem);
 
+  // Animation variants
+  const tableRowVariants = {
+    hidden: { opacity: 0, y: 10 },
+    visible: (i: number) => ({
+      opacity: 1,
+      y: 0,
+      transition: {
+        delay: i * 0.05,
+        duration: 0.3,
+        ease: "easeOut",
+      },
+    }),
+    exit: { opacity: 0, transition: { duration: 0.2 } },
+  };
+
+  const fadeIn = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { duration: 0.3 } },
+  };
+
   return (
-    <div className="border rounded-lg overflow-hidden shadow-sm bg-white">
-      <div className="p-4 border-b flex flex-wrap items-center justify-between gap-3 bg-gray-100">
+    <motion.div
+      className="border rounded-lg overflow-hidden shadow-sm bg-white"
+      initial="hidden"
+      animate="visible"
+      variants={fadeIn}
+    >
+      <div className="p-3 sm:p-4 border-b flex flex-wrap items-center justify-between gap-3 bg-gradient-to-r from-gray-50 to-gray-100">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 ps-2">
             <Checkbox
@@ -349,166 +429,364 @@ export default function TwitchDataTable({ data }: TwitchDataTableProps) {
               htmlFor="show-selected"
               className="text-sm font-medium text-gray-700 cursor-pointer"
             >
-              Across all pages
+              {isTablet ? "Select all" : "All"}
             </label>
           </div>
           <div className="text-sm text-gray-500">
             {Object.values(selectedUsernames).filter(Boolean).length} selected
           </div>
         </div>
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex gap-2">
-            <Dialog
-              open={saveSearchDialogOpen}
-              onOpenChange={setSaveSearchDialogOpen}
-            >
-              <DialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="border-blue-200 text-blue-700 hover:bg-blue-50"
-                >
-                  <SearchCheck className=" h-4 w-4" />
-                  Save Search
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Save Search</DialogTitle>
-                  <DialogDescription>
-                    Give your search a name to save it for future use.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="py-4">
-                  <Label htmlFor="search-name">Search Name</Label>
-                  <Input
-                    id="search-name"
-                    value={searchName}
-                    onChange={(e) => setSearchName(e.target.value)}
-                    placeholder="e.g., English Fortnite Streamers"
-                    className="mt-2"
-                  />
-                </div>
-                <DialogFooter>
-                  <Button
-                    variant="outline"
-                    onClick={() => setSaveSearchDialogOpen(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button onClick={handleSaveSearch}>Save</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-            <Dialog
-              open={saveStreamersDialogOpen}
-              onOpenChange={setSaveStreamersDialogOpen}
-            >
-              <DialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="border-blue-200 text-blue-700 hover:bg-blue-50"
-                >
-                  <UserPlus className="h-4 w-4" />
-                  Save Selected Streamers
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Save Selected Streamers</DialogTitle>
-                  <DialogDescription>
-                    All currently selected streamers will be saved to your saved
-                    list.
-                    <br />
-                    <span className="text-sm text-muted-foreground">
-                      Streamers that are already saved will be skipped
-                      automatically.
-                    </span>
-                  </DialogDescription>
-                </DialogHeader>
-                <DialogFooter>
-                  <Button
-                    variant="outline"
-                    onClick={() => setSaveStreamersDialogOpen(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button onClick={handleSaveStreamers}>Confirm Save</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+        <div className="flex flex-wrap gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 px-2 text-xs sm:text-sm sm:h-9 sm:px-3"
+              >
+                <Filter className="h-3.5 w-3.5 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Columns</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-[180px]">
+              <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() =>
+                  setVisibleColumns((prev) => ({
+                    ...prev,
+                    username: !prev.username,
+                  }))
+                }
+                className="flex items-center gap-2 cursor-pointer"
+              >
+                <Checkbox checked={visibleColumns.username} />
+                <span>Username</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() =>
+                  setVisibleColumns((prev) => ({
+                    ...prev,
+                    followers: !prev.followers,
+                  }))
+                }
+                className="flex items-center gap-2 cursor-pointer"
+              >
+                <Checkbox checked={visibleColumns.followers} />
+                <span>Followers</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() =>
+                  setVisibleColumns((prev) => ({
+                    ...prev,
+                    viewers: !prev.viewers,
+                  }))
+                }
+                className="flex items-center gap-2 cursor-pointer"
+              >
+                <Checkbox checked={visibleColumns.viewers} />
+                <span>Viewers</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() =>
+                  setVisibleColumns((prev) => ({
+                    ...prev,
+                    language: !prev.language,
+                  }))
+                }
+                className="flex items-center gap-2 cursor-pointer"
+              >
+                <Checkbox checked={visibleColumns.language} />
+                <span>Language</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() =>
+                  setVisibleColumns((prev) => ({
+                    ...prev,
+                    category: !prev.category,
+                  }))
+                }
+                className="flex items-center gap-2 cursor-pointer"
+              >
+                <Checkbox checked={visibleColumns.category} />
+                <span>Category</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() =>
+                  setVisibleColumns((prev) => ({
+                    ...prev,
+                    social: !prev.social,
+                  }))
+                }
+                className="flex items-center gap-2 cursor-pointer"
+              >
+                <Checkbox checked={visibleColumns.social} />
+                <span>Social Media</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() =>
+                  setVisibleColumns((prev) => ({ ...prev, email: !prev.email }))
+                }
+                className="flex items-center gap-2 cursor-pointer"
+              >
+                <Checkbox checked={visibleColumns.email} />
+                <span>Email</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-            <div className="flex items-center gap-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="border-blue-200 text-blue-700 hover:bg-blue-50 flex items-center gap-2"
-                  >
-                    <Download className="h-4 w-4" />
+          <Dialog
+            open={saveSearchDialogOpen}
+            onOpenChange={setSaveSearchDialogOpen}
+          >
+            <DialogTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 px-2 text-xs sm:text-sm sm:h-9 sm:px-3 border-blue-200 text-blue-700 hover:bg-blue-50"
+              >
+                <SearchCheck className="h-3.5 w-3.5 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Save Search</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Save Search</DialogTitle>
+                <DialogDescription>
+                  Give your search a name to save it for future use.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="py-4">
+                <Label htmlFor="search-name">Search Name</Label>
+                <Input
+                  id="search-name"
+                  value={searchName}
+                  onChange={(e) => setSearchName(e.target.value)}
+                  placeholder="e.g., English Fortnite Streamers"
+                  className="mt-2"
+                />
+              </div>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setSaveSearchDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button onClick={handleSaveSearch}>Save</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+          <Dialog
+            open={saveStreamersDialogOpen}
+            onOpenChange={setSaveStreamersDialogOpen}
+          >
+            <DialogTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 px-2 text-xs sm:text-sm sm:h-9 sm:px-3 border-blue-200 text-blue-700 hover:bg-blue-50"
+              >
+                <UserPlus className="h-3.5 w-3.5 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Save Selected</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Save Selected Streamers</DialogTitle>
+                <DialogDescription>
+                  All currently selected streamers will be saved to your saved
+                  list.
+                  <br />
+                  <span className="text-sm text-muted-foreground">
+                    Streamers that are already saved will be skipped
+                    automatically.
+                  </span>
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setSaveStreamersDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button onClick={handleSaveStreamers}>Confirm Save</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <div className="flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 px-2 text-xs sm:text-sm sm:h-9 sm:px-3 border-blue-200 text-blue-700 hover:bg-blue-50 flex items-center gap-1 sm:gap-2"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">
                     Export as {exportFormat.toUpperCase()}
-                    <ChevronDown className="h-4 w-4 ml-1" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-[180px]">
-                  <DropdownMenuLabel>Export Format</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setExportFormat("csv");
-                    }}
-                    className="flex items-center gap-2 cursor-pointer"
-                  >
-                    <FileText className="h-4 w-4" />
-                    <span>CSV</span>
-                    {exportFormat === "csv" && (
-                      <Check className="h-4 w-4 ml-auto" />
-                    )}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setExportFormat("excel");
-                    }}
-                    className="flex items-center gap-2 cursor-pointer"
-                  >
-                    <FileSpreadsheet className="h-4 w-4" />
-                    <span>Excel</span>
-                    {exportFormat === "excel" && (
-                      <Check className="h-4 w-4 ml-auto" />
-                    )}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setExportFormat("json");
-                    }}
-                    className="flex items-center gap-2 cursor-pointer"
-                  >
-                    <FileJson className="h-4 w-4" />
-                    <span>JSON</span>
-                    {exportFormat === "json" && (
-                      <Check className="h-4 w-4 ml-auto" />
-                    )}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={handleExport}
-                    className="flex items-center gap-2 cursor-pointer"
-                  >
-                    <Download className="h-4 w-4" />
-                    <span>Download Now</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+                  </span>
+                  <span className="inline sm:hidden">Export</span>
+                  <ChevronDown className="h-3.5 w-3.5 ml-0 sm:ml-1" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-[180px]">
+                <DropdownMenuLabel>Export Format</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setExportFormat("csv");
+                  }}
+                  className="flex items-center gap-2 cursor-pointer"
+                >
+                  <FileText className="h-4 w-4" />
+                  <span>CSV</span>
+                  {exportFormat === "csv" && (
+                    <Check className="h-4 w-4 ml-auto" />
+                  )}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setExportFormat("excel");
+                  }}
+                  className="flex items-center gap-2 cursor-pointer"
+                >
+                  <FileSpreadsheet className="h-4 w-4" />
+                  <span>Excel</span>
+                  {exportFormat === "excel" && (
+                    <Check className="h-4 w-4 ml-auto" />
+                  )}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setExportFormat("json");
+                  }}
+                  className="flex items-center gap-2 cursor-pointer"
+                >
+                  <FileJson className="h-4 w-4" />
+                  <span>JSON</span>
+                  {exportFormat === "json" && (
+                    <Check className="h-4 w-4 ml-auto" />
+                  )}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => {
+                    // Reset export columns to match current visible columns
+                    setExportColumns({ ...visibleColumns });
+                    setExportOptionsDialogOpen(true);
+                  }}
+                  className="flex items-center gap-2 cursor-pointer"
+                >
+                  <Settings className="h-4 w-4" />
+                  <span>Advanced Export</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={handleExport}
+                  className="flex items-center gap-2 cursor-pointer"
+                >
+                  <Download className="h-4 w-4" />
+                  <span>Quick Export</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>
-      <div className="overflow-x-auto">
+      <Dialog
+        open={exportOptionsDialogOpen}
+        onOpenChange={setExportOptionsDialogOpen}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Export Options</DialogTitle>
+            <DialogDescription>
+              Select which columns to include in your export. The export will
+              use the {exportFormat.toUpperCase()} format.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 max-h-[60vh] overflow-y-auto">
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <Label>Columns to Export</Label>
+                <div className="space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setExportColumns(
+                        Object.fromEntries(
+                          Object.keys(exportColumns).map((key) => [key, true])
+                        ) as typeof exportColumns
+                      )
+                    }
+                  >
+                    Select All
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setExportColumns(
+                        Object.fromEntries(
+                          Object.keys(exportColumns).map((key) => [key, false])
+                        ) as typeof exportColumns
+                      )
+                    }
+                  >
+                    Clear All
+                  </Button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                {Object.entries(exportColumns).map(([column, isChecked]) => (
+                  <div key={column} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`export-${column}`}
+                      checked={isChecked}
+                      onCheckedChange={(checked) =>
+                        setExportColumns((prev) => ({
+                          ...prev,
+                          [column]: !!checked,
+                        }))
+                      }
+                    />
+                    <Label htmlFor={`export-${column}`} className="capitalize">
+                      {column === "viewers" ? "Viewers" : column}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setExportOptionsDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                handleExport();
+                setExportOptionsDialogOpen(false);
+              }}
+            >
+              Export Now
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
         <Table>
-          <TableHeader className="bg-gray-50">
-            <TableRow className="border-b border-gray-200">
+          <TableHeader className="bg-gradient-to-r from-gray-50 to-gray-100 sticky top-0 z-10">
+            <TableRow className="border-b border-gray-200 hover:bg-transparent">
               <TableHead className="w-[50px]">
                 <Checkbox
                   checked={currentItems.every(
@@ -526,271 +804,389 @@ export default function TwitchDataTable({ data }: TwitchDataTableProps) {
                   className="ml-2"
                 />
               </TableHead>
-              <TableHead
-                className="w-[180px] cursor-pointer"
-                onClick={() => handleSort("username")}
-              >
-                <div className="flex items-center">
-                  Username
-                  <div className="ml-1">
-                    {sortColumn === "username" ? (
-                      sortDirection === "asc" ? (
-                        <ArrowDownAZ className="h-4 w-4 text-blue-600" />
-                      ) : sortDirection === "desc" ? (
-                        <ArrowUpAZ className="h-4 w-4 text-blue-600" />
+              {visibleColumns.username && (
+                <TableHead
+                  className="w-[180px] cursor-pointer"
+                  onClick={() => handleSort("username")}
+                >
+                  <div className="flex items-center">
+                    Username
+                    <div className="ml-1">
+                      {sortColumn === "username" ? (
+                        sortDirection === "asc" ? (
+                          <ArrowDownAZ className="h-4 w-4 text-blue-600" />
+                        ) : sortDirection === "desc" ? (
+                          <ArrowUpAZ className="h-4 w-4 text-blue-600" />
+                        ) : (
+                          <ArrowDownUp className="h-4 w-4 text-gray-400" />
+                        )
                       ) : (
-                        <ArrowDownUp className="h-4 w-4 text-gray-400" />
-                      )
-                    ) : (
-                      <ArrowDownUp className="h-4 w-4 text-gray-400 opacity-50" />
-                    )}
+                        <ArrowDownUp className="h-4 w-4 text-gray-400 opacity-50" />
+                      )}
+                    </div>
                   </div>
-                </div>
-              </TableHead>
-              <TableHead
-                className="text-right cursor-pointer"
-                onClick={() => handleSort("followers")}
-              >
-                <div className="flex items-center justify-end">
-                  Followers
-                  <div className="ml-1">
-                    {sortColumn === "followers" ? (
-                      sortDirection === "asc" ? (
-                        <ArrowDown01 className="h-4 w-4 text-blue-600" />
-                      ) : sortDirection === "desc" ? (
-                        <ArrowUp01 className="h-4 w-4 text-blue-600" />
+                </TableHead>
+              )}
+              {visibleColumns.followers && (
+                <TableHead
+                  className="text-right cursor-pointer"
+                  onClick={() => handleSort("followers")}
+                >
+                  <div className="flex items-center justify-end">
+                    Followers
+                    <div className="ml-1">
+                      {sortColumn === "followers" ? (
+                        sortDirection === "asc" ? (
+                          <ArrowDown01 className="h-4 w-4 text-blue-600" />
+                        ) : sortDirection === "desc" ? (
+                          <ArrowUp01 className="h-4 w-4 text-blue-600" />
+                        ) : (
+                          <ArrowDownUp className="h-4 w-4 text-gray-400" />
+                        )
                       ) : (
-                        <ArrowDownUp className="h-4 w-4 text-gray-400" />
-                      )
-                    ) : (
-                      <ArrowDownUp className="h-4 w-4 text-gray-400 opacity-50" />
-                    )}
+                        <ArrowDownUp className="h-4 w-4 text-gray-400 opacity-50" />
+                      )}
+                    </div>
                   </div>
-                </div>
-              </TableHead>
-              <TableHead
-                className="text-right cursor-pointer"
-                onClick={() => handleSort("viewer_count")}
-              >
-                <div className="flex items-center justify-end">
-                  Viewers
-                  <div className="ml-1">
-                    {sortColumn === "viewer_count" ? (
-                      sortDirection === "asc" ? (
-                        <ArrowDown01 className="h-4 w-4 text-blue-600" />
-                      ) : sortDirection === "desc" ? (
-                        <ArrowUp01 className="h-4 w-4 text-blue-600" />
+                </TableHead>
+              )}
+              {visibleColumns.viewers && (
+                <TableHead
+                  className="text-right cursor-pointer"
+                  onClick={() => handleSort("viewer_count")}
+                >
+                  <div className="flex items-center justify-end">
+                    Viewers
+                    <div className="ml-1">
+                      {sortColumn === "viewer_count" ? (
+                        sortDirection === "asc" ? (
+                          <ArrowDown01 className="h-4 w-4 text-blue-600" />
+                        ) : sortDirection === "desc" ? (
+                          <ArrowUp01 className="h-4 w-4 text-blue-600" />
+                        ) : (
+                          <ArrowDownUp className="h-4 w-4 text-gray-400" />
+                        )
                       ) : (
-                        <ArrowDownUp className="h-4 w-4 text-gray-400" />
-                      )
-                    ) : (
-                      <ArrowDownUp className="h-4 w-4 text-gray-400 opacity-50" />
-                    )}
+                        <ArrowDownUp className="h-4 w-4 text-gray-400 opacity-50" />
+                      )}
+                    </div>
                   </div>
-                </div>
-              </TableHead>
-              <TableHead>Language</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Social Media</TableHead>
-              <TableHead
-                className="cursor-pointer"
-                onClick={() => handleSort("gmail")}
-              >
-                <div className="flex items-center">
-                  Email
-                  <div className="ml-1">
-                    {sortColumn === "gmail" ? (
-                      sortDirection === "asc" ? (
-                        <SortAsc className="h-4 w-4 text-blue-600" />
-                      ) : sortDirection === "desc" ? (
-                        <SortDesc className="h-4 w-4 text-blue-600" />
+                </TableHead>
+              )}
+              {visibleColumns.language && <TableHead>Language</TableHead>}
+              {visibleColumns.category && <TableHead>Category</TableHead>}
+              {visibleColumns.social && <TableHead>Social Media</TableHead>}
+              {visibleColumns.email && (
+                <TableHead
+                  className="cursor-pointer"
+                  onClick={() => handleSort("gmail")}
+                >
+                  <div className="flex items-center">
+                    Email
+                    <div className="ml-1">
+                      {sortColumn === "gmail" ? (
+                        sortDirection === "asc" ? (
+                          <SortAsc className="h-4 w-4 text-blue-600" />
+                        ) : sortDirection === "desc" ? (
+                          <SortDesc className="h-4 w-4 text-blue-600" />
+                        ) : (
+                          <ArrowDownUp className="h-4 w-4 text-gray-400" />
+                        )
                       ) : (
-                        <ArrowDownUp className="h-4 w-4 text-gray-400" />
-                      )
-                    ) : (
-                      <ArrowDownUp className="h-4 w-4 text-gray-400 opacity-50" />
-                    )}
+                        <ArrowDownUp className="h-4 w-4 text-gray-400 opacity-50" />
+                      )}
+                    </div>
                   </div>
-                </div>
-              </TableHead>
+                </TableHead>
+              )}
+              {!isMobile && (
+                <TableHead className="w-[50px]">
+                  <span className="sr-only">Actions</span>
+                </TableHead>
+              )}
             </TableRow>
           </TableHeader>
           <TableBody>
             {data.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={7}
+                  colSpan={
+                    Object.values(visibleColumns).filter(Boolean).length + 2
+                  }
                   className="text-center py-8 text-gray-500"
                 >
                   No data found. Try adjusting your search or filters.
                 </TableCell>
               </TableRow>
             ) : (
-              currentItems.map((row) => (
-                <TableRow key={row.username}>
-                  <TableCell>
-                    <Checkbox
-                      checked={!!selectedUsernames[row.username]}
-                      onCheckedChange={(checked) =>
-                        handleCheckboxChange(row.username, checked === true)
-                      }
-                      aria-label={`Select ${row.username}`}
-                      className="ml-2"
-                    />
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    <div className="flex flex-col">
-                      <span>{row.username}</span>
-                      <a
-                        href={row.channelUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-blue-600 hover:underline flex items-center mt-1"
-                      >
-                        View Channel
-                        <ExternalLink className="h-3 w-3 ml-1" />
-                      </a>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {row.followers.toLocaleString()}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {row.viewer_count.toLocaleString()}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{row.language}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">{row.game_name}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex space-x-1">
-                      {row.discord && (
-                        <a
-                          href={subscribed ? row.discord : "#"}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={`${
-                            subscribed
-                              ? "text-gray-500 hover:text-indigo-600"
-                              : "text-gray-300 cursor-not-allowed"
-                          }`}
-                          title={subscribed ? "Discord" : "Upgrade to view"}
-                          onClick={(e) => !subscribed && e.preventDefault()}
-                        >
-                          <DiscordLogo className="h-4 w-4" />
-                        </a>
-                      )}
-                      {row.youtube && (
-                        <a
-                          href={row.youtube}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-gray-500 hover:text-red-600"
-                          title="YouTube"
-                        >
-                          <YoutubeLogo className="h-4 w-4" />
-                        </a>
-                      )}
-                      {row.twitter && (
-                        <a
-                          href={row.twitter}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-gray-500 hover:text-blue-400"
-                          title="Twitter"
-                        >
-                          <TwitterLogo className="h-4 w-4" />
-                        </a>
-                      )}
-                      {row.facebook && (
-                        <a
-                          href={subscribed ? row.facebook : "#"}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={`${
-                            subscribed
-                              ? "text-gray-500 hover:text-blue-600"
-                              : "text-gray-300 cursor-not-allowed"
-                          }`}
-                          title={subscribed ? "Facebook" : "Upgrade to view"}
-                          onClick={(e) => !subscribed && e.preventDefault()}
-                        >
-                          <FacebookLogo className="h-4 w-4" />
-                        </a>
-                      )}
-                      {row.instagram && (
-                        <a
-                          href={subscribed ? row.instagram : "#"}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={`${
-                            subscribed
-                              ? "text-gray-500 hover:text-pink-600"
-                              : "text-gray-300 cursor-not-allowed"
-                          }`}
-                          title={subscribed ? "Instagram" : "Upgrade to view"}
-                          onClick={(e) => !subscribed && e.preventDefault()}
-                        >
-                          <InstagramLogo className="h-4 w-4" />
-                        </a>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {row.gmail ? (
-                      subscribed || revealedEmails[row.id] ? (
-                        <div className="flex items-center">
+              <AnimatePresence>
+                {currentItems.map((row, index) => (
+                  <motion.tr
+                    key={row.username}
+                    custom={index}
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit"
+                    variants={tableRowVariants}
+                    className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors duration-150"
+                  >
+                    <TableCell className="py-2 sm:py-3">
+                      <Checkbox
+                        checked={!!selectedUsernames[row.username]}
+                        onCheckedChange={(checked) =>
+                          handleCheckboxChange(row.username, checked === true)
+                        }
+                        aria-label={`Select ${row.username}`}
+                        className="ml-2"
+                      />
+                    </TableCell>
+                    {visibleColumns.username && (
+                      <TableCell className="font-medium py-2 sm:py-3">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium text-gray-900">
+                            {row.username}
+                          </span>
                           <a
-                            href={`mailto:${row.gmail}`}
-                            className="text-blue-600 hover:underline flex items-center"
+                            href={row.channelUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-blue-600 hover:underline flex items-center mt-1 group"
                           >
-                            <EnvelopeSimple className="h-4 w-4 mr-1" />
-                            <span className="text-xs">{row.gmail}</span>
+                            View Channel
+                            <ExternalLink className="h-3 w-3 ml-1 transition-transform group-hover:translate-x-0.5" />
                           </a>
-                          {!subscribed && (
+                        </div>
+                      </TableCell>
+                    )}
+                    {visibleColumns.followers && (
+                      <TableCell className="text-right py-2 sm:py-3 font-medium text-gray-700">
+                        {row.followers.toLocaleString()}
+                      </TableCell>
+                    )}
+                    {visibleColumns.viewers && (
+                      <TableCell className="text-right py-2 sm:py-3 font-medium text-gray-700">
+                        {row.viewer_count.toLocaleString()}
+                      </TableCell>
+                    )}
+                    {visibleColumns.language && (
+                      <TableCell className="py-2 sm:py-3">
+                        <Badge
+                          variant="outline"
+                          className="bg-gray-50 text-gray-700"
+                        >
+                          {row.language}
+                        </Badge>
+                      </TableCell>
+                    )}
+                    {visibleColumns.category && (
+                      <TableCell className="py-2 sm:py-3">
+                        <Badge
+                          variant="secondary"
+                          className="bg-blue-50 text-blue-700 border-blue-100"
+                        >
+                          {row.game_name}
+                        </Badge>
+                      </TableCell>
+                    )}
+                    {visibleColumns.social && (
+                      <TableCell className="py-2 sm:py-3">
+                        <div className="flex space-x-1">
+                          {row.discord && (
+                            <a
+                              href={subscribed ? row.discord : "#"}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={`${
+                                subscribed
+                                  ? "text-gray-500 hover:text-indigo-600"
+                                  : "text-gray-300 cursor-not-allowed"
+                              } transition-colors duration-200 p-1 rounded-full hover:bg-gray-100`}
+                              title={subscribed ? "Discord" : "Upgrade to view"}
+                              onClick={(e) => !subscribed && e.preventDefault()}
+                            >
+                              <DiscordLogo className="h-4 w-4" />
+                            </a>
+                          )}
+                          {row.youtube && (
+                            <a
+                              href={row.youtube}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-gray-500 hover:text-red-600 transition-colors duration-200 p-1 rounded-full hover:bg-gray-100"
+                              title="YouTube"
+                            >
+                              <YoutubeLogo className="h-4 w-4" />
+                            </a>
+                          )}
+                          {row.twitter && (
+                            <a
+                              href={row.twitter}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-gray-500 hover:text-blue-400 transition-colors duration-200 p-1 rounded-full hover:bg-gray-100"
+                              title="Twitter"
+                            >
+                              <TwitterLogo className="h-4 w-4" />
+                            </a>
+                          )}
+                          {row.facebook && (
+                            <a
+                              href={subscribed ? row.facebook : "#"}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={`${
+                                subscribed
+                                  ? "text-gray-500 hover:text-blue-600"
+                                  : "text-gray-300 cursor-not-allowed"
+                              } transition-colors duration-200 p-1 rounded-full hover:bg-gray-100`}
+                              title={
+                                subscribed ? "Facebook" : "Upgrade to view"
+                              }
+                              onClick={(e) => !subscribed && e.preventDefault()}
+                            >
+                              <FacebookLogo className="h-4 w-4" />
+                            </a>
+                          )}
+                          {row.instagram && (
+                            <a
+                              href={subscribed ? row.instagram : "#"}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={`${
+                                subscribed
+                                  ? "text-gray-500 hover:text-pink-600"
+                                  : "text-gray-300 cursor-not-allowed"
+                              } transition-colors duration-200 p-1 rounded-full hover:bg-gray-100`}
+                              title={
+                                subscribed ? "Instagram" : "Upgrade to view"
+                              }
+                              onClick={(e) => !subscribed && e.preventDefault()}
+                            >
+                              <InstagramLogo className="h-4 w-4" />
+                            </a>
+                          )}
+                        </div>
+                      </TableCell>
+                    )}
+                    {visibleColumns.email && (
+                      <TableCell className="py-2 sm:py-3">
+                        {row.gmail ? (
+                          subscribed || revealedEmails[row.id] ? (
+                            <div className="flex items-center">
+                              <a
+                                href={`mailto:${row.gmail}`}
+                                className="text-blue-600 hover:underline flex items-center group"
+                              >
+                                <EnvelopeSimple className="h-4 w-4 mr-1 group-hover:text-blue-700" />
+                                <span className="text-xs truncate max-w-[120px] sm:max-w-[180px]">
+                                  {row.gmail}
+                                </span>
+                              </a>
+                              {!subscribed && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 ml-1 hover:bg-gray-100"
+                                  onClick={() => toggleEmailVisibility(row.id)}
+                                  title="Hide email"
+                                >
+                                  <EyeOff className="h-3 w-3" />
+                                </Button>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="flex items-center">
+                              <span className="text-gray-400 text-xs blur-sm select-none">
+                                {row.gmail.replace(/./g, "•")}
+                              </span>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 ml-1 hover:bg-gray-100"
+                                onClick={() => toggleEmailVisibility(row.id)}
+                                title="Reveal email (free users get 3 reveals per day)"
+                              >
+                                <Eye className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          )
+                        ) : (
+                          <span className="text-gray-400 text-xs">
+                            Couldn't find a valid mail
+                          </span>
+                        )}
+                      </TableCell>
+                    )}
+                    {!isMobile && (
+                      <TableCell className="py-2 sm:py-3">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-6 w-6 ml-1"
-                              onClick={() => toggleEmailVisibility(row.id)}
-                              title="Hide email"
+                              className="h-8 w-8 hover:bg-gray-100"
                             >
-                              <EyeOff className="h-3 w-3" />
+                              <MoreHorizontal className="h-4 w-4" />
+                              <span className="sr-only">Actions</span>
                             </Button>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="flex items-center">
-                          <span className="text-gray-400 text-xs blur-sm select-none">
-                            {row.gmail.replace(/./g, "•")}
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 ml-1"
-                            onClick={() => toggleEmailVisibility(row.id)}
-                            title="Reveal email (free users get 3 reveals per day)"
-                          >
-                            <Eye className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      )
-                    ) : (
-                      <span className="text-gray-400 text-xs">
-                        Couldn't find a valid mail
-                      </span>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() =>
+                                handleCheckboxChange(
+                                  row.username,
+                                  !selectedUsernames[row.username]
+                                )
+                              }
+                              className="cursor-pointer"
+                            >
+                              {selectedUsernames[row.username] ? (
+                                <>
+                                  <Checkbox className="mr-2" checked />
+                                  <span>Deselect</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Checkbox className="mr-2" />
+                                  <span>Select</span>
+                                </>
+                              )}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() =>
+                                window.open(row.channelUrl, "_blank")
+                              }
+                              className="cursor-pointer"
+                            >
+                              <ExternalLink className="mr-2 h-4 w-4" />
+                              <span>View Channel</span>
+                            </DropdownMenuItem>
+                            {row.gmail && (
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  window.open(`mailto:${row.gmail}`, "_blank")
+                                }
+                                className="cursor-pointer"
+                              >
+                                <EnvelopeSimple className="mr-2 h-4 w-4" />
+                                <span>Send Email</span>
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
                     )}
-                  </TableCell>
-                </TableRow>
-              ))
+                  </motion.tr>
+                ))}
+              </AnimatePresence>
             )}
           </TableBody>
         </Table>
       </div>
       {data.length > itemsPerPage && (
-        <div className="flex justify-center py-4 bg-gray-100 border-t border-gray-200">
+        <div className="flex justify-center py-3 sm:py-4 bg-gradient-to-r from-gray-50 to-gray-100 border-t border-gray-200">
           <Pagination>
             <PaginationContent>
               <PaginationItem>
@@ -801,7 +1197,7 @@ export default function TwitchDataTable({ data }: TwitchDataTableProps) {
                   className={
                     currentPage === 1
                       ? "pointer-events-none opacity-50"
-                      : "cursor-pointer"
+                      : "cursor-pointer hover:bg-gray-100 transition-colors"
                   }
                 />
               </PaginationItem>
@@ -819,7 +1215,7 @@ export default function TwitchDataTable({ data }: TwitchDataTableProps) {
                         <PaginationLink
                           onClick={() => handlePageChange(page)}
                           isActive={page === currentPage}
-                          className="cursor-pointer"
+                          className="cursor-pointer hover:bg-gray-100 transition-colors"
                         >
                           {page}
                         </PaginationLink>
@@ -852,7 +1248,7 @@ export default function TwitchDataTable({ data }: TwitchDataTableProps) {
                   className={
                     currentPage === totalPages
                       ? "pointer-events-none opacity-50"
-                      : "cursor-pointer"
+                      : "cursor-pointer hover:bg-gray-100 transition-colors"
                   }
                 />
               </PaginationItem>
@@ -860,6 +1256,6 @@ export default function TwitchDataTable({ data }: TwitchDataTableProps) {
           </Pagination>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }

@@ -1,10 +1,19 @@
 "use client";
 
+import { Badge } from "@/components/ui/badge";
+
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Bookmark, Trash2, RefreshCw, FolderX } from "lucide-react";
+import {
+  Search,
+  Bookmark,
+  Trash2,
+  RefreshCw,
+  FolderX,
+  Plus,
+} from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import SavedStreamersTable from "../saved-streamers-table";
 import type { Folder, TwitchData } from "../types";
@@ -19,6 +28,8 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useUser } from "@/app/context/UserContext";
+import { motion } from "framer-motion";
+import { useMediaQuery } from "@/hooks/use-media-query";
 
 type SavedStreamersTabProps = {};
 
@@ -30,18 +41,27 @@ export default function SavedStreamersTab({}: SavedStreamersTabProps) {
   const [folders, setFolders] = useState<Folder[]>([]);
   const [newFolderName, setNewFolderName] = useState("");
   const [isAddFolderDialogOpen, setIsAddFolderDialogOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const { toast } = useToast();
   const { user } = useUser();
+
+  const isMobile = useMediaQuery("(max-width: 768px)");
+
+  // Auto-close sidebar on mobile
+  useEffect(() => {
+    if (isMobile) {
+      setIsSidebarOpen(false);
+    } else {
+      setIsSidebarOpen(true);
+    }
+  }, [isMobile]);
 
   useEffect(() => {
     if (!user) return;
     fetchData(user.id, "all");
   }, [user]);
 
-  const fetchData = async (
-    userId: string | undefined,
-    folderId: string = "all"
-  ) => {
+  const fetchData = async (userId: string | undefined, folderId = "all") => {
     try {
       setIsLoading(true);
 
@@ -234,144 +254,202 @@ export default function SavedStreamersTab({}: SavedStreamersTabProps) {
 
   const handleFolderClick = (folderId: string) => {
     const folder = folders.find((f) => f.id === folderId);
-    console.log(folder);
     if (folder) {
       setSelectedFolder(folder);
       fetchData(user?.id, folder.id);
+      if (isMobile) {
+        setIsSidebarOpen(false);
+      }
     }
   };
 
-  //   const getSavedStreamers = async (userId: string) => {
-  //     const res = await fetch(
-  //       `${process.env.NEXT_PUBLIC_BACKEND_URL}saved-streamers?user_id=${userId}`
-  //     );
-  //     if (!res.ok) throw new Error("Failed to fetch saved streamers");
-  //     return res.json();
-  //   };
+  // Animation variants
+  const fadeIn = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { duration: 0.3 } },
+  };
 
-  console.log(selectedFolder);
+  const slideIn = {
+    hidden: { x: -20, opacity: 0 },
+    visible: { x: 0, opacity: 1, transition: { duration: 0.3 } },
+  };
 
   return (
-    <div className="space-y-6">
-      <div className="grid gap-6 md:grid-cols-[240px_1fr]">
-        {/* FOLDER SIDEBAR */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium">Folders</h3>
-            <Dialog
-              open={isAddFolderDialogOpen}
-              onOpenChange={setIsAddFolderDialogOpen}
+    <div className="space-y-6 px-2 sm:px-4 md:px-0">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          {isMobile && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="md:hidden"
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
             >
-              <DialogTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                  <span className="sr-only">Add folder</span>
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M12 5v14M5 12h14" />
-                  </svg>
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Create New Folder</DialogTitle>
-                  <DialogDescription>
-                    Organize your saved streamers.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="py-4">
-                  <Label htmlFor="folder-name">Folder Name</Label>
-                  <Input
-                    id="folder-name"
-                    value={newFolderName}
-                    onChange={(e) => setNewFolderName(e.target.value)}
-                    placeholder="e.g. Pros, Fitness, VTubers"
-                    className="mt-2"
-                  />
-                </div>
-                <DialogFooter>
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsAddFolderDialogOpen(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button onClick={handleAddFolder}>Create</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </div>
-
-          <div className="space-y-1">
-            {folders.map((folder) => {
-              const count = folder.streamer_count ?? 0;
-              return (
-                <div key={folder.id} className="flex items-center group">
-                  <Button
-                    variant={
-                      selectedFolder?.id === folder.id ? "secondary" : "ghost"
-                    }
-                    className="w-full justify-start"
-                    onClick={() => handleFolderClick(folder.id)}
-                  >
-                    <Bookmark className="mr-2 h-4 w-4" />
-                    {folder.name}
-                    <span className="ml-auto">{count}</span>
-                  </Button>
-
-                  {/* Only show delete button if it's not a special folder */}
-                  {!folder.is_mandatory && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => handleDeleteFolder(folder.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              );
-            })}
+              <Bookmark className="h-4 w-4 mr-2" />
+              Folders
+            </Button>
+          )}
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+            <Input
+              type="search"
+              placeholder="Search saved streamers..."
+              className="pl-8"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
         </div>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-[240px_1fr] flex-col md:flex-row">
+        {/* FOLDER SIDEBAR */}
+        {(isSidebarOpen || !isMobile) && (
+          <motion.div
+            className={`space-y-4 overflow-x-auto ${
+              isMobile ? "fixed inset-0 bg-white z-50 p-4 pt-16" : ""
+            }`}
+            initial="hidden"
+            animate="visible"
+            variants={slideIn}
+          >
+            {isMobile && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute top-4 right-4"
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                ✕
+              </Button>
+            )}
+            <div className="flex items-center justify-between sticky top-0 bg-white z-10">
+              <h3 className="text-sm font-medium">Folders</h3>
+              <Dialog
+                open={isAddFolderDialogOpen}
+                onOpenChange={setIsAddFolderDialogOpen}
+              >
+                <DialogTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 hover:bg-gray-100 rounded-full"
+                  >
+                    <span className="sr-only">Add folder</span>
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Create New Folder</DialogTitle>
+                    <DialogDescription>
+                      Organize your saved streamers.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="py-4">
+                    <Label htmlFor="folder-name">Folder Name</Label>
+                    <Input
+                      id="folder-name"
+                      value={newFolderName}
+                      onChange={(e) => setNewFolderName(e.target.value)}
+                      placeholder="e.g. Pros, Fitness, VTubers"
+                      className="mt-2"
+                    />
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsAddFolderDialogOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button onClick={handleAddFolder}>Create</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            <div className="space-y-1 max-h-[calc(100vh-300px)] overflow-y-auto pr-1">
+              {folders.map((folder) => {
+                const count = folder.streamer_count ?? 0;
+                const isActive = selectedFolder?.id === folder.id;
+                return (
+                  <div key={folder.id} className="flex items-center group">
+                    <Button
+                      variant={isActive ? "secondary" : "ghost"}
+                      className={`w-full justify-start text-sm transition-all duration-200 ${
+                        isActive
+                          ? "bg-blue-100 text-blue-700 hover:bg-blue-200"
+                          : "hover:bg-gray-100"
+                      }`}
+                      onClick={() => handleFolderClick(folder.id)}
+                    >
+                      <Bookmark
+                        className={`mr-2 h-4 w-4 ${
+                          isActive ? "text-blue-600" : ""
+                        }`}
+                      />
+                      <span className="truncate">{folder.name}</span>
+                      <Badge
+                        variant="outline"
+                        className={`ml-auto ${
+                          isActive
+                            ? "bg-blue-200 border-blue-300"
+                            : "bg-gray-100"
+                        }`}
+                      >
+                        {count}
+                      </Badge>
+                    </Button>
+
+                    {/* Only show delete button if it's not a special folder */}
+                    {!folder.is_mandatory && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 hover:text-red-600"
+                        onClick={() => handleDeleteFolder(folder.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
 
         {/* MAIN PANEL */}
-        <div className="space-y-4">
-          <div className="flex items-center space-x-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-              <Input
-                type="search"
-                placeholder="Search saved streamers..."
-                className="pl-8"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-          </div>
-
+        <motion.div
+          className="space-y-4 w-full overflow-hidden"
+          initial="hidden"
+          animate="visible"
+          variants={fadeIn}
+        >
           {isLoading ? (
-            <Card>
+            <Card className="border border-blue-100 shadow-sm">
               <CardContent className="flex flex-col items-center justify-center py-10">
                 <RefreshCw className="h-10 w-10 text-blue-500 animate-spin mb-4" />
                 <p className="text-gray-500">Loading saved streamers...</p>
               </CardContent>
             </Card>
           ) : savedStreamers.length > 0 ? (
-            <SavedStreamersTable
-              data={savedStreamers}
-              folders={folders}
-              onDelete={handleDeleteStreamer}
-              onMoveToFolder={handleMoveToFolder}
-              refreshStreamers={() => fetchData(user?.id, selectedFolder?.id)}
-            />
+            <div className="overflow-x-auto -mx-4 sm:mx-0">
+              <div className="min-w-full inline-block align-middle">
+                <SavedStreamersTable
+                  data={savedStreamers}
+                  folders={folders}
+                  onDelete={handleDeleteStreamer}
+                  onMoveToFolder={handleMoveToFolder}
+                  refreshStreamers={() =>
+                    fetchData(user?.id, selectedFolder?.id)
+                  }
+                />
+              </div>
+            </div>
           ) : (
-            <Card>
+            <Card className="border border-gray-200 shadow-sm">
               <CardContent className="flex flex-col items-center justify-center py-10">
                 <FolderX className="h-10 w-10 text-gray-400 mb-4" />
                 <h3 className="text-lg font-medium mb-2">
@@ -382,12 +460,12 @@ export default function SavedStreamersTab({}: SavedStreamersTabProps) {
                     ? "No streamers match your search criteria."
                     : selectedFolder
                     ? "This folder is empty."
-                    : "You haven’t saved any streamers yet."}
+                    : "You haven't saved any streamers yet."}
                 </p>
               </CardContent>
             </Card>
           )}
-        </div>
+        </motion.div>
       </div>
     </div>
   );
