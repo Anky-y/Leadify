@@ -27,13 +27,15 @@ import {
   ArrowDownUp,
   SortAsc,
   SortDesc,
-  Save,
+  SearchCheck,
   Download,
+  Save,
   ChevronDown,
   FileText,
   Check,
   FileSpreadsheet,
   FileJson,
+  UserPlus,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -69,6 +71,9 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import * as XLSX from "xlsx";
+import { exportToCSV, exportToExcel, exportToJSON } from "@/utils/export";
+import { useUser } from "@/app/context/UserContext";
 
 interface TwitchDataTableProps {
   data: TwitchData[];
@@ -87,7 +92,8 @@ export default function TwitchDataTable({ data }: TwitchDataTableProps) {
   >({});
   const [exportFormat, setExportFormat] = useState("csv");
   const [searchName, setSearchName] = useState("");
-  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [saveSearchDialogOpen, setSaveSearchDialogOpen] = useState(false);
+  const [saveStreamersDialogOpen, setSaveStreamersDialogOpen] = useState(false);
 
   console.log(selectedUsernames);
 
@@ -95,6 +101,7 @@ export default function TwitchDataTable({ data }: TwitchDataTableProps) {
 
   const subscribed = true;
 
+  const { user } = useUser();
   // Toggle email visibility for a specific row
   const toggleEmailVisibility = (id: string) => {
     setRevealedEmails((prev) => ({
@@ -204,6 +211,13 @@ export default function TwitchDataTable({ data }: TwitchDataTableProps) {
   };
 
   const handleExport = () => {
+    const selected = Object.values(selectedUsernames).some(Boolean);
+    const exportData = selected
+      ? data.filter((row) => selectedUsernames[row.username])
+      : data;
+
+    console.log(exportData);
+
     if (data.length === 0) {
       toast({
         title: "No data to export",
@@ -211,6 +225,14 @@ export default function TwitchDataTable({ data }: TwitchDataTableProps) {
         variant: "destructive",
       });
       return;
+    }
+
+    if (exportFormat === "csv") {
+      exportToCSV(exportData, "twitch-data.csv");
+    } else if (exportFormat === "json") {
+      exportToJSON(exportData, "twitch-data.json");
+    } else if (exportFormat === "excel") {
+      exportToExcel(exportData, "twitch-data.xlsx");
     }
 
     toast({
@@ -234,9 +256,71 @@ export default function TwitchDataTable({ data }: TwitchDataTableProps) {
       title: "Search saved",
       description: `Your search "${searchName}" has been saved.`,
     });
-    setSaveDialogOpen(false);
+    setSaveSearchDialogOpen(false);
     setSearchName("");
   };
+  const handleSaveStreamers = async () => {
+    console.log("here");
+    console.log(process.env.NEXT_PUBLIC_BACKEND_URL);
+    const selected = Object.values(selectedUsernames).some(Boolean);
+    const streamersToSave = selected
+      ? data.filter((row) => selectedUsernames[row.username])
+      : data;
+
+    if (streamersToSave.length === 0) {
+      toast({
+        title: "No streamers selected",
+        description: "Please select at least one streamer to save.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const cleanedStreamers = streamersToSave.map((streamer) => ({
+      ...streamer,
+      followers: Number(streamer.followers),
+      viewer_count: Number(streamer.viewer_count),
+      subscriber_count: Number(streamer.subscriber_count),
+    }));
+
+    console.log(cleanedStreamers);
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}streamers/save?user_id=${user?.id}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(cleanedStreamers),
+        }
+      );
+
+      console.log(response);
+
+      if (!response.ok) {
+        throw new Error("Failed to save streamers");
+      }
+
+      toast({
+        title: "Success",
+        description: "Selected streamers have been saved to your list.",
+      });
+
+      setSaveStreamersDialogOpen(false);
+      setSearchName(""); // Optional depending on whether name is reused
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Error",
+        description: "Something went wrong while saving streamers.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  console.log(data);
   // Apply sorting before pagination
   const sortedData = sortData(data);
 
@@ -274,13 +358,16 @@ export default function TwitchDataTable({ data }: TwitchDataTableProps) {
         </div>
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex gap-2">
-            <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
+            <Dialog
+              open={saveSearchDialogOpen}
+              onOpenChange={setSaveSearchDialogOpen}
+            >
               <DialogTrigger asChild>
                 <Button
                   variant="outline"
                   className="border-blue-200 text-blue-700 hover:bg-blue-50"
                 >
-                  <Save className="mr-2 h-4 w-4" />
+                  <SearchCheck className=" h-4 w-4" />
                   Save Search
                 </Button>
               </DialogTrigger>
@@ -304,11 +391,48 @@ export default function TwitchDataTable({ data }: TwitchDataTableProps) {
                 <DialogFooter>
                   <Button
                     variant="outline"
-                    onClick={() => setSaveDialogOpen(false)}
+                    onClick={() => setSaveSearchDialogOpen(false)}
                   >
                     Cancel
                   </Button>
                   <Button onClick={handleSaveSearch}>Save</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+            <Dialog
+              open={saveStreamersDialogOpen}
+              onOpenChange={setSaveStreamersDialogOpen}
+            >
+              <DialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="border-blue-200 text-blue-700 hover:bg-blue-50"
+                >
+                  <UserPlus className="h-4 w-4" />
+                  Save Selected Streamers
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Save Selected Streamers</DialogTitle>
+                  <DialogDescription>
+                    All currently selected streamers will be saved to your saved
+                    list.
+                    <br />
+                    <span className="text-sm text-muted-foreground">
+                      Streamers that are already saved will be skipped
+                      automatically.
+                    </span>
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => setSaveStreamersDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button onClick={handleSaveStreamers}>Confirm Save</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -329,7 +453,10 @@ export default function TwitchDataTable({ data }: TwitchDataTableProps) {
                   <DropdownMenuLabel>Export Format</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
-                    onClick={() => setExportFormat("csv")}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setExportFormat("csv");
+                    }}
                     className="flex items-center gap-2 cursor-pointer"
                   >
                     <FileText className="h-4 w-4" />
@@ -339,7 +466,10 @@ export default function TwitchDataTable({ data }: TwitchDataTableProps) {
                     )}
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => setExportFormat("excel")}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setExportFormat("excel");
+                    }}
                     className="flex items-center gap-2 cursor-pointer"
                   >
                     <FileSpreadsheet className="h-4 w-4" />
@@ -349,7 +479,10 @@ export default function TwitchDataTable({ data }: TwitchDataTableProps) {
                     )}
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => setExportFormat("json")}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setExportFormat("json");
+                    }}
                     className="flex items-center gap-2 cursor-pointer"
                   >
                     <FileJson className="h-4 w-4" />

@@ -115,12 +115,6 @@ export default function SearchTab({
 
   console.log(streamers);
 
-  const { toast } = useToast();
-
-
-
-
-
   const resetFilters = () => {
     setLanguage("");
     setCategory("");

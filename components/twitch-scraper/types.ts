@@ -1,17 +1,21 @@
 export interface TwitchData {
   id: string;
   username: string;
-  channelUrl: string;
   followers: number;
   viewer_count: number;
   language: string;
   game_name: string;
-  discord: string;
-  youtube: string;
-  twitter: string;
-  facebook: string;
-  instagram: string;
-  gmail: string;
+  channelUrl: string;
+  subscriber_count?: string;
+  gmail?: string;
+  twitter?: string;
+  youtube?: string;
+  instagram?: string;
+  discord?: string;
+  facebook?: string;
+  folder_id?: string; // Better to reference folder by ID
+  savedAt?: string; // Timestamp when the streamer was saved
+  is_favourite?: boolean;
 }
 
 export interface FilterValues {
@@ -50,3 +54,11 @@ export interface Streamer {
   language: string;
   category: string;
 }
+export type Folder = {
+  id: string;
+  user_id: string;
+  name: string;
+  is_mandatory: boolean; // true for "All" and "Favourites"
+  created_at: string;
+  streamer_count?: number;
+};
