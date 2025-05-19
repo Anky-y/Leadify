@@ -38,11 +38,10 @@ import {
   MoreHorizontal,
   Filter,
   Settings,
-  Columns,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { TwitchData } from "./types";
 import {
   Pagination,
@@ -85,6 +84,9 @@ interface TwitchDataTableProps {
 }
 
 export default function TwitchDataTable({ data }: TwitchDataTableProps) {
+  const contextMenuRef = useRef<HTMLDivElement>(null);
+  const [menuMeasured, setMenuMeasured] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   // State to track which emails are revealed
   const [revealedEmails, setRevealedEmails] = useState<Record<string, boolean>>(
     {}
@@ -109,6 +111,17 @@ export default function TwitchDataTable({ data }: TwitchDataTableProps) {
   const [showColumnSelector, setShowColumnSelector] = useState(false);
   const [exportColumns, setExportColumns] = useState({ ...visibleColumns });
   const [exportOptionsDialogOpen, setExportOptionsDialogOpen] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    row: TwitchData | null;
+    visible: boolean;
+  }>({
+    x: 0,
+    y: 0,
+    row: null,
+    visible: false,
+  });
 
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const isTablet = useMediaQuery("(min-width: 768px)");
@@ -148,6 +161,49 @@ export default function TwitchDataTable({ data }: TwitchDataTableProps) {
       });
     }
   }, [isDesktop, isTablet, isMobile]);
+
+  // Close context menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      if (contextMenu.visible) {
+        setContextMenu((prev) => ({ ...prev, visible: false }));
+      }
+    };
+
+    document.addEventListener("click", handleClickOutside);
+    return () => {
+      document.removeEventListener("click", handleClickOutside);
+    };
+  }, [contextMenu.visible]);
+
+  useEffect(() => {
+    if (contextMenu.visible && contextMenuRef.current && !menuMeasured) {
+      const menu = contextMenuRef.current;
+      const rect = menu.getBoundingClientRect();
+      const { innerWidth, innerHeight } = window;
+      let newX = contextMenu.x;
+      let newY = contextMenu.y;
+
+      if (contextMenu.x + rect.width > innerWidth) {
+        newX = Math.max(innerWidth - rect.width - 8, 8);
+      }
+      if (contextMenu.y + rect.height > innerHeight) {
+        newY = Math.max(innerHeight - rect.height - 8, 8);
+      }
+
+      if (newX !== menuPosition.x || newY !== menuPosition.y) {
+        setMenuPosition({ x: newX, y: newY });
+      }
+      setMenuMeasured(true);
+    }
+  }, [
+    contextMenu.visible,
+    menuMeasured,
+    contextMenu.x,
+    contextMenu.y,
+    menuPosition.x,
+    menuPosition.y,
+  ]);
 
   const itemsPerPage = isDesktop ? 10 : isTablet ? 7 : 5;
 
@@ -929,6 +985,17 @@ export default function TwitchDataTable({ data }: TwitchDataTableProps) {
                     exit="exit"
                     variants={tableRowVariants}
                     className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors duration-150"
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      setMenuMeasured(false);
+                      setMenuPosition({ x: e.clientX, y: e.clientY });
+                      setContextMenu({
+                        x: e.clientX,
+                        y: e.clientY,
+                        row: row,
+                        visible: true,
+                      });
+                    }}
                   >
                     <TableCell className="py-2 sm:py-3">
                       <Checkbox
@@ -1185,6 +1252,105 @@ export default function TwitchDataTable({ data }: TwitchDataTableProps) {
           </TableBody>
         </Table>
       </div>
+      {contextMenu.visible && contextMenu.row && (
+        <motion.div
+          ref={contextMenuRef}
+          className="fixed z-50 bg-white border shadow-lg rounded-md overflow-hidden"
+          style={{ top: menuPosition.y, left: menuPosition.x }}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.15, ease: "easeOut" }}
+          onClick={(e) => e.stopPropagation()}
+          onContextMenu={(e) => e.preventDefault()}
+        >
+          <div className="py-1 text-sm">
+            <div className="px-3 py-2 font-medium text-gray-700 border-b">
+              {contextMenu.row.username}
+            </div>
+
+            <button
+              className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 transition-colors"
+              onClick={() => {
+                handleCheckboxChange(
+                  contextMenu.row!.username,
+                  !selectedUsernames[contextMenu.row!.username]
+                );
+                setContextMenu((prev) => ({ ...prev, visible: false }));
+              }}
+            >
+              {selectedUsernames[contextMenu.row.username] ? (
+                <>
+                  <Checkbox className="h-4 w-4" checked />
+                  <span>Deselect</span>
+                </>
+              ) : (
+                <>
+                  <Checkbox className="h-4 w-4" />
+                  <span>Select</span>
+                </>
+              )}
+            </button>
+
+            <button
+              className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 transition-colors"
+              onClick={() => {
+                window.open(contextMenu.row!.channelUrl, "_blank");
+                setContextMenu((prev) => ({ ...prev, visible: false }));
+              }}
+            >
+              <ExternalLink className="h-4 w-4" />
+              <span>View Channel</span>
+            </button>
+
+            {contextMenu.row.gmail && (
+              <button
+                className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 transition-colors"
+                onClick={() => {
+                  window.open(`mailto:${contextMenu.row!.gmail}`, "_blank");
+                  setContextMenu((prev) => ({ ...prev, visible: false }));
+                }}
+              >
+                <EnvelopeSimple className="h-4 w-4" />
+                <span>Send Email</span>
+              </button>
+            )}
+
+            <button
+              className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 transition-colors"
+              onClick={() => {
+                setSaveStreamersDialogOpen(true);
+                handleCheckboxChange(contextMenu.row!.username, true);
+                setContextMenu((prev) => ({ ...prev, visible: false }));
+              }}
+            >
+              <UserPlus className="h-4 w-4" />
+              <span>Save Streamer</span>
+            </button>
+
+            {/* {contextMenu.row.gmail && subscribed && (
+              <button
+                className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 transition-colors"
+                onClick={() => {
+                  toggleEmailVisibility(contextMenu.row!.id);
+                  setContextMenu((prev) => ({ ...prev, visible: false }));
+                }}
+              >
+                {revealedEmails[contextMenu.row.id] ? (
+                  <>
+                    <EyeOff className="h-4 w-4" />
+                    <span>Hide Email</span>
+                  </>
+                ) : (
+                  <>
+                    <Eye className="h-4 w-4" />
+                    <span>Reveal Email</span>
+                  </>
+                )}
+              </button>
+            )} */}
+          </div>
+        </motion.div>
+      )}
       {data.length > itemsPerPage && (
         <div className="flex justify-center py-3 sm:py-4 bg-gradient-to-r from-gray-50 to-gray-100 border-t border-gray-200">
           <Pagination>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Table,
   TableBody,
@@ -91,6 +91,9 @@ export default function SavedStreamersTable({
   onMoveToFolder,
   refreshStreamers,
 }: SavedStreamersTableProps) {
+  const contextMenuRef = useRef<HTMLDivElement>(null);
+  const [menuMeasured, setMenuMeasured] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const [selectedStreamers, setSelectedStreamers] = useState<
     Record<string, boolean>
   >({});
@@ -113,6 +116,18 @@ export default function SavedStreamersTable({
     email: true,
     folder: true,
     date: true,
+  });
+
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    row: TwitchData | null;
+    visible: boolean;
+  }>({
+    x: 0,
+    y: 0,
+    row: null,
+    visible: false,
   });
 
   const isDesktop = useMediaQuery("(min-width: 1024px)");
@@ -172,6 +187,48 @@ export default function SavedStreamersTable({
 
   const itemsPerPage = isDesktop ? 10 : isTablet ? 7 : 5;
 
+  useEffect(() => {
+    const handleClickOutside = () => {
+      if (contextMenu.visible) {
+        setContextMenu((prev) => ({ ...prev, visible: false }));
+      }
+    };
+
+    document.addEventListener("click", handleClickOutside);
+    return () => {
+      document.removeEventListener("click", handleClickOutside);
+    };
+  }, [contextMenu.visible]);
+
+  useEffect(() => {
+    if (contextMenu.visible && contextMenuRef.current && !menuMeasured) {
+      const menu = contextMenuRef.current;
+      const rect = menu.getBoundingClientRect();
+      const { innerWidth, innerHeight } = window;
+      let newX = contextMenu.x;
+      let newY = contextMenu.y;
+
+      if (contextMenu.x + rect.width > innerWidth) {
+        newX = Math.max(innerWidth - rect.width - 8, 8);
+      }
+      if (contextMenu.y + rect.height > innerHeight) {
+        newY = Math.max(innerHeight - rect.height - 8, 8);
+      }
+
+      if (newX !== menuPosition.x || newY !== menuPosition.y) {
+        setMenuPosition({ x: newX, y: newY });
+      }
+      setMenuMeasured(true);
+    }
+  }, [
+    contextMenu.visible,
+    menuMeasured,
+    contextMenu.x,
+    contextMenu.y,
+    menuPosition.x,
+    menuPosition.y,
+  ]);
+
   // Handle sorting
   const handleSort = (column: string) => {
     if (sortColumn === column) {
@@ -215,8 +272,8 @@ export default function SavedStreamersTable({
       }
 
       if (sortColumn === "savedAt") {
-        const valueA = new Date(a.savedAt || "").getTime();
-        const valueB = new Date(b.savedAt || "").getTime();
+        const valueA = new Date(a.saved_at || "").getTime();
+        const valueB = new Date(b.saved_at || "").getTime();
         return sortDirection === "asc" ? valueA - valueB : valueB - valueA;
       }
 
@@ -687,25 +744,55 @@ export default function SavedStreamersTable({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>Select folder</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  {folders.map((folder) => (
-                    <DropdownMenuItem
-                      key={folder.id}
-                      onClick={() => {
-                        Object.entries(selectedStreamers).forEach(
-                          ([id, selected]) => {
-                            if (selected) {
-                              onMoveToFolder(id, folder.id);
+                  <DropdownMenuLabel className="flex justify-between items-center">
+                    Move to folder
+                    <ChevronDown className="h-3 w-3 text-gray-400" />
+                  </DropdownMenuLabel>
+                  <div className="max-h-[150px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+                    {folders.slice(0, 4).map((folder) => (
+                      <DropdownMenuItem
+                        key={folder.id}
+                        onClick={() => {
+                          Object.entries(selectedStreamers).forEach(
+                            ([id, selected]) => {
+                              if (selected) {
+                                onMoveToFolder(id, folder.id);
+                              }
                             }
-                          }
-                        );
-                        setSelectedStreamers({});
-                      }}
-                    >
-                      {folder.name}
-                    </DropdownMenuItem>
-                  ))}
+                          );
+                          setSelectedStreamers({});
+                        }}
+                        className="cursor-pointer"
+                      >
+                        <FolderClosed className="mr-2 h-4 w-4" />
+                        <span>{folder.name}</span>
+                      </DropdownMenuItem>
+                    ))}
+                    {folders.length > 4 && (
+                      <div className="px-3 py-1 text-xs text-gray-500 border-t">
+                        Scroll for more folders
+                      </div>
+                    )}
+                    {folders.slice(4).map((folder) => (
+                      <DropdownMenuItem
+                        key={folder.id}
+                        onClick={() => {
+                          Object.entries(selectedStreamers).forEach(
+                            ([id, selected]) => {
+                              if (selected) {
+                                onMoveToFolder(id, folder.id);
+                              }
+                            }
+                          );
+                          setSelectedStreamers({});
+                        }}
+                        className="cursor-pointer"
+                      >
+                        <FolderClosed className="mr-2 h-4 w-4" />
+                        <span>{folder.name}</span>
+                      </DropdownMenuItem>
+                    ))}
+                  </div>
                 </DropdownMenuContent>
               </DropdownMenu>
 
@@ -870,6 +957,17 @@ export default function SavedStreamersTable({
                 {currentItems.map((row, index) => (
                   <motion.tr
                     key={row.id}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      setMenuMeasured(false);
+                      setMenuPosition({ x: e.clientX, y: e.clientY });
+                      setContextMenu({
+                        x: e.clientX,
+                        y: e.clientY,
+                        row: row,
+                        visible: true,
+                      });
+                    }}
                     className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors duration-150"
                     custom={index}
                     initial="hidden"
@@ -1052,8 +1150,8 @@ export default function SavedStreamersTable({
                         <div className="flex items-center">
                           <Calendar className="h-3 w-3 mr-1 text-gray-400" />
                           <span className="text-xs text-gray-500">
-                            {row.savedAt
-                              ? format(new Date(row.savedAt), "MMM d, yyyy")
+                            {row.saved_at
+                              ? format(new Date(row.saved_at), "MMM d, yyyy")
                               : "N/A"}
                           </span>
                         </div>
@@ -1093,18 +1191,43 @@ export default function SavedStreamersTable({
                             )}
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuLabel>Move to folder</DropdownMenuLabel>
-                          {folders.map((folder) => (
-                            <DropdownMenuItem
-                              key={folder.id}
-                              onClick={() => onMoveToFolder(row.id, folder.id)}
-                              className="cursor-pointer"
-                              disabled={row.folder_id === folder.id}
-                            >
-                              <FolderClosed className="mr-2 h-4 w-4" />
-                              <span>{folder.name}</span>
-                            </DropdownMenuItem>
-                          ))}
+                          <DropdownMenuLabel className="flex justify-between items-center">
+                            Move to folder
+                            <ChevronDown className="h-3 w-3 text-gray-400" />
+                          </DropdownMenuLabel>
+                          <div className="max-h-[150px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+                            {folders.slice(0, 4).map((folder) => (
+                              <DropdownMenuItem
+                                key={folder.id}
+                                onClick={() =>
+                                  onMoveToFolder(row.id, folder.id)
+                                }
+                                className="cursor-pointer"
+                                disabled={row.folder_id === folder.id}
+                              >
+                                <FolderClosed className="mr-2 h-4 w-4" />
+                                <span>{folder.name}</span>
+                              </DropdownMenuItem>
+                            ))}
+                            {folders.length > 4 && (
+                              <div className="px-3 py-1 text-xs text-gray-500 border-t">
+                                Scroll for more folders
+                              </div>
+                            )}
+                            {folders.slice(4).map((folder) => (
+                              <DropdownMenuItem
+                                key={folder.id}
+                                onClick={() =>
+                                  onMoveToFolder(row.id, folder.id)
+                                }
+                                className="cursor-pointer"
+                                disabled={row.folder_id === folder.id}
+                              >
+                                <FolderClosed className="mr-2 h-4 w-4" />
+                                <span>{folder.name}</span>
+                              </DropdownMenuItem>
+                            ))}
+                          </div>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             onClick={() => onDelete(row.id)}
@@ -1123,6 +1246,151 @@ export default function SavedStreamersTable({
           </TableBody>
         </Table>
       </div>
+      {contextMenu.visible && contextMenu.row && (
+        <motion.div
+          ref={contextMenuRef}
+          className="fixed z-50 bg-white border shadow-lg rounded-md overflow-hidden"
+          style={{ top: menuPosition.y, left: menuPosition.x }}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.15, ease: "easeOut" }}
+          onClick={(e) => e.stopPropagation()}
+          onContextMenu={(e) => e.preventDefault()}
+        >
+          <div className="py-1 text-sm">
+            <div className="px-3 py-2 font-medium text-gray-700 border-b">
+              {contextMenu.row.username}
+            </div>
+
+            {/* Select/Deselect */}
+            <button
+              className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 transition-colors"
+              onClick={() => {
+                handleCheckboxChange(
+                  contextMenu.row!.id,
+                  !selectedStreamers[contextMenu.row!.id]
+                );
+                setContextMenu((prev) => ({ ...prev, visible: false }));
+              }}
+            >
+              {selectedStreamers[contextMenu.row.id] ? (
+                <>
+                  <Checkbox className="h-4 w-4" checked />
+                  <span>Deselect</span>
+                </>
+              ) : (
+                <>
+                  <Checkbox className="h-4 w-4" />
+                  <span>Select</span>
+                </>
+              )}
+            </button>
+
+            {/* View Channel */}
+            <button
+              className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 transition-colors"
+              onClick={() => {
+                window.open(contextMenu.row!.channelUrl, "_blank");
+                setContextMenu((prev) => ({ ...prev, visible: false }));
+              }}
+            >
+              <ExternalLink className="h-4 w-4" />
+              <span>View Channel</span>
+            </button>
+
+            {/* Favorite/Unfavorite */}
+            <button
+              className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 transition-colors"
+              onClick={() => {
+                toggleFavorite(
+                  contextMenu.row!.id,
+                  contextMenu.row!.is_favourite
+                );
+                setContextMenu((prev) => ({ ...prev, visible: false }));
+              }}
+            >
+              {contextMenu.row.is_favourite ? (
+                <>
+                  <StarOff className="h-4 w-4 text-yellow-400" />
+                  <span>Remove from favorites</span>
+                </>
+              ) : (
+                <>
+                  <Star className="h-4 w-4 text-yellow-400" />
+                  <span>Add to favorites</span>
+                </>
+              )}
+            </button>
+
+            {/* Move to folder */}
+            <div className="border-t my-1" />
+            <div className="px-4 py-2 text-xs text-gray-500 flex justify-between items-center">
+              <span>Add to folders</span>
+              <ChevronDown className="h-3 w-3 text-gray-400" />
+            </div>
+            <div className="max-h-[150px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+              {folders.slice(0, 3).map((folder) => (
+                <button
+                  key={folder.id}
+                  className={`w-full text-left px-4 py-2 flex items-center gap-2 transition-colors hover:bg-gray-50 ${
+                    contextMenu.row?.folder_id === folder.id
+                      ? "opacity-60 cursor-not-allowed"
+                      : ""
+                  }`}
+                  onClick={() => {
+                    if (contextMenu.row?.folder_id !== folder.id) {
+                      onMoveToFolder(contextMenu.row!.id, folder.id);
+                    }
+                    setContextMenu((prev) => ({ ...prev, visible: false }));
+                  }}
+                  disabled={contextMenu.row?.folder_id === folder.id}
+                >
+                  <FolderClosed className="h-4 w-4" />
+                  <span>{folder.name}</span>
+                </button>
+              ))}
+              {/* {folders.length > 5 && (
+                <div className="px-4 py-2 text-xs text-gray-500 border-t">
+                  Scroll for more folders
+                </div>
+              )} */}
+              {folders.slice(5).map((folder) => (
+                <button
+                  key={folder.id}
+                  className={`w-full text-left px-4 py-2 flex items-center gap-2 transition-colors hover:bg-gray-50 ${
+                    contextMenu.row?.folder_id === folder.id
+                      ? "opacity-60 cursor-not-allowed"
+                      : ""
+                  }`}
+                  onClick={() => {
+                    if (contextMenu.row?.folder_id !== folder.id) {
+                      onMoveToFolder(contextMenu.row!.id, folder.id);
+                    }
+                    setContextMenu((prev) => ({ ...prev, visible: false }));
+                  }}
+                  disabled={contextMenu.row?.folder_id === folder.id}
+                >
+                  <FolderClosed className="h-4 w-4" />
+                  <span>{folder.name}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Delete */}
+            <div className="border-t my-1" />
+            <button
+              className="w-full text-left px-4 py-2 hover:bg-red-50 flex items-center gap-2 transition-colors text-red-600"
+              onClick={() => {
+                onDelete(contextMenu.row!.id);
+                setContextMenu((prev) => ({ ...prev, visible: false }));
+              }}
+            >
+              <Trash2 className="h-4 w-4" />
+              <span>Delete</span>
+            </button>
+          </div>
+        </motion.div>
+      )}
 
       {data.length > itemsPerPage && (
         <div className="flex justify-center py-3 sm:py-4 bg-gradient-to-r from-gray-50 to-gray-100 border-t border-gray-200">

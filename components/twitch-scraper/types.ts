@@ -14,7 +14,7 @@ export interface TwitchData {
   discord?: string;
   facebook?: string;
   folder_id?: string; // Better to reference folder by ID
-  savedAt?: string; // Timestamp when the streamer was saved
+  saved_at?: string; // Timestamp when the streamer was saved
   is_favourite?: boolean;
 }
 
