@@ -152,15 +152,26 @@ export default function SavedStreamersTab({}: SavedStreamersTabProps) {
   });
   const handleDeleteStreamer = async (id: string) => {
     try {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+
+      if (user?.id) {
+        headers["x-user-id"] = user.id;
+      }
       await fetch(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}saved-streamers/${id}`,
-        { method: "DELETE" }
+        {
+          method: "DELETE",
+          headers,
+        }
       );
       setSavedStreamers((prev) => prev.filter((s) => s.id !== id));
       toast({
         title: "Deleted",
         description: "Streamer removed from saved list.",
       });
+      fetchData(user?.id, "all");
     } catch (err) {
       toast({
         title: "Error",
@@ -245,8 +256,16 @@ export default function SavedStreamersTab({}: SavedStreamersTabProps) {
 
   const handleDeleteFolder = async (folderId: string) => {
     try {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+
+      if (user?.id) {
+        headers["x-user-id"] = user.id;
+      }
       await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}folders/${folderId}`, {
         method: "DELETE",
+        headers,
       });
       setFolders((prev) => prev.filter((f) => f.id !== folderId));
       setSavedStreamers((prev) =>

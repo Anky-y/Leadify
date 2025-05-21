@@ -749,49 +749,56 @@ export default function SavedStreamersTable({
                     <ChevronDown className="h-3 w-3 text-gray-400" />
                   </DropdownMenuLabel>
                   <div className="max-h-[150px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
-                    {folders.slice(0, 4).map((folder) => (
-                      <DropdownMenuItem
-                        key={folder.id}
-                        onClick={() => {
-                          Object.entries(selectedStreamers).forEach(
-                            ([id, selected]) => {
-                              if (selected) {
-                                onMoveToFolder(id, folder.id);
+                    {folders
+                      .filter(
+                        (folder) =>
+                          folder.id !== "all" && folder.id !== "favourites"
+                      )
+                      .slice(0, 4)
+                      .map((folder) => (
+                        <DropdownMenuItem
+                          key={folder.id}
+                          onClick={() => {
+                            Object.entries(selectedStreamers).forEach(
+                              ([id, selected]) => {
+                                if (selected) {
+                                  onMoveToFolder(id, folder.id);
+                                }
                               }
-                            }
-                          );
-                          setSelectedStreamers({});
-                        }}
-                        className="cursor-pointer"
-                      >
-                        <FolderClosed className="mr-2 h-4 w-4" />
-                        <span>{folder.name}</span>
-                      </DropdownMenuItem>
-                    ))}
-                    {folders.length > 4 && (
-                      <div className="px-3 py-1 text-xs text-gray-500 border-t">
-                        Scroll for more folders
-                      </div>
-                    )}
-                    {folders.slice(4).map((folder) => (
-                      <DropdownMenuItem
-                        key={folder.id}
-                        onClick={() => {
-                          Object.entries(selectedStreamers).forEach(
-                            ([id, selected]) => {
-                              if (selected) {
-                                onMoveToFolder(id, folder.id);
+                            );
+                            setSelectedStreamers({});
+                          }}
+                          className="cursor-pointer"
+                        >
+                          <FolderClosed className="mr-2 h-4 w-4" />
+                          <span>{folder.name}</span>
+                        </DropdownMenuItem>
+                      ))}
+                    {folders
+                      .filter(
+                        (folder) =>
+                          folder.id !== "all" && folder.id !== "favourites"
+                      )
+                      .slice(4)
+                      .map((folder) => (
+                        <DropdownMenuItem
+                          key={folder.id}
+                          onClick={() => {
+                            Object.entries(selectedStreamers).forEach(
+                              ([id, selected]) => {
+                                if (selected) {
+                                  onMoveToFolder(id, folder.id);
+                                }
                               }
-                            }
-                          );
-                          setSelectedStreamers({});
-                        }}
-                        className="cursor-pointer"
-                      >
-                        <FolderClosed className="mr-2 h-4 w-4" />
-                        <span>{folder.name}</span>
-                      </DropdownMenuItem>
-                    ))}
+                            );
+                            setSelectedStreamers({});
+                          }}
+                          className="cursor-pointer"
+                        >
+                          <FolderClosed className="mr-2 h-4 w-4" />
+                          <span>{folder.name}</span>
+                        </DropdownMenuItem>
+                      ))}
                   </div>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -1193,40 +1200,48 @@ export default function SavedStreamersTable({
                           <DropdownMenuSeparator />
                           <DropdownMenuLabel className="flex justify-between items-center">
                             Move to folder
-                            <ChevronDown className="h-3 w-3 text-gray-400" />
                           </DropdownMenuLabel>
                           <div className="max-h-[150px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
-                            {folders.slice(0, 4).map((folder) => (
-                              <DropdownMenuItem
-                                key={folder.id}
-                                onClick={() =>
-                                  onMoveToFolder(row.id, folder.id)
-                                }
-                                className="cursor-pointer"
-                                disabled={row.folder_id === folder.id}
-                              >
-                                <FolderClosed className="mr-2 h-4 w-4" />
-                                <span>{folder.name}</span>
-                              </DropdownMenuItem>
-                            ))}
-                            {folders.length > 4 && (
-                              <div className="px-3 py-1 text-xs text-gray-500 border-t">
-                                Scroll for more folders
-                              </div>
-                            )}
-                            {folders.slice(4).map((folder) => (
-                              <DropdownMenuItem
-                                key={folder.id}
-                                onClick={() =>
-                                  onMoveToFolder(row.id, folder.id)
-                                }
-                                className="cursor-pointer"
-                                disabled={row.folder_id === folder.id}
-                              >
-                                <FolderClosed className="mr-2 h-4 w-4" />
-                                <span>{folder.name}</span>
-                              </DropdownMenuItem>
-                            ))}
+                            {folders
+                              .filter(
+                                (folder) =>
+                                  folder.id !== "all" &&
+                                  folder.id !== "favourites"
+                              )
+                              .slice(0, 4)
+                              .map((folder) => (
+                                <DropdownMenuItem
+                                  key={folder.id}
+                                  onClick={() =>
+                                    onMoveToFolder(row.id, folder.id)
+                                  }
+                                  className="cursor-pointer"
+                                  disabled={row.folder_id === folder.id}
+                                >
+                                  <FolderClosed className="mr-2 h-4 w-4" />
+                                  <span>{folder.name}</span>
+                                </DropdownMenuItem>
+                              ))}
+                            {folders
+                              .filter(
+                                (folder) =>
+                                  folder.id !== "all" &&
+                                  folder.id !== "favourites"
+                              )
+                              .slice(4)
+                              .map((folder) => (
+                                <DropdownMenuItem
+                                  key={folder.id}
+                                  onClick={() =>
+                                    onMoveToFolder(row.id, folder.id)
+                                  }
+                                  className="cursor-pointer"
+                                  disabled={row.folder_id === folder.id}
+                                >
+                                  <FolderClosed className="mr-2 h-4 w-4" />
+                                  <span>{folder.name}</span>
+                                </DropdownMenuItem>
+                              ))}
                           </div>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
@@ -1263,7 +1278,7 @@ export default function SavedStreamersTable({
             </div>
 
             {/* Select/Deselect */}
-            <button
+            <div
               className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 transition-colors"
               onClick={() => {
                 handleCheckboxChange(
@@ -1284,7 +1299,7 @@ export default function SavedStreamersTable({
                   <span>Select</span>
                 </>
               )}
-            </button>
+            </div>
 
             {/* View Channel */}
             <button
@@ -1299,7 +1314,7 @@ export default function SavedStreamersTable({
             </button>
 
             {/* Favorite/Unfavorite */}
-            <button
+            <div
               className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 transition-colors"
               onClick={() => {
                 toggleFavorite(
@@ -1320,60 +1335,70 @@ export default function SavedStreamersTable({
                   <span>Add to favorites</span>
                 </>
               )}
-            </button>
+            </div>
 
             {/* Move to folder */}
             <div className="border-t my-1" />
             <div className="px-4 py-2 text-xs text-gray-500 flex justify-between items-center">
               <span>Add to folders</span>
-              <ChevronDown className="h-3 w-3 text-gray-400" />
+              {/* <ChevronDown className="h-3 w-3 text-gray-400" /> */}
             </div>
             <div className="max-h-[150px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
-              {folders.slice(0, 3).map((folder) => (
-                <button
-                  key={folder.id}
-                  className={`w-full text-left px-4 py-2 flex items-center gap-2 transition-colors hover:bg-gray-50 ${
-                    contextMenu.row?.folder_id === folder.id
-                      ? "opacity-60 cursor-not-allowed"
-                      : ""
-                  }`}
-                  onClick={() => {
-                    if (contextMenu.row?.folder_id !== folder.id) {
-                      onMoveToFolder(contextMenu.row!.id, folder.id);
-                    }
-                    setContextMenu((prev) => ({ ...prev, visible: false }));
-                  }}
-                  disabled={contextMenu.row?.folder_id === folder.id}
-                >
-                  <FolderClosed className="h-4 w-4" />
-                  <span>{folder.name}</span>
-                </button>
-              ))}
+              {folders
+                .filter(
+                  (folder) => folder.id !== "all" && folder.id !== "favourites"
+                )
+                .slice(0, 3)
+                .map((folder) => (
+                  <button
+                    key={folder.id}
+                    className={`w-full text-left px-4 py-2 flex items-center gap-2 transition-colors hover:bg-gray-50 ${
+                      contextMenu.row?.folder_id === folder.id
+                        ? "opacity-60 cursor-not-allowed"
+                        : ""
+                    }`}
+                    onClick={() => {
+                      if (contextMenu.row?.folder_id !== folder.id) {
+                        onMoveToFolder(contextMenu.row!.id, folder.id);
+                      }
+                      setContextMenu((prev) => ({ ...prev, visible: false }));
+                    }}
+                    disabled={contextMenu.row?.folder_id === folder.id}
+                  >
+                    <FolderClosed className="h-4 w-4" />
+                    <span>{folder.name}</span>
+                  </button>
+                ))}
               {/* {folders.length > 5 && (
                 <div className="px-4 py-2 text-xs text-gray-500 border-t">
                   Scroll for more folders
                 </div>
               )} */}
-              {folders.slice(5).map((folder) => (
-                <button
-                  key={folder.id}
-                  className={`w-full text-left px-4 py-2 flex items-center gap-2 transition-colors hover:bg-gray-50 ${
-                    contextMenu.row?.folder_id === folder.id
-                      ? "opacity-60 cursor-not-allowed"
-                      : ""
-                  }`}
-                  onClick={() => {
-                    if (contextMenu.row?.folder_id !== folder.id) {
-                      onMoveToFolder(contextMenu.row!.id, folder.id);
-                    }
-                    setContextMenu((prev) => ({ ...prev, visible: false }));
-                  }}
-                  disabled={contextMenu.row?.folder_id === folder.id}
-                >
-                  <FolderClosed className="h-4 w-4" />
-                  <span>{folder.name}</span>
-                </button>
-              ))}
+              {folders
+                .filter(
+                  (folder) => folder.id !== "all" && folder.id !== "favourites"
+                )
+                .slice(3)
+                .map((folder) => (
+                  <button
+                    key={folder.id}
+                    className={`w-full text-left px-4 py-2 flex items-center gap-2 transition-colors hover:bg-gray-50 ${
+                      contextMenu.row?.folder_id === folder.id
+                        ? "opacity-60 cursor-not-allowed"
+                        : ""
+                    }`}
+                    onClick={() => {
+                      if (contextMenu.row?.folder_id !== folder.id) {
+                        onMoveToFolder(contextMenu.row!.id, folder.id);
+                      }
+                      setContextMenu((prev) => ({ ...prev, visible: false }));
+                    }}
+                    disabled={contextMenu.row?.folder_id === folder.id}
+                  >
+                    <FolderClosed className="h-4 w-4" />
+                    <span>{folder.name}</span>
+                  </button>
+                ))}
             </div>
 
             {/* Delete */}

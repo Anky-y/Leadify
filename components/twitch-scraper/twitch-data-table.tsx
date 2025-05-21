@@ -1268,7 +1268,7 @@ export default function TwitchDataTable({ data }: TwitchDataTableProps) {
               {contextMenu.row.username}
             </div>
 
-            <button
+            <div
               className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 transition-colors"
               onClick={() => {
                 handleCheckboxChange(
@@ -1289,7 +1289,7 @@ export default function TwitchDataTable({ data }: TwitchDataTableProps) {
                   <span>Select</span>
                 </>
               )}
-            </button>
+            </div>
 
             <button
               className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 transition-colors"
