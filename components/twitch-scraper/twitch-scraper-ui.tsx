@@ -2,17 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
 import SearchTab from "./tabs/search-tab";
-import SavedSearchesTab from "./tabs/saved-searches-tab";
+import SavedStreamersTab from "./tabs/saved-streamers-tab";
 import SearchHistoryTab from "./tabs/search-history-tab";
 
 // Import types and mock data
-import { mockTwitchData } from "./mock-data";
 import type { ScrapingProgress, TwitchData } from "./types";
-import { set } from "date-fns";
-import User from "@/app/types/user";
+import type User from "@/app/types/user";
 import { useUser } from "@/app/context/UserContext";
 import Papa from "papaparse";
 
@@ -52,6 +48,7 @@ export default function TwitchScraperUI({
   const { user: contextUser, loading } = useUser();
   const [streamers, setStreamers] = useState<TwitchData[]>([]);
   const [loadingStreamers, setLoadingStreamers] = useState(false);
+
   // Load user after component is mounted
   useEffect(() => {
     if (!loading) {
@@ -64,34 +61,6 @@ export default function TwitchScraperUI({
     setProgressData(data);
     progressDataRef.current = data; // Keep the ref in sync with the state
   };
-
-  // useEffect(() => {
-  //   if (
-  //     !progressData?.download_url ||
-  //     !progressData?.download_url.startsWith("http") ||
-  //     !streamers.length
-  //   ) {
-  //     return;
-  //   }
-  //   setLoadingStreamers(true);
-  //   fetch(progressData.download_url)
-  //     .then((res) => res.text())
-  //     .then((csvText) => {
-  //       Papa.parse<TwitchData>(csvText, {
-  //         header: true,
-  //         skipEmptyLines: true,
-  //         complete: (result) => {
-  //           console.log(result);
-  //           setStreamers(result.data);
-  //         },
-  //         error: (err: any) => {
-  //           console.error("CSV parsing error:", err);
-  //         },
-  //       });
-  //     });
-  //   setLoadingStreamers(false);
-  //   return;
-  // }, [progressData?.download_url]);
 
   // Function to handle search with detailed progress updates
   const handleSearch = async () => {
@@ -106,7 +75,7 @@ export default function TwitchScraperUI({
     try {
       console.log(process.env.NEXT_PUBLIC_BACKEND_URL);
       const triggerRes = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}Twitch_scraper?category=516575&minimum_followers=10&viewer_count=10&user_id=${user?.id}&language=en&maximum_followers=100005`,
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}Twitch_scraper?category=27471&minimum_followers=10&viewer_count=10&user_id=${user?.id}&language=en&maximum_followers=100005`,
         {
           method: "GET",
           headers: {
@@ -192,7 +161,7 @@ export default function TwitchScraperUI({
         </p>
       </div>
 
-      {!subscribed && (
+      {/* {!subscribed && (
         <Alert className="border-amber-200 bg-amber-50 text-amber-800">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Free account limitations</AlertTitle>
@@ -208,12 +177,12 @@ export default function TwitchScraperUI({
             to unlock unlimited results and full contact details.
           </AlertDescription>
         </Alert>
-      )}
+      )} */}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList>
           <TabsTrigger value="search">Search</TabsTrigger>
-          <TabsTrigger value="saved">Saved Searches</TabsTrigger>
+          <TabsTrigger value="saved">Saved Streamers</TabsTrigger>
           <TabsTrigger value="history">Search History</TabsTrigger>
         </TabsList>
 
@@ -247,17 +216,7 @@ export default function TwitchScraperUI({
         </TabsContent>
 
         <TabsContent value="saved">
-          <SavedSearchesTab
-            setSearchTerm={setSearchTerm}
-            setLanguage={setLanguage}
-            setCategory={setCategory}
-            setMinFollowers={setMinFollowers}
-            setMaxFollowers={setMaxFollowers}
-            setMinViewers={setMinViewers}
-            setMaxViewers={setMaxViewers}
-            setActiveTab={setActiveTab}
-            handleSearch={handleSearch}
-          />
+          <SavedStreamersTab />
         </TabsContent>
 
         <TabsContent value="history">

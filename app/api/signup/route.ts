@@ -27,10 +27,18 @@ export async function POST(req: Request) {
       );
     }
 
+    const userId = data.user?.id;
+
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, error: "User ID not found after signup." },
+        { status: 500 }
+      );
+    }
     // Insert user info into the `users` table
     await supabase.from("users").insert([
       {
-        id: data.user?.id,
+        id: userId,
         email,
         first_name: firstName,
         last_name: lastName,
@@ -38,28 +46,18 @@ export async function POST(req: Request) {
       },
     ]);
 
-    // // Insert the 'free' subscription into the `subscriptions` table (without Lemon Squeezy)
-    // const { error: subInsertError, data: subInsertData } = await supabase
-    //   .from("subscriptions")
-    //   .insert([
-    //     {
-    //       user_id: data.user?.id,
-    //       plan_id: null, // Use the internal 'free' plan ID
-    //       subscription_id: null, // No subscription ID, since they're on free
-    //       status: "inactive", // Status set as 'inactive'
-    //       product_name: "Free",
-    //     },
-    //   ]);
-
-    // console.log(subInsertData);
-
-    // if (subInsertError) {
-    //   console.error("Error inserting subscription:", subInsertError.message);
-    //   return NextResponse.json(
-    //     { success: false, error: subInsertError.message },
-    //     { status: 500 }
-    //   );
-    // }
+    await supabase.from("folders").insert([
+      {
+        user_id: userId,
+        name: "All",
+        is_mandatory: true,
+      },
+      {
+        user_id: userId,
+        name: "Favourites",
+        is_mandatory: true,
+      },
+    ]);
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

@@ -195,28 +195,30 @@ export default function DashboardUi() {
               <div className="flex items-center justify-between">
                 <p className="text-sm font-medium">Current Plan</p>
                 <p className="text-sm">
-                  {user?.is_subscribed ? "Premium" : "Free"}
+                  {user?.subscription_status ? "Premium" : "Free"}
                 </p>
               </div>
               <div className="flex items-center justify-between">
                 <p className="text-sm font-medium">Search Limit</p>
                 <p className="text-sm">
-                  {user?.is_subscribed ? "Unlimited" : "10 results per search"}
+                  {user?.subscription_status
+                    ? "Unlimited"
+                    : "10 results per search"}
                 </p>
               </div>
               <div className="flex items-center justify-between">
                 <p className="text-sm font-medium">Export Limit</p>
                 <p className="text-sm">
-                  {user?.is_subscribed ? "Unlimited" : "100 per month"}
+                  {user?.subscription_status ? "Unlimited" : "100 per month"}
                 </p>
               </div>
               <div className="flex items-center justify-between">
                 <p className="text-sm font-medium">Saved Searches</p>
                 <p className="text-sm">
-                  {user?.is_subscribed ? "Unlimited" : "5 max"}
+                  {user?.subscription_status ? "Unlimited" : "5 max"}
                 </p>
               </div>
-              {!user?.is_subscribed && (
+              {!user?.subscription_status && (
                 <Link href="/dashboard/billing" className="block w-full">
                   <div className="bg-blue-50 text-blue-700 text-sm p-2 rounded-md text-center mt-2 hover:bg-blue-100 transition-colors">
                     Upgrade to Premium
