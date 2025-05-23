@@ -555,7 +555,9 @@ export default function SavedStreamersTable({
                 className="h-8 px-2 text-xs sm:text-sm sm:h-9 sm:px-3 border-blue-200 text-blue-700 hover:bg-blue-50 ml-2"
               >
                 <Download className="h-3.5 w-3.5 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">Export</span>
+                <span className="hidden sm:inline">
+                  Export as {exportFormat.toUpperCase()}
+                </span>{" "}
                 <ChevronDown className="h-3.5 w-3.5 ml-0 sm:ml-1" />
               </Button>
             </DropdownMenuTrigger>
@@ -1011,7 +1013,7 @@ export default function SavedStreamersTable({
                             {row.username}
                           </span>
                           <a
-                            href={row.channelUrl}
+                            href={row.channel_url}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-xs text-blue-600 hover:underline flex items-center mt-1 group"
@@ -1299,7 +1301,7 @@ export default function SavedStreamersTable({
             <button
               className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 transition-colors"
               onClick={() => {
-                window.open(contextMenu.row!.channelUrl, "_blank");
+                window.open(contextMenu.row!.channel_url, "_blank");
                 setContextMenu((prev) => ({ ...prev, visible: false }));
               }}
             >
