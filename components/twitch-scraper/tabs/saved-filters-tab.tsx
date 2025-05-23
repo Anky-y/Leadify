@@ -55,6 +55,7 @@ interface SavedFiltersTabProps {
   setMaxFollowers: React.Dispatch<React.SetStateAction<number>>;
   setMinViewers: React.Dispatch<React.SetStateAction<number>>;
   setMaxViewers: React.Dispatch<React.SetStateAction<number>>;
+  setRunSearchOnTab: React.Dispatch<React.SetStateAction<boolean>>;
   language: string;
   category: string;
   minFollowers: number;
@@ -66,13 +67,13 @@ interface SavedFiltersTabProps {
 
 export default function SavedFiltersTab({
   setActiveTab,
-  handleSearch,
   setLanguage,
   setCategory,
   setMinFollowers,
   setMaxFollowers,
   setMinViewers,
   setMaxViewers,
+  setRunSearchOnTab
 }: SavedFiltersTabProps) {
   const [savedFilters, setSavedFilters] = useState<SavedFilter[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -113,6 +114,7 @@ export default function SavedFiltersTab({
       }
 
       const data = await response.json();
+      console.log(data);
       setSavedFilters(data);
     } catch (error) {
       console.error("Error fetching saved filters:", error);
@@ -124,6 +126,7 @@ export default function SavedFiltersTab({
 
   // Function to handle running a saved filter
   const runSavedFilter = (filter: SavedFilter) => {
+    console.log(filter.category);
     // Apply the filter settings
     setLanguage(filter.language || "");
     setCategory(filter.category || "");
@@ -132,14 +135,9 @@ export default function SavedFiltersTab({
     setMinViewers(filter.min_viewers);
     setMaxViewers(filter.max_viewers);
 
-    // Switch to search tab and run the search
+    // Switch to search tab nd run the search
     setActiveTab("search");
-
-    // Small delay to ensure the tab switch happens before the search
-    setTimeout(() => {
-      handleSearch();
-    }, 100);
-
+    setRunSearchOnTab(true);
     toast.success(`Running search with "${filter.name}" filter`);
   };
 
@@ -147,14 +145,14 @@ export default function SavedFiltersTab({
   const deleteFilter = async () => {
     if (!deleteId) return;
 
-      try {
-        const headers: Record<string, string> = {
-          "Content-Type": "application/json",
-        };
+    try {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
 
-        if (user?.id) {
-          headers["x-user-id"] = user.id;
-        }
+      if (user?.id) {
+        headers["x-user-id"] = user.id;
+      }
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}filters/${deleteId}`,
         {

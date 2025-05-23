@@ -257,7 +257,6 @@ export default function FilterSection({
     } catch (error) {
       console.error("Error saving filter:", error);
       toast.error("Failed to save filter. Please try again.");
-
     }
   };
 
@@ -457,7 +456,7 @@ export default function FilterSection({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="any">Any language</SelectItem>
-                      <SelectItem value="english">English</SelectItem>
+                      <SelectItem value="english">en</SelectItem>
                       <SelectItem value="spanish">Spanish</SelectItem>
                       <SelectItem value="french">French</SelectItem>
                       <SelectItem value="german">German</SelectItem>
@@ -739,7 +738,8 @@ export default function FilterSection({
                       <SelectItem value="league-of-legends">
                         League of Legends
                       </SelectItem>
-                      <SelectItem value="valorant">Valorant</SelectItem>
+                      <SelectItem value="VALORANT">Valorant</SelectItem>
+                      <SelectItem value="Minecraft">Minecraft</SelectItem>
                     </SelectContent>
                   </Select>
                 </motion.div>

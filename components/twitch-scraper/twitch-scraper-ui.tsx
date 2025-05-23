@@ -51,6 +51,7 @@ export default function TwitchScraperUI({
   const { user: contextUser, loading } = useUser();
   const [streamers, setStreamers] = useState<TwitchData[]>([]);
   const [loadingStreamers, setLoadingStreamers] = useState(false);
+  const [runSearchOnTab, setRunSearchOnTab] = useState(false);
 
   // Load user after component is mounted
   useEffect(() => {
@@ -58,6 +59,8 @@ export default function TwitchScraperUI({
       setUser(contextUser);
     }
   }, [contextUser, loading]);
+
+
 
   // Update the ref whenever progressData changes
   const updateProgressData = (data: ScrapingProgress) => {
@@ -75,10 +78,12 @@ export default function TwitchScraperUI({
     }
     setStreamers([]);
 
+    console.log(category);
+
     try {
       console.log(process.env.NEXT_PUBLIC_BACKEND_URL);
       const triggerRes = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}Twitch_scraper?category=27471&minimum_followers=10&viewer_count=10&user_id=${user?.id}&language=en&maximum_followers=100005`,
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}Twitch_scraper?category=${category}&minimum_followers=10&viewer_count=10&user_id=${user?.id}&language=en&maximum_followers=100005`,
         {
           method: "GET",
           headers: {
@@ -154,6 +159,13 @@ export default function TwitchScraperUI({
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (activeTab === "search" && runSearchOnTab) {
+      handleSearch();
+      setRunSearchOnTab(false);
+    }
+  }, [activeTab, runSearchOnTab, handleSearch]);
 
   // Animation variants
   const pageTransition = {
@@ -284,6 +296,7 @@ export default function TwitchScraperUI({
                     setMaxFollowers={setMaxFollowers}
                     setMinViewers={setMinViewers}
                     setMaxViewers={setMaxViewers}
+                    setRunSearchOnTab={setRunSearchOnTab} // <-- add this
                     language={language}
                     category={category}
                     minFollowers={minFollowers}
