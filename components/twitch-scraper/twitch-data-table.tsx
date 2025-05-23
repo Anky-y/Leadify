@@ -1,5 +1,7 @@
 "use client";
 
+import type React from "react";
+
 import {
   Table,
   TableBody,
@@ -83,8 +85,12 @@ interface TwitchDataTableProps {
   subscribed: boolean;
 }
 
-export default function TwitchDataTable({ data }: TwitchDataTableProps) {
+export default function TwitchDataTable({
+  data,
+  subscribed,
+}: TwitchDataTableProps) {
   const contextMenuRef = useRef<HTMLDivElement>(null);
+  const tableContainerRef = useRef<HTMLDivElement>(null);
   const [menuMeasured, setMenuMeasured] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   // State to track which emails are revealed
@@ -205,9 +211,48 @@ export default function TwitchDataTable({ data }: TwitchDataTableProps) {
     menuPosition.y,
   ]);
 
-  const itemsPerPage = isDesktop ? 10 : isTablet ? 7 : 5;
+  // Add shadow indicator when table is scrollable
+  useEffect(() => {
+    const handleScroll = () => {
+      const container = tableContainerRef.current;
+      if (!container) return;
 
-  const subscribed = true;
+      const isScrollable = container.scrollWidth > container.clientWidth;
+      const isScrolled = container.scrollLeft > 0;
+
+      if (isScrollable) {
+        if (isScrolled) {
+          container.classList.add("shadow-left");
+        } else {
+          container.classList.remove("shadow-left");
+        }
+
+        if (
+          container.scrollLeft + container.clientWidth <
+          container.scrollWidth - 5
+        ) {
+          container.classList.add("shadow-right");
+        } else {
+          container.classList.remove("shadow-right");
+        }
+      }
+    };
+
+    const container = tableContainerRef.current;
+    if (container) {
+      container.addEventListener("scroll", handleScroll);
+      // Initial check
+      handleScroll();
+    }
+
+    return () => {
+      if (container) {
+        container.removeEventListener("scroll", handleScroll);
+      }
+    };
+  }, [data]);
+
+  const itemsPerPage = isDesktop ? 10 : isTablet ? 7 : 5;
 
   const { user } = useUser();
   // Toggle email visibility for a specific row
@@ -324,8 +369,6 @@ export default function TwitchDataTable({ data }: TwitchDataTableProps) {
       ? data.filter((row) => selectedUsernames[row.username])
       : data;
 
-    console.log(exportData);
-
     if (data.length === 0) {
       toast({
         title: "No data to export",
@@ -370,9 +413,8 @@ export default function TwitchDataTable({ data }: TwitchDataTableProps) {
     setSaveSearchDialogOpen(false);
     setSearchName("");
   };
+
   const handleSaveStreamers = async () => {
-    console.log("here");
-    console.log(process.env.NEXT_PUBLIC_BACKEND_URL);
     const selected = Object.values(selectedUsernames).some(Boolean);
     const streamersToSave = selected
       ? data.filter((row) => selectedUsernames[row.username])
@@ -394,8 +436,6 @@ export default function TwitchDataTable({ data }: TwitchDataTableProps) {
       subscriber_count: Number(streamer.subscriber_count),
     }));
 
-    console.log(cleanedStreamers);
-
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}streamers/save?user_id=${user?.id}`,
@@ -407,8 +447,6 @@ export default function TwitchDataTable({ data }: TwitchDataTableProps) {
           body: JSON.stringify(cleanedStreamers),
         }
       );
-
-      console.log(response);
 
       if (!response.ok) {
         throw new Error("Failed to save streamers");
@@ -431,7 +469,6 @@ export default function TwitchDataTable({ data }: TwitchDataTableProps) {
     }
   };
 
-  console.log(data);
   // Apply sorting before pagination
   const sortedData = sortData(data);
 
@@ -442,6 +479,17 @@ export default function TwitchDataTable({ data }: TwitchDataTableProps) {
   const currentItems = sortedData.slice(indexOfFirstItem, indexOfLastItem);
 
   // Animation variants
+  const tableVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        duration: 0.4,
+        staggerChildren: 0.05,
+      },
+    },
+  };
+
   const tableRowVariants = {
     hidden: { opacity: 0, y: 10 },
     visible: (i: number) => ({
@@ -463,7 +511,7 @@ export default function TwitchDataTable({ data }: TwitchDataTableProps) {
 
   return (
     <motion.div
-      className="border rounded-lg overflow-hidden shadow-sm bg-white"
+      className="bg-white"
       initial="hidden"
       animate="visible"
       variants={fadeIn}
@@ -498,7 +546,7 @@ export default function TwitchDataTable({ data }: TwitchDataTableProps) {
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8 px-2 text-xs sm:text-sm sm:h-9 sm:px-3"
+                className="h-8 px-2 text-xs sm:text-sm sm:h-9 sm:px-3 transition-all hover:bg-gray-50"
               >
                 <Filter className="h-3.5 w-3.5 mr-1 sm:mr-2" />
                 <span className="hidden sm:inline">Columns</span>
@@ -599,7 +647,7 @@ export default function TwitchDataTable({ data }: TwitchDataTableProps) {
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8 px-2 text-xs sm:text-sm sm:h-9 sm:px-3 border-blue-200 text-blue-700 hover:bg-blue-50"
+                className="h-8 px-2 text-xs sm:text-sm sm:h-9 sm:px-3 border-blue-200 text-blue-700 hover:bg-blue-50 transition-all"
               >
                 <SearchCheck className="h-3.5 w-3.5 mr-1 sm:mr-2" />
                 <span className="hidden sm:inline">Save Search</span>
@@ -641,7 +689,7 @@ export default function TwitchDataTable({ data }: TwitchDataTableProps) {
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8 px-2 text-xs sm:text-sm sm:h-9 sm:px-3 border-blue-200 text-blue-700 hover:bg-blue-50"
+                className="h-8 px-2 text-xs sm:text-sm sm:h-9 sm:px-3 border-blue-200 text-blue-700 hover:bg-blue-50 transition-all"
               >
                 <UserPlus className="h-3.5 w-3.5 mr-1 sm:mr-2" />
                 <span className="hidden sm:inline">Save Selected</span>
@@ -678,7 +726,7 @@ export default function TwitchDataTable({ data }: TwitchDataTableProps) {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-8 px-2 text-xs sm:text-sm sm:h-9 sm:px-3 border-blue-200 text-blue-700 hover:bg-blue-50 flex items-center gap-1 sm:gap-2"
+                  className="h-8 px-2 text-xs sm:text-sm sm:h-9 sm:px-3 border-blue-200 text-blue-700 hover:bg-blue-50 transition-all flex items-center gap-1 sm:gap-2"
                 >
                   <Download className="h-3.5 w-3.5" />
                   <span className="hidden sm:inline">
@@ -839,418 +887,439 @@ export default function TwitchDataTable({ data }: TwitchDataTableProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
-        <Table>
-          <TableHeader className="bg-gradient-to-r from-gray-50 to-gray-100 sticky top-0 z-10">
-            <TableRow className="border-b border-gray-200 hover:bg-transparent">
-              <TableHead className="w-[50px]">
-                <Checkbox
-                  checked={currentItems.every(
-                    (item) => selectedUsernames[item.username]
-                  )}
-                  onCheckedChange={(checked) => {
-                    const isChecked = checked === true;
-                    const newSelectedRowIds = { ...selectedUsernames };
-                    currentItems.forEach((item) => {
-                      newSelectedRowIds[item.username] = isChecked;
-                    });
-                    setSelectedUsernames(newSelectedRowIds);
-                  }}
-                  aria-label="Select all"
-                  className="ml-2"
-                />
-              </TableHead>
-              {visibleColumns.username && (
-                <TableHead
-                  className="w-[180px] cursor-pointer"
-                  onClick={() => handleSort("username")}
-                >
-                  <div className="flex items-center">
-                    Username
-                    <div className="ml-1">
-                      {sortColumn === "username" ? (
-                        sortDirection === "asc" ? (
-                          <ArrowDownAZ className="h-4 w-4 text-blue-600" />
-                        ) : sortDirection === "desc" ? (
-                          <ArrowUpAZ className="h-4 w-4 text-blue-600" />
-                        ) : (
-                          <ArrowDownUp className="h-4 w-4 text-gray-400" />
-                        )
-                      ) : (
-                        <ArrowDownUp className="h-4 w-4 text-gray-400 opacity-50" />
-                      )}
-                    </div>
-                  </div>
-                </TableHead>
-              )}
-              {visibleColumns.followers && (
-                <TableHead
-                  className="text-right cursor-pointer"
-                  onClick={() => handleSort("followers")}
-                >
-                  <div className="flex items-center justify-end">
-                    Followers
-                    <div className="ml-1">
-                      {sortColumn === "followers" ? (
-                        sortDirection === "asc" ? (
-                          <ArrowDown01 className="h-4 w-4 text-blue-600" />
-                        ) : sortDirection === "desc" ? (
-                          <ArrowUp01 className="h-4 w-4 text-blue-600" />
-                        ) : (
-                          <ArrowDownUp className="h-4 w-4 text-gray-400" />
-                        )
-                      ) : (
-                        <ArrowDownUp className="h-4 w-4 text-gray-400 opacity-50" />
-                      )}
-                    </div>
-                  </div>
-                </TableHead>
-              )}
-              {visibleColumns.viewers && (
-                <TableHead
-                  className="text-right cursor-pointer"
-                  onClick={() => handleSort("viewer_count")}
-                >
-                  <div className="flex items-center justify-end">
-                    Viewers
-                    <div className="ml-1">
-                      {sortColumn === "viewer_count" ? (
-                        sortDirection === "asc" ? (
-                          <ArrowDown01 className="h-4 w-4 text-blue-600" />
-                        ) : sortDirection === "desc" ? (
-                          <ArrowUp01 className="h-4 w-4 text-blue-600" />
-                        ) : (
-                          <ArrowDownUp className="h-4 w-4 text-gray-400" />
-                        )
-                      ) : (
-                        <ArrowDownUp className="h-4 w-4 text-gray-400 opacity-50" />
-                      )}
-                    </div>
-                  </div>
-                </TableHead>
-              )}
-              {visibleColumns.language && <TableHead>Language</TableHead>}
-              {visibleColumns.category && <TableHead>Category</TableHead>}
-              {visibleColumns.social && <TableHead>Social Media</TableHead>}
-              {visibleColumns.email && (
-                <TableHead
-                  className="cursor-pointer"
-                  onClick={() => handleSort("gmail")}
-                >
-                  <div className="flex items-center">
-                    Email
-                    <div className="ml-1">
-                      {sortColumn === "gmail" ? (
-                        sortDirection === "asc" ? (
-                          <SortAsc className="h-4 w-4 text-blue-600" />
-                        ) : sortDirection === "desc" ? (
-                          <SortDesc className="h-4 w-4 text-blue-600" />
-                        ) : (
-                          <ArrowDownUp className="h-4 w-4 text-gray-400" />
-                        )
-                      ) : (
-                        <ArrowDownUp className="h-4 w-4 text-gray-400 opacity-50" />
-                      )}
-                    </div>
-                  </div>
-                </TableHead>
-              )}
-              {!isMobile && (
+      <div
+        ref={tableContainerRef}
+        className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent relative"
+        style={
+          {
+            // Add custom styles for shadow indicators
+            "--shadow-color": "rgba(0, 0, 0, 0.1)",
+          } as React.CSSProperties
+        }
+      >
+        <motion.div variants={tableVariants} initial="hidden" animate="visible">
+          <Table>
+            <TableHeader className="bg-gradient-to-r from-gray-50 to-gray-100 sticky top-0 z-10">
+              <TableRow className="border-b border-gray-200 hover:bg-transparent">
                 <TableHead className="w-[50px]">
-                  <span className="sr-only">Actions</span>
-                </TableHead>
-              )}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={
-                    Object.values(visibleColumns).filter(Boolean).length + 2
-                  }
-                  className="text-center py-8 text-gray-500"
-                >
-                  No data found. Try adjusting your search or filters.
-                </TableCell>
-              </TableRow>
-            ) : (
-              <AnimatePresence>
-                {currentItems.map((row, index) => (
-                  <motion.tr
-                    key={row.username}
-                    custom={index}
-                    initial="hidden"
-                    animate="visible"
-                    exit="exit"
-                    variants={tableRowVariants}
-                    className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors duration-150"
-                    onContextMenu={(e) => {
-                      e.preventDefault();
-                      setMenuMeasured(false);
-                      setMenuPosition({ x: e.clientX, y: e.clientY });
-                      setContextMenu({
-                        x: e.clientX,
-                        y: e.clientY,
-                        row: row,
-                        visible: true,
+                  <Checkbox
+                    checked={currentItems.every(
+                      (item) => selectedUsernames[item.username]
+                    )}
+                    onCheckedChange={(checked) => {
+                      const isChecked = checked === true;
+                      const newSelectedRowIds = { ...selectedUsernames };
+                      currentItems.forEach((item) => {
+                        newSelectedRowIds[item.username] = isChecked;
                       });
+                      setSelectedUsernames(newSelectedRowIds);
                     }}
+                    aria-label="Select all"
+                    className="ml-2"
+                  />
+                </TableHead>
+                {visibleColumns.username && (
+                  <TableHead
+                    className="w-[180px] cursor-pointer transition-colors hover:bg-gray-100/50"
+                    onClick={() => handleSort("username")}
                   >
-                    <TableCell className="py-2 sm:py-3">
-                      <Checkbox
-                        checked={!!selectedUsernames[row.username]}
-                        onCheckedChange={(checked) =>
-                          handleCheckboxChange(row.username, checked === true)
-                        }
-                        aria-label={`Select ${row.username}`}
-                        className="ml-2"
-                      />
-                    </TableCell>
-                    {visibleColumns.username && (
-                      <TableCell className="font-medium py-2 sm:py-3">
-                        <div className="flex flex-col">
-                          <span className="text-sm font-medium text-gray-900">
-                            {row.username}
-                          </span>
-                          <a
-                            href={row.channelUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-blue-600 hover:underline flex items-center mt-1 group"
+                    <div className="flex items-center">
+                      Username
+                      <div className="ml-1">
+                        {sortColumn === "username" ? (
+                          sortDirection === "asc" ? (
+                            <ArrowDownAZ className="h-4 w-4 text-blue-600" />
+                          ) : sortDirection === "desc" ? (
+                            <ArrowUpAZ className="h-4 w-4 text-blue-600" />
+                          ) : (
+                            <ArrowDownUp className="h-4 w-4 text-gray-400" />
+                          )
+                        ) : (
+                          <ArrowDownUp className="h-4 w-4 text-gray-400 opacity-50" />
+                        )}
+                      </div>
+                    </div>
+                  </TableHead>
+                )}
+                {visibleColumns.followers && (
+                  <TableHead
+                    className="text-right cursor-pointer transition-colors hover:bg-gray-100/50"
+                    onClick={() => handleSort("followers")}
+                  >
+                    <div className="flex items-center justify-end">
+                      Followers
+                      <div className="ml-1">
+                        {sortColumn === "followers" ? (
+                          sortDirection === "asc" ? (
+                            <ArrowDown01 className="h-4 w-4 text-blue-600" />
+                          ) : sortDirection === "desc" ? (
+                            <ArrowUp01 className="h-4 w-4 text-blue-600" />
+                          ) : (
+                            <ArrowDownUp className="h-4 w-4 text-gray-400" />
+                          )
+                        ) : (
+                          <ArrowDownUp className="h-4 w-4 text-gray-400 opacity-50" />
+                        )}
+                      </div>
+                    </div>
+                  </TableHead>
+                )}
+                {visibleColumns.viewers && (
+                  <TableHead
+                    className="text-right cursor-pointer transition-colors hover:bg-gray-100/50"
+                    onClick={() => handleSort("viewer_count")}
+                  >
+                    <div className="flex items-center justify-end">
+                      Viewers
+                      <div className="ml-1">
+                        {sortColumn === "viewer_count" ? (
+                          sortDirection === "asc" ? (
+                            <ArrowDown01 className="h-4 w-4 text-blue-600" />
+                          ) : sortDirection === "desc" ? (
+                            <ArrowUp01 className="h-4 w-4 text-blue-600" />
+                          ) : (
+                            <ArrowDownUp className="h-4 w-4 text-gray-400" />
+                          )
+                        ) : (
+                          <ArrowDownUp className="h-4 w-4 text-gray-400 opacity-50" />
+                        )}
+                      </div>
+                    </div>
+                  </TableHead>
+                )}
+                {visibleColumns.language && <TableHead>Language</TableHead>}
+                {visibleColumns.category && <TableHead>Category</TableHead>}
+                {visibleColumns.social && <TableHead>Social Media</TableHead>}
+                {visibleColumns.email && (
+                  <TableHead
+                    className="cursor-pointer transition-colors hover:bg-gray-100/50"
+                    onClick={() => handleSort("gmail")}
+                  >
+                    <div className="flex items-center">
+                      Email
+                      <div className="ml-1">
+                        {sortColumn === "gmail" ? (
+                          sortDirection === "asc" ? (
+                            <SortAsc className="h-4 w-4 text-blue-600" />
+                          ) : sortDirection === "desc" ? (
+                            <SortDesc className="h-4 w-4 text-blue-600" />
+                          ) : (
+                            <ArrowDownUp className="h-4 w-4 text-gray-400" />
+                          )
+                        ) : (
+                          <ArrowDownUp className="h-4 w-4 text-gray-400 opacity-50" />
+                        )}
+                      </div>
+                    </div>
+                  </TableHead>
+                )}
+                {!isMobile && (
+                  <TableHead className="w-[50px]">
+                    <span className="sr-only">Actions</span>
+                  </TableHead>
+                )}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {data.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={
+                      Object.values(visibleColumns).filter(Boolean).length + 2
+                    }
+                    className="text-center py-8 text-gray-500"
+                  >
+                    No data found. Try adjusting your search or filters.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                <AnimatePresence>
+                  {currentItems.map((row, index) => (
+                    <motion.tr
+                      key={row.username}
+                      custom={index}
+                      initial="hidden"
+                      animate="visible"
+                      exit="exit"
+                      variants={tableRowVariants}
+                      className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors duration-150"
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        setMenuMeasured(false);
+                        setMenuPosition({ x: e.clientX, y: e.clientY });
+                        setContextMenu({
+                          x: e.clientX,
+                          y: e.clientY,
+                          row: row,
+                          visible: true,
+                        });
+                      }}
+                    >
+                      <TableCell className="py-2 sm:py-3">
+                        <Checkbox
+                          checked={!!selectedUsernames[row.username]}
+                          onCheckedChange={(checked) =>
+                            handleCheckboxChange(row.username, checked === true)
+                          }
+                          aria-label={`Select ${row.username}`}
+                          className="ml-2"
+                        />
+                      </TableCell>
+                      {visibleColumns.username && (
+                        <TableCell className="font-medium py-2 sm:py-3">
+                          <div className="flex flex-col">
+                            <span className="text-sm font-medium text-gray-900">
+                              {row.username}
+                            </span>
+                            <a
+                              href={row.channelUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-blue-600 hover:underline flex items-center mt-1 group"
+                            >
+                              View Channel
+                              <ExternalLink className="h-3 w-3 ml-1 transition-transform group-hover:translate-x-0.5" />
+                            </a>
+                          </div>
+                        </TableCell>
+                      )}
+                      {visibleColumns.followers && (
+                        <TableCell className="text-right py-2 sm:py-3 font-medium text-gray-700">
+                          {row.followers.toLocaleString()}
+                        </TableCell>
+                      )}
+                      {visibleColumns.viewers && (
+                        <TableCell className="text-right py-2 sm:py-3 font-medium text-gray-700">
+                          {row.viewer_count.toLocaleString()}
+                        </TableCell>
+                      )}
+                      {visibleColumns.language && (
+                        <TableCell className="py-2 sm:py-3">
+                          <Badge
+                            variant="outline"
+                            className="bg-gray-50 text-gray-700"
                           >
-                            View Channel
-                            <ExternalLink className="h-3 w-3 ml-1 transition-transform group-hover:translate-x-0.5" />
-                          </a>
-                        </div>
-                      </TableCell>
-                    )}
-                    {visibleColumns.followers && (
-                      <TableCell className="text-right py-2 sm:py-3 font-medium text-gray-700">
-                        {row.followers.toLocaleString()}
-                      </TableCell>
-                    )}
-                    {visibleColumns.viewers && (
-                      <TableCell className="text-right py-2 sm:py-3 font-medium text-gray-700">
-                        {row.viewer_count.toLocaleString()}
-                      </TableCell>
-                    )}
-                    {visibleColumns.language && (
-                      <TableCell className="py-2 sm:py-3">
-                        <Badge
-                          variant="outline"
-                          className="bg-gray-50 text-gray-700"
-                        >
-                          {row.language}
-                        </Badge>
-                      </TableCell>
-                    )}
-                    {visibleColumns.category && (
-                      <TableCell className="py-2 sm:py-3">
-                        <Badge
-                          variant="secondary"
-                          className="bg-blue-50 text-blue-700 border-blue-100"
-                        >
-                          {row.game_name}
-                        </Badge>
-                      </TableCell>
-                    )}
-                    {visibleColumns.social && (
-                      <TableCell className="py-2 sm:py-3">
-                        <div className="flex space-x-1">
-                          {row.discord && (
-                            <a
-                              href={subscribed ? row.discord : "#"}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className={`${
-                                subscribed
-                                  ? "text-gray-500 hover:text-indigo-600"
-                                  : "text-gray-300 cursor-not-allowed"
-                              } transition-colors duration-200 p-1 rounded-full hover:bg-gray-100`}
-                              title={subscribed ? "Discord" : "Upgrade to view"}
-                              onClick={(e) => !subscribed && e.preventDefault()}
-                            >
-                              <DiscordLogo className="h-4 w-4" />
-                            </a>
-                          )}
-                          {row.youtube && (
-                            <a
-                              href={row.youtube}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-gray-500 hover:text-red-600 transition-colors duration-200 p-1 rounded-full hover:bg-gray-100"
-                              title="YouTube"
-                            >
-                              <YoutubeLogo className="h-4 w-4" />
-                            </a>
-                          )}
-                          {row.twitter && (
-                            <a
-                              href={row.twitter}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-gray-500 hover:text-blue-400 transition-colors duration-200 p-1 rounded-full hover:bg-gray-100"
-                              title="Twitter"
-                            >
-                              <TwitterLogo className="h-4 w-4" />
-                            </a>
-                          )}
-                          {row.facebook && (
-                            <a
-                              href={subscribed ? row.facebook : "#"}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className={`${
-                                subscribed
-                                  ? "text-gray-500 hover:text-blue-600"
-                                  : "text-gray-300 cursor-not-allowed"
-                              } transition-colors duration-200 p-1 rounded-full hover:bg-gray-100`}
-                              title={
-                                subscribed ? "Facebook" : "Upgrade to view"
-                              }
-                              onClick={(e) => !subscribed && e.preventDefault()}
-                            >
-                              <FacebookLogo className="h-4 w-4" />
-                            </a>
-                          )}
-                          {row.instagram && (
-                            <a
-                              href={subscribed ? row.instagram : "#"}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className={`${
-                                subscribed
-                                  ? "text-gray-500 hover:text-pink-600"
-                                  : "text-gray-300 cursor-not-allowed"
-                              } transition-colors duration-200 p-1 rounded-full hover:bg-gray-100`}
-                              title={
-                                subscribed ? "Instagram" : "Upgrade to view"
-                              }
-                              onClick={(e) => !subscribed && e.preventDefault()}
-                            >
-                              <InstagramLogo className="h-4 w-4" />
-                            </a>
-                          )}
-                        </div>
-                      </TableCell>
-                    )}
-                    {visibleColumns.email && (
-                      <TableCell className="py-2 sm:py-3">
-                        {row.gmail ? (
-                          subscribed || revealedEmails[row.id] ? (
-                            <div className="flex items-center">
+                            {row.language}
+                          </Badge>
+                        </TableCell>
+                      )}
+                      {visibleColumns.category && (
+                        <TableCell className="py-2 sm:py-3">
+                          <Badge
+                            variant="secondary"
+                            className="bg-blue-50 text-blue-700 border-blue-100"
+                          >
+                            {row.game_name}
+                          </Badge>
+                        </TableCell>
+                      )}
+                      {visibleColumns.social && (
+                        <TableCell className="py-2 sm:py-3">
+                          <div className="flex space-x-1">
+                            {row.discord && (
                               <a
-                                href={`mailto:${row.gmail}`}
-                                className="text-blue-600 hover:underline flex items-center group"
+                                href={subscribed ? row.discord : "#"}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={`${
+                                  subscribed
+                                    ? "text-gray-500 hover:text-indigo-600"
+                                    : "text-gray-300 cursor-not-allowed"
+                                } transition-colors duration-200 p-1 rounded-full hover:bg-gray-100`}
+                                title={
+                                  subscribed ? "Discord" : "Upgrade to view"
+                                }
+                                onClick={(e) =>
+                                  !subscribed && e.preventDefault()
+                                }
                               >
-                                <EnvelopeSimple className="h-4 w-4 mr-1 group-hover:text-blue-700" />
-                                <span className="text-xs truncate max-w-[120px] sm:max-w-[180px]">
-                                  {row.gmail}
-                                </span>
+                                <DiscordLogo className="h-4 w-4" />
                               </a>
-                              {!subscribed && (
+                            )}
+                            {row.youtube && (
+                              <a
+                                href={row.youtube}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-gray-500 hover:text-red-600 transition-colors duration-200 p-1 rounded-full hover:bg-gray-100"
+                                title="YouTube"
+                              >
+                                <YoutubeLogo className="h-4 w-4" />
+                              </a>
+                            )}
+                            {row.twitter && (
+                              <a
+                                href={row.twitter}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-gray-500 hover:text-blue-400 transition-colors duration-200 p-1 rounded-full hover:bg-gray-100"
+                                title="Twitter"
+                              >
+                                <TwitterLogo className="h-4 w-4" />
+                              </a>
+                            )}
+                            {row.facebook && (
+                              <a
+                                href={subscribed ? row.facebook : "#"}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={`${
+                                  subscribed
+                                    ? "text-gray-500 hover:text-blue-600"
+                                    : "text-gray-300 cursor-not-allowed"
+                                } transition-colors duration-200 p-1 rounded-full hover:bg-gray-100`}
+                                title={
+                                  subscribed ? "Facebook" : "Upgrade to view"
+                                }
+                                onClick={(e) =>
+                                  !subscribed && e.preventDefault()
+                                }
+                              >
+                                <FacebookLogo className="h-4 w-4" />
+                              </a>
+                            )}
+                            {row.instagram && (
+                              <a
+                                href={subscribed ? row.instagram : "#"}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={`${
+                                  subscribed
+                                    ? "text-gray-500 hover:text-pink-600"
+                                    : "text-gray-300 cursor-not-allowed"
+                                } transition-colors duration-200 p-1 rounded-full hover:bg-gray-100`}
+                                title={
+                                  subscribed ? "Instagram" : "Upgrade to view"
+                                }
+                                onClick={(e) =>
+                                  !subscribed && e.preventDefault()
+                                }
+                              >
+                                <InstagramLogo className="h-4 w-4" />
+                              </a>
+                            )}
+                          </div>
+                        </TableCell>
+                      )}
+                      {visibleColumns.email && (
+                        <TableCell className="py-2 sm:py-3">
+                          {row.gmail ? (
+                            subscribed || revealedEmails[row.id] ? (
+                              <div className="flex items-center">
+                                <a
+                                  href={`mailto:${row.gmail}`}
+                                  className="text-blue-600 hover:underline flex items-center group"
+                                >
+                                  <EnvelopeSimple className="h-4 w-4 mr-1 group-hover:text-blue-700" />
+                                  <span className="text-xs truncate max-w-[120px] sm:max-w-[180px]">
+                                    {row.gmail}
+                                  </span>
+                                </a>
+                                {!subscribed && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6 ml-1 hover:bg-gray-100"
+                                    onClick={() =>
+                                      toggleEmailVisibility(row.id)
+                                    }
+                                    title="Hide email"
+                                  >
+                                    <EyeOff className="h-3 w-3" />
+                                  </Button>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="flex items-center">
+                                <span className="text-gray-400 text-xs blur-sm select-none">
+                                  {row.gmail.replace(/./g, "•")}
+                                </span>
                                 <Button
                                   variant="ghost"
                                   size="icon"
                                   className="h-6 w-6 ml-1 hover:bg-gray-100"
                                   onClick={() => toggleEmailVisibility(row.id)}
-                                  title="Hide email"
+                                  title="Reveal email (free users get 3 reveals per day)"
                                 >
-                                  <EyeOff className="h-3 w-3" />
+                                  <Eye className="h-3 w-3" />
                                 </Button>
-                              )}
-                            </div>
+                              </div>
+                            )
                           ) : (
-                            <div className="flex items-center">
-                              <span className="text-gray-400 text-xs blur-sm select-none">
-                                {row.gmail.replace(/./g, "•")}
-                              </span>
+                            <span className="text-gray-400 text-xs">
+                              Couldn't find a valid mail
+                            </span>
+                          )}
+                        </TableCell>
+                      )}
+                      {!isMobile && (
+                        <TableCell className="py-2 sm:py-3">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-6 w-6 ml-1 hover:bg-gray-100"
-                                onClick={() => toggleEmailVisibility(row.id)}
-                                title="Reveal email (free users get 3 reveals per day)"
+                                className="h-8 w-8 hover:bg-gray-100 transition-colors"
                               >
-                                <Eye className="h-3 w-3" />
+                                <MoreHorizontal className="h-4 w-4" />
+                                <span className="sr-only">Actions</span>
                               </Button>
-                            </div>
-                          )
-                        ) : (
-                          <span className="text-gray-400 text-xs">
-                            Couldn't find a valid mail
-                          </span>
-                        )}
-                      </TableCell>
-                    )}
-                    {!isMobile && (
-                      <TableCell className="py-2 sm:py-3">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 hover:bg-gray-100"
-                            >
-                              <MoreHorizontal className="h-4 w-4" />
-                              <span className="sr-only">Actions</span>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() =>
-                                handleCheckboxChange(
-                                  row.username,
-                                  !selectedUsernames[row.username]
-                                )
-                              }
-                              className="cursor-pointer"
-                            >
-                              {selectedUsernames[row.username] ? (
-                                <>
-                                  <Checkbox className="mr-2" checked />
-                                  <span>Deselect</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Checkbox className="mr-2" />
-                                  <span>Select</span>
-                                </>
-                              )}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() =>
-                                window.open(row.channelUrl, "_blank")
-                              }
-                              className="cursor-pointer"
-                            >
-                              <ExternalLink className="mr-2 h-4 w-4" />
-                              <span>View Channel</span>
-                            </DropdownMenuItem>
-                            {row.gmail && (
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuSeparator />
                               <DropdownMenuItem
                                 onClick={() =>
-                                  window.open(`mailto:${row.gmail}`, "_blank")
+                                  handleCheckboxChange(
+                                    row.username,
+                                    !selectedUsernames[row.username]
+                                  )
                                 }
                                 className="cursor-pointer"
                               >
-                                <EnvelopeSimple className="mr-2 h-4 w-4" />
-                                <span>Send Email</span>
+                                {selectedUsernames[row.username] ? (
+                                  <>
+                                    <Checkbox className="mr-2" checked />
+                                    <span>Deselect</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Checkbox className="mr-2" />
+                                    <span>Select</span>
+                                  </>
+                                )}
                               </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    )}
-                  </motion.tr>
-                ))}
-              </AnimatePresence>
-            )}
-          </TableBody>
-        </Table>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  window.open(row.channelUrl, "_blank")
+                                }
+                                className="cursor-pointer"
+                              >
+                                <ExternalLink className="mr-2 h-4 w-4" />
+                                <span>View Channel</span>
+                              </DropdownMenuItem>
+                              {row.gmail && (
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    window.open(`mailto:${row.gmail}`, "_blank")
+                                  }
+                                  className="cursor-pointer"
+                                >
+                                  <EnvelopeSimple className="mr-2 h-4 w-4" />
+                                  <span>Send Email</span>
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      )}
+                    </motion.tr>
+                  ))}
+                </AnimatePresence>
+              )}
+            </TableBody>
+          </Table>
+        </motion.div>
       </div>
       {contextMenu.visible && contextMenu.row && (
         <motion.div
@@ -1326,33 +1395,16 @@ export default function TwitchDataTable({ data }: TwitchDataTableProps) {
               <UserPlus className="h-4 w-4" />
               <span>Save Streamer</span>
             </button>
-
-            {/* {contextMenu.row.gmail && subscribed && (
-              <button
-                className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 transition-colors"
-                onClick={() => {
-                  toggleEmailVisibility(contextMenu.row!.id);
-                  setContextMenu((prev) => ({ ...prev, visible: false }));
-                }}
-              >
-                {revealedEmails[contextMenu.row.id] ? (
-                  <>
-                    <EyeOff className="h-4 w-4" />
-                    <span>Hide Email</span>
-                  </>
-                ) : (
-                  <>
-                    <Eye className="h-4 w-4" />
-                    <span>Reveal Email</span>
-                  </>
-                )}
-              </button>
-            )} */}
           </div>
         </motion.div>
       )}
       {data.length > itemsPerPage && (
-        <div className="flex justify-center py-3 sm:py-4 bg-gradient-to-r from-gray-50 to-gray-100 border-t border-gray-200">
+        <motion.div
+          className="flex justify-center py-3 sm:py-4 bg-gradient-to-r from-gray-50 to-gray-100 border-t border-gray-200"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3, duration: 0.3 }}
+        >
           <Pagination>
             <PaginationContent>
               <PaginationItem>
@@ -1420,7 +1472,7 @@ export default function TwitchDataTable({ data }: TwitchDataTableProps) {
               </PaginationItem>
             </PaginationContent>
           </Pagination>
-        </div>
+        </motion.div>
       )}
     </motion.div>
   );
