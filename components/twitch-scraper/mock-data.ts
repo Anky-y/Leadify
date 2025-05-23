@@ -109,18 +109,30 @@ export const mockSavedSearches: SavedSearch[] = [
   },
 ];
 
-// Hardcoded examples for search history
+// Mock search history data
 export const mockSearchHistory = [
   {
-    id: "history1",
-    date: new Date("2023-04-15T10:30:00"),
-    query: "ninja",
-    results: 1,
+    id: "1",
+    query: "Fortnite streamers",
+    date: "2023-05-15T14:30:00Z",
+    results: 156,
   },
   {
-    id: "history2",
-    date: new Date("2023-04-14T15:45:00"),
-    query: "All streamers",
-    results: 15,
+    id: "2",
+    query: "Just Chatting",
+    date: "2023-05-14T10:15:00Z",
+    results: 243,
   },
-];
+  {
+    id: "3",
+    query: "English Valorant",
+    date: "2023-05-12T18:45:00Z",
+    results: 89,
+  },
+  {
+    id: "4",
+    query: "League of Legends",
+    date: "2023-05-10T21:20:00Z",
+    results: 178,
+  },
+]

@@ -11,6 +11,7 @@ import type { ScrapingProgress, TwitchData } from "./types";
 import type User from "@/app/types/user";
 import { useUser } from "@/app/context/UserContext";
 import Papa from "papaparse";
+import { motion, AnimatePresence } from "framer-motion";
 
 // Define the scraping stages
 type ScrapingStage = {
@@ -152,81 +153,137 @@ export default function TwitchScraperUI({
     }
   };
 
+  // Animation variants
+  const pageTransition = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.5,
+        ease: "easeOut",
+        staggerChildren: 0.1,
+      },
+    },
+    exit: { opacity: 0, y: -20, transition: { duration: 0.3 } },
+  };
+
+  const itemTransition = {
+    hidden: { opacity: 0, y: 10 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
+  };
+
   return (
-    <div className="space-y-6">
-      <div>
+    <motion.div
+      className="space-y-6"
+      initial="hidden"
+      animate="visible"
+      variants={pageTransition}
+    >
+      <motion.div variants={itemTransition}>
         <h1 className="text-3xl font-bold tracking-tight">Twitch Scraper</h1>
         <p className="text-muted-foreground">
           Find and filter Twitch streamers based on your specific requirements.
         </p>
-      </div>
+      </motion.div>
 
-      {/* {!subscribed && (
-        <Alert className="border-amber-200 bg-amber-50 text-amber-800">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Free account limitations</AlertTitle>
-          <AlertDescription>
-            You're using a free account which limits results to 3 entries and
-            masks contact information.{" "}
-            <a
-              href="/dashboard/billing"
-              className="font-medium underline underline-offset-4"
+      <motion.div variants={itemTransition}>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList>
+            <TabsTrigger
+              value="search"
+              className="transition-all duration-200 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700"
             >
-              Upgrade your plan
-            </a>{" "}
-            to unlock unlimited results and full contact details.
-          </AlertDescription>
-        </Alert>
-      )} */}
+              Search
+            </TabsTrigger>
+            <TabsTrigger
+              value="saved"
+              className="transition-all duration-200 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700"
+            >
+              Saved Streamers
+            </TabsTrigger>
+            <TabsTrigger
+              value="history"
+              className="transition-all duration-200 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700"
+            >
+              Search History
+            </TabsTrigger>
+          </TabsList>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList>
-          <TabsTrigger value="search">Search</TabsTrigger>
-          <TabsTrigger value="saved">Saved Streamers</TabsTrigger>
-          <TabsTrigger value="history">Search History</TabsTrigger>
-        </TabsList>
+          <AnimatePresence mode="wait">
+            {activeTab === "search" && (
+              <motion.div
+                key="search-tab"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+              >
+                <TabsContent value="search" forceMount>
+                  <SearchTab
+                    searchTerm={searchTerm}
+                    setSearchTerm={setSearchTerm}
+                    language={language}
+                    setLanguage={setLanguage}
+                    category={category}
+                    setCategory={setCategory}
+                    minFollowers={minFollowers}
+                    setMinFollowers={setMinFollowers}
+                    maxFollowers={maxFollowers}
+                    setMaxFollowers={setMaxFollowers}
+                    minViewers={minViewers}
+                    setMinViewers={setMinViewers}
+                    maxViewers={maxViewers}
+                    setMaxViewers={setMaxViewers}
+                    isLoading={isLoading}
+                    loadingProgress={loadingProgress}
+                    data={data}
+                    subscribed={subscribed}
+                    setSubscribed={setSubscribed}
+                    initialSubscribed={initialSubscribed}
+                    handleSearch={handleSearch}
+                    progressData={progressData}
+                    streamers={streamers}
+                    loadingStreamers={loadingStreamers}
+                  />
+                </TabsContent>
+              </motion.div>
+            )}
 
-        <TabsContent value="search">
-          <SearchTab
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-            language={language}
-            setLanguage={setLanguage}
-            category={category}
-            setCategory={setCategory}
-            minFollowers={minFollowers}
-            setMinFollowers={setMinFollowers}
-            maxFollowers={maxFollowers}
-            setMaxFollowers={setMaxFollowers}
-            minViewers={minViewers}
-            setMinViewers={setMinViewers}
-            maxViewers={maxViewers}
-            setMaxViewers={setMaxViewers}
-            isLoading={isLoading}
-            loadingProgress={loadingProgress}
-            data={data}
-            subscribed={subscribed}
-            setSubscribed={setSubscribed}
-            initialSubscribed={initialSubscribed}
-            handleSearch={handleSearch}
-            progressData={progressData}
-            streamers={streamers}
-            loadingStreamers={loadingStreamers}
-          />
-        </TabsContent>
+            {activeTab === "saved" && (
+              <motion.div
+                key="saved-tab"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+              >
+                <TabsContent value="saved" forceMount>
+                  <SavedStreamersTab />
+                </TabsContent>
+              </motion.div>
+            )}
 
-        <TabsContent value="saved">
-          <SavedStreamersTab />
-        </TabsContent>
-
-        <TabsContent value="history">
-          <SearchHistoryTab
-            setSearchTerm={setSearchTerm}
-            setActiveTab={setActiveTab}
-            handleSearch={handleSearch}
-          />
-        </TabsContent>
-      </Tabs>
-    </div>
+            {activeTab === "history" && (
+              <motion.div
+                key="history-tab"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+              >
+                <TabsContent value="history" forceMount>
+                  <SearchHistoryTab
+                    setSearchTerm={setSearchTerm}
+                    setActiveTab={setActiveTab}
+                    handleSearch={handleSearch}
+                  />
+                </TabsContent>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </Tabs>
+      </motion.div>
+    </motion.div>
   );
 }

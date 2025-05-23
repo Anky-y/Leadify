@@ -1,51 +1,23 @@
 "use client";
 
-import { DialogTrigger } from "@/components/ui/dialog";
-
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Search,
-  Download,
-  Save,
   CheckCircle2,
   Loader2,
   AlertCircle,
   RefreshCw,
+  SlidersHorizontal,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/components/ui/use-toast";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 // Import components
 import FilterSection from "../filter-section";
 import TwitchDataTable from "../twitch-data-table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Check,
-  ChevronDown,
-  FileText,
-  FileSpreadsheet,
-  FileJson,
-} from "lucide-react";
 
 // Import types
 import type { ScrapingProgress, TwitchData } from "../types";
+import { AnimatePresence, motion } from "framer-motion";
 
 interface SearchTabProps {
   searchTerm: string;
@@ -99,6 +71,20 @@ export default function SearchTab({
   streamers,
   loadingStreamers,
 }: SearchTabProps) {
+  const [isFilterCollapsed, setIsFilterCollapsed] = useState(false);
+  const [activeFiltersCount, setActiveFiltersCount] = useState(0);
+
+  // Update active filters count
+  useEffect(() => {
+    let count = 0;
+    if (language && language !== "any") count++;
+    if (category && category !== "any") count++;
+    if (minFollowers > 1000) count++;
+    if (maxFollowers < 10000000) count++;
+    if (minViewers > 10) count++;
+    if (maxViewers < 100000) count++;
+    setActiveFiltersCount(count);
+  }, [language, category, minFollowers, maxFollowers, minViewers, maxViewers]);
 
   // Add animation effect for progress changes
   useEffect(() => {
@@ -111,9 +97,7 @@ export default function SearchTab({
         }, 1000);
       }
     }
-  }, [progressData?.Percentage]);
-
-  console.log(streamers);
+  }, [progressData, progressData?.Percentage]);
 
   const resetFilters = () => {
     setLanguage("");
@@ -122,6 +106,10 @@ export default function SearchTab({
     setMaxFollowers(10000000);
     setMinViewers(10);
     setMaxViewers(100000);
+  };
+
+  const toggleFilterCollapse = () => {
+    setIsFilterCollapsed(!isFilterCollapsed);
   };
 
   const stageConfig = [
@@ -186,6 +174,7 @@ export default function SearchTab({
       showFoundTotalStreamerNumber: false,
     },
   ];
+
   const getStatusMessage = () => {
     if (!isLoading || !progressData) return "Idle";
 
@@ -219,12 +208,12 @@ export default function SearchTab({
             {currentStage.name}
           </div>
           {currentStage.showRatio && (
-            <div className="text-sm font-medium bg-blue-50 text-blue-700 px-3 py-1 rounded-full">
+            <div className="ml-2 text-sm font-medium bg-blue-50 text-blue-700 px-3 py-1 rounded-full">
               {progressData.Completed}/{progressData.Streamers}
             </div>
           )}
           {currentStage.showFoundStreamerNumber && (
-            <div className="text-sm font-medium bg-blue-50 text-blue-700 px-3 py-1 rounded-full">
+            <div className="ml-2 text-sm font-medium bg-blue-50 text-blue-700 px-3 py-1 rounded-full">
               {progressData.Streamers} Streamers Found
             </div>
           )}
@@ -233,10 +222,12 @@ export default function SearchTab({
         {currentStage.showPercentage && (
           <div className="relative pt-1">
             <div className="overflow-hidden h-3 mb-2 text-xs flex rounded-full bg-blue-100">
-              <div
-                style={{ width: `${progressData.Percentage}%` }}
-                className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-gradient-to-r from-blue-500 to-blue-700 transition-all duration-500 ease-in-out"
-              ></div>
+              <motion.div
+                initial={{ width: "0%" }}
+                animate={{ width: `${progressData.Percentage}%` }}
+                transition={{ duration: 0.5, ease: "easeInOut" }}
+                className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-gradient-to-r from-blue-500 to-blue-700"
+              ></motion.div>
             </div>
             <div className="flex justify-between items-center text-xs text-gray-600">
               <div className="flex items-center">
@@ -318,57 +309,161 @@ export default function SearchTab({
     );
   };
 
+  // Animation variants
+  const fadeIn = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { duration: 0.4 } },
+    exit: { opacity: 0, transition: { duration: 0.3 } },
+  };
+
+  const slideUp = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.5, ease: "easeOut" },
+    },
+    exit: { opacity: 0, y: -20, transition: { duration: 0.3 } },
+  };
+
+  // Layout variants for grid
+  const gridVariants = {
+    expanded: {
+      gridTemplateColumns: isFilterCollapsed ? "60px 1fr" : "300px 1fr",
+      transition: { duration: 0.3 },
+    },
+    collapsed: {
+      gridTemplateColumns: "1fr",
+      transition: { duration: 0.3 },
+    },
+  };
+
   return (
     <div className="space-y-6">
-      <div className="grid gap-6 md:grid-cols-[300px_1fr]">
-        <FilterSection
-          language={language}
-          setLanguage={setLanguage}
-          category={category}
-          setCategory={setCategory}
-          minFollowers={minFollowers}
-          setMinFollowers={setMinFollowers}
-          maxFollowers={maxFollowers}
-          setMaxFollowers={setMaxFollowers}
-          minViewers={minViewers}
-          setMinViewers={setMinViewers}
-          maxViewers={maxViewers}
-          setMaxViewers={setMaxViewers}
-          onApplyFilters={handleSearch}
-          onResetFilters={resetFilters}
-        />
+      <motion.div
+        className="grid gap-6"
+        initial={false}
+        animate={isLoading ? "collapsed" : "expanded"}
+        variants={gridVariants}
+        style={{
+          display: "grid",
+          gridTemplateColumns: isLoading
+            ? "1fr"
+            : isFilterCollapsed
+            ? "60px 1fr"
+            : "300px 1fr",
+        }}
+      >
+        {/* Left column - Filter section or empty space when loading */}
+        {!isLoading && (
+          <div className="md:self-start">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key="filter"
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                variants={fadeIn}
+                className="sticky top-4"
+              >
+                <FilterSection
+                  language={language}
+                  setLanguage={setLanguage}
+                  category={category}
+                  setCategory={setCategory}
+                  minFollowers={minFollowers}
+                  setMinFollowers={setMinFollowers}
+                  maxFollowers={maxFollowers}
+                  setMaxFollowers={setMaxFollowers}
+                  minViewers={minViewers}
+                  setMinViewers={setMinViewers}
+                  maxViewers={maxViewers}
+                  setMaxViewers={setMaxViewers}
+                  onApplyFilters={handleSearch}
+                  onResetFilters={resetFilters}
+                  isCollapsed={isFilterCollapsed}
+                  toggleCollapse={toggleFilterCollapse}
+                />
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        )}
 
+        {/* Right column - Content area */}
         <div className="space-y-2">
-          <div className="flex items-center justify-between mb-4"></div>
-          <div className="space-y-6">
+          {/* Mobile filter toggle - only visible on small screens when not loading */}
+          {!isLoading && (
+            <div className="md:hidden mb-4">
+              <Button
+                variant="outline"
+                className="w-full flex items-center justify-center gap-2"
+                onClick={toggleFilterCollapse}
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+                {isFilterCollapsed ? "Show Filters" : "Hide Filters"}
+                {activeFiltersCount > 0 && (
+                  <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                    {activeFiltersCount}
+                  </span>
+                )}
+              </Button>
+            </div>
+          )}
+
+          <AnimatePresence mode="wait">
             {isLoading ? (
-              <Card className="border border-blue-100 shadow-sm overflow-hidden">
-                <CardContent className="p-6">
-                  <div className="flex flex-col items-center justify-center py-4 mb-4">
-                    <RefreshCw className="h-12 w-12 text-blue-500 animate-spin mx-auto mb-4" />
-                    <h3 className="text-lg font-medium mt-4 text-gray-800">
-                      {getStatusMessage()}
-                    </h3>
-                  </div>
-                  <div className="w-full mx-auto">
-                    {renderProgressDetails()}
-                  </div>
-                </CardContent>
-              </Card>
+              <motion.div
+                key="loading"
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                variants={slideUp}
+                className="w-full"
+              >
+                <Card className="border border-blue-100 shadow-sm overflow-hidden">
+                  <CardContent className="p-6">
+                    <div className="flex flex-col items-center justify-center py-4 mb-4">
+                      <RefreshCw className="h-12 w-12 text-blue-500 animate-spin mx-auto mb-4" />
+                      <h3 className="text-lg font-medium mt-4 text-gray-800">
+                        {getStatusMessage()}
+                      </h3>
+                    </div>
+                    <div className="w-full mx-auto">
+                      {renderProgressDetails()}
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
             ) : loadingStreamers ? (
-              <Card className="border border-blue-100 shadow-sm overflow-hidden">
-                <CardContent className="p-6">
-                  <div className="flex flex-col items-center justify-center py-4 mb-4">
-                    <RefreshCw className="h-12 w-12 text-blue-500 animate-spin mx-auto mb-4" />
-                    <h3 className="text-lg font-medium mt-4 text-gray-800">
-                      Loading data table...
-                    </h3>
-                  </div>
-                </CardContent>
-              </Card>
+              <motion.div
+                key="loading-streamers"
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                variants={slideUp}
+              >
+                <Card className="border border-blue-100 shadow-sm overflow-hidden">
+                  <CardContent className="p-6">
+                    <div className="flex flex-col items-center justify-center py-4 mb-4">
+                      <RefreshCw className="h-12 w-12 text-blue-500 animate-spin mx-auto mb-4" />
+                      <h3 className="text-lg font-medium mt-4 text-gray-800">
+                        Loading data table...
+                      </h3>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
             ) : streamers.length > 0 ? (
-              <div>
-                <TwitchDataTable data={streamers} subscribed={subscribed} />
+              <motion.div
+                key="results"
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                variants={slideUp}
+              >
+                <div className="overflow-hidden rounded-lg border border-gray-200 shadow-sm">
+                  <TwitchDataTable data={streamers} subscribed={subscribed} />
+                </div>
                 <div className="flex justify-between items-center mt-2 text-sm text-gray-500">
                   <div>
                     {streamers.length} results{" "}
@@ -380,32 +475,40 @@ export default function SearchTab({
                     </div>
                   )}
                 </div>
-              </div>
+              </motion.div>
             ) : (
-              <Card className="border border-blue-100 shadow-sm overflow-hidden">
-                <CardContent className="flex flex-col items-center justify-center py-12">
-                  <div className="text-center space-y-4 w-full max-w-md">
-                    <div className="bg-gray-50 p-6 rounded-full inline-block mx-auto">
-                      <Search className="h-12 w-12 text-blue-400" />
+              <motion.div
+                key="empty"
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                variants={slideUp}
+              >
+                <Card className="border border-blue-100 shadow-sm overflow-hidden">
+                  <CardContent className="flex flex-col items-center justify-center py-12">
+                    <div className="text-center space-y-4 w-full max-w-md">
+                      <div className="bg-gray-50 p-6 rounded-full inline-block mx-auto">
+                        <Search className="h-12 w-12 text-blue-400" />
+                      </div>
+                      <h3 className="text-lg font-medium">No search results</h3>
+                      <p className="text-gray-500 max-w-md">
+                        Use the search bar and filters to find Twitch streamers
+                        that match your criteria.
+                      </p>
+                      <Button
+                        className="mt-4 bg-blue-700 hover:bg-blue-800 transition-all duration-300 transform hover:scale-105"
+                        onClick={handleSearch}
+                      >
+                        Search Now
+                      </Button>
                     </div>
-                    <h3 className="text-lg font-medium">No search results</h3>
-                    <p className="text-gray-500 max-w-md">
-                      Use the search bar and filters to find Twitch streamers
-                      that match your criteria.
-                    </p>
-                    <Button
-                      className="mt-4 bg-blue-700 hover:bg-blue-800 transition-all duration-300 transform hover:scale-105"
-                      onClick={handleSearch}
-                    >
-                      Search Now
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </motion.div>
             )}
-          </div>
+          </AnimatePresence>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
