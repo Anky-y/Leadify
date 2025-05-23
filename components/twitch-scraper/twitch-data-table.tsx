@@ -615,49 +615,6 @@ export default function TwitchDataTable({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-
-          <Dialog
-            open={saveSearchDialogOpen}
-            onOpenChange={setSaveSearchDialogOpen}
-          >
-            <DialogTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 px-2 text-xs sm:text-sm sm:h-9 sm:px-3 border-blue-200 text-blue-700 hover:bg-blue-50 transition-all"
-              >
-                <SearchCheck className="h-3.5 w-3.5 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">Save Search</span>
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Save Search</DialogTitle>
-                <DialogDescription>
-                  Give your search a name to save it for future use.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="py-4">
-                <Label htmlFor="search-name">Search Name</Label>
-                <Input
-                  id="search-name"
-                  value={searchName}
-                  onChange={(e) => setSearchName(e.target.value)}
-                  placeholder="e.g., English Fortnite Streamers"
-                  className="mt-2"
-                />
-              </div>
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setSaveSearchDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button onClick={handleSaveSearch}>Save</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
           <Dialog
             open={saveStreamersDialogOpen}
             onOpenChange={setSaveStreamersDialogOpen}
@@ -696,88 +653,6 @@ export default function TwitchDataTable({
               </DialogFooter>
             </DialogContent>
           </Dialog>
-
-          <div className="flex items-center gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 px-2 text-xs sm:text-sm sm:h-9 sm:px-3 border-blue-200 text-blue-700 hover:bg-blue-50 transition-all flex items-center gap-1 sm:gap-2"
-                >
-                  <Download className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">
-                    Export as {exportFormat.toUpperCase()}
-                  </span>
-                  <span className="inline sm:hidden">Export</span>
-                  <ChevronDown className="h-3.5 w-3.5 ml-0 sm:ml-1" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-[180px]">
-                <DropdownMenuLabel>Export Format</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setExportFormat("csv");
-                  }}
-                  className="flex items-center gap-2 cursor-pointer"
-                >
-                  <FileText className="h-4 w-4" />
-                  <span>CSV</span>
-                  {exportFormat === "csv" && (
-                    <Check className="h-4 w-4 ml-auto" />
-                  )}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setExportFormat("excel");
-                  }}
-                  className="flex items-center gap-2 cursor-pointer"
-                >
-                  <FileSpreadsheet className="h-4 w-4" />
-                  <span>Excel</span>
-                  {exportFormat === "excel" && (
-                    <Check className="h-4 w-4 ml-auto" />
-                  )}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setExportFormat("json");
-                  }}
-                  className="flex items-center gap-2 cursor-pointer"
-                >
-                  <FileJson className="h-4 w-4" />
-                  <span>JSON</span>
-                  {exportFormat === "json" && (
-                    <Check className="h-4 w-4 ml-auto" />
-                  )}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => {
-                    // Reset export columns to match current visible columns
-                    setExportColumns({ ...visibleColumns });
-                    setExportOptionsDialogOpen(true);
-                  }}
-                  className="flex items-center gap-2 cursor-pointer"
-                >
-                  <Settings className="h-4 w-4" />
-                  <span>Advanced Export</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={handleExport}
-                  className="flex items-center gap-2 cursor-pointer"
-                >
-                  <Download className="h-4 w-4" />
-                  <span>Quick Export</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
         </div>
       </div>
       <Dialog
@@ -1049,7 +924,7 @@ export default function TwitchDataTable({
                               {row.username}
                             </span>
                             <a
-                              href={row.channelUrl}
+                              href={row.channel_url}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-xs text-blue-600 hover:underline flex items-center mt-1 group"
@@ -1268,7 +1143,7 @@ export default function TwitchDataTable({
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() =>
-                                  window.open(row.channelUrl, "_blank")
+                                  window.open(row.channel_url, "_blank")
                                 }
                                 className="cursor-pointer"
                               >
@@ -1340,7 +1215,7 @@ export default function TwitchDataTable({
             <button
               className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 transition-colors"
               onClick={() => {
-                window.open(contextMenu.row!.channelUrl, "_blank");
+                window.open(contextMenu.row!.channel_url, "_blank");
                 setContextMenu((prev) => ({ ...prev, visible: false }));
               }}
             >

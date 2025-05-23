@@ -133,6 +133,7 @@ export default function TwitchScraperUI({
                   complete: (result) => {
                     console.log(result);
                     setStreamers(result.data);
+                    console.log(streamers)
                     setLoadingStreamers(false);
                   },
                   error: (err: any) => {
