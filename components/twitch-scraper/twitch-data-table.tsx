@@ -63,7 +63,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -370,11 +370,7 @@ export default function TwitchDataTable({
       : data;
 
     if (data.length === 0) {
-      toast({
-        title: "No data to export",
-        description: "Please perform a search first to get data for export.",
-        variant: "destructive",
-      });
+      toast.error("Please perform a search first to get data for export.");
       return;
     }
 
@@ -387,29 +383,21 @@ export default function TwitchDataTable({
       exportToExcel(exportData, "twitch-data.xlsx", visibleColumns);
     }
 
-    toast({
-      title: `Exporting data as ${exportFormat.toUpperCase()}`,
-      description: `${exportData.length} records with ${
+    toast.success(
+      `${exportData.length} records with ${
         Object.values(visibleColumns).filter(Boolean).length
-      } columns will be exported.`,
-    });
+      } columns will be exported as ${exportFormat.toUpperCase()}.`
+    );
   };
 
   const handleSaveSearch = () => {
     if (!searchName.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter a name for your saved search.",
-        variant: "destructive",
-      });
+      toast.error("Please enter a name for your saved search.");
       return;
     }
 
     // Save search logic would go here
-    toast({
-      title: "Search saved",
-      description: `Your search "${searchName}" has been saved.`,
-    });
+    toast.success(`Your search "${searchName}" has been saved.`);
     setSaveSearchDialogOpen(false);
     setSearchName("");
   };
@@ -421,11 +409,7 @@ export default function TwitchDataTable({
       : data;
 
     if (streamersToSave.length === 0) {
-      toast({
-        title: "No streamers selected",
-        description: "Please select at least one streamer to save.",
-        variant: "destructive",
-      });
+      toast.error("Please select at least one streamer to save.");
       return;
     }
 
@@ -452,20 +436,13 @@ export default function TwitchDataTable({
         throw new Error("Failed to save streamers");
       }
 
-      toast({
-        title: "Success",
-        description: "Selected streamers have been saved to your list.",
-      });
+      toast.success("Selected streamers have been saved to your list.");
 
       setSaveStreamersDialogOpen(false);
       setSearchName(""); // Optional depending on whether name is reused
     } catch (error) {
       console.error(error);
-      toast({
-        title: "Error",
-        description: "Something went wrong while saving streamers.",
-        variant: "destructive",
-      });
+      toast.error("Something went wrong while saving streamers.");
     }
   };
 

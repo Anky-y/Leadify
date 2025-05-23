@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SearchTab from "./tabs/search-tab";
 import SavedStreamersTab from "./tabs/saved-streamers-tab";
-import SearchHistoryTab from "./tabs/search-history-tab";
+import SavedFiltersTab from "./tabs/saved-filters-tab";
+// Remove or comment out the old import:
+// import SearchHistoryTab from "./tabs/search-history-tab";
 
 // Import types and mock data
 import type { ScrapingProgress, TwitchData } from "./types";
@@ -203,10 +205,10 @@ export default function TwitchScraperUI({
               Saved Streamers
             </TabsTrigger>
             <TabsTrigger
-              value="history"
+              value="filters"
               className="transition-all duration-200 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700"
             >
-              Search History
+              Saved Filters
             </TabsTrigger>
           </TabsList>
 
@@ -264,19 +266,30 @@ export default function TwitchScraperUI({
               </motion.div>
             )}
 
-            {activeTab === "history" && (
+            {activeTab === "filters" && (
               <motion.div
-                key="history-tab"
+                key="filters-tab"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.3 }}
               >
-                <TabsContent value="history" forceMount>
-                  <SearchHistoryTab
-                    setSearchTerm={setSearchTerm}
+                <TabsContent value="filters" forceMount>
+                  <SavedFiltersTab
                     setActiveTab={setActiveTab}
                     handleSearch={handleSearch}
+                    setLanguage={setLanguage}
+                    setCategory={setCategory}
+                    setMinFollowers={setMinFollowers}
+                    setMaxFollowers={setMaxFollowers}
+                    setMinViewers={setMinViewers}
+                    setMaxViewers={setMaxViewers}
+                    language={language}
+                    category={category}
+                    minFollowers={minFollowers}
+                    maxFollowers={maxFollowers}
+                    minViewers={minViewers}
+                    maxViewers={maxViewers}
                   />
                 </TabsContent>
               </motion.div>
