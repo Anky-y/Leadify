@@ -15,6 +15,7 @@ import {
   ChevronRight,
   FilterX,
   SlidersHorizontal,
+  Save,
 } from "lucide-react";
 import {
   Accordion,
@@ -26,6 +27,17 @@ import { Input } from "@/components/ui/input";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
+import { useUser } from "@/app/context/UserContext";
 
 interface FilterSectionProps {
   language: string;
@@ -44,6 +56,7 @@ interface FilterSectionProps {
   onResetFilters: () => void;
   isCollapsed: boolean;
   toggleCollapse: () => void;
+  onSaveFilter?: () => void;
 }
 
 export default function FilterSection({
@@ -63,6 +76,7 @@ export default function FilterSection({
   onResetFilters,
   isCollapsed,
   toggleCollapse,
+  onSaveFilter,
 }: FilterSectionProps) {
   // Local state for input fields to prevent excessive re-renders
   const [minFollowersInput, setMinFollowersInput] = useState(
@@ -73,7 +87,9 @@ export default function FilterSection({
   );
   const [minViewersInput, setMinViewersInput] = useState(minViewers.toString());
   const [maxViewersInput, setMaxViewersInput] = useState(maxViewers.toString());
-
+  const [saveFilterDialogOpen, setSaveFilterDialogOpen] = useState(false);
+  const [filterName, setFilterName] = useState("");
+  const { user } = useUser();
   // Active filters count
   const [activeFiltersCount, setActiveFiltersCount] = useState(0);
 
@@ -178,6 +194,73 @@ export default function FilterSection({
     }
   };
 
+  // Save filter to database
+  const handleSaveFilter = async () => {
+    if (!filterName.trim()) {
+      toast.error("Please enter a name for your filter");
+
+      return;
+    }
+
+    if (!category || category === "any") {
+      toast.error("Please select a category before saving your filter");
+      return;
+    }
+
+    if (!user?.id) {
+      toast.error("You must be logged in to save filters");
+
+      return;
+    }
+
+    try {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+
+      if (user?.id) {
+        headers["x-user-id"] = user.id;
+      }
+      console.log(process.env.NEXT_PUBLIC_BACKEND_URL);
+
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}filters/save`,
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            user_id: user.id,
+            name: filterName,
+            language: language || null,
+            category: category || null,
+            min_followers: minFollowers,
+            max_followers: maxFollowers,
+            min_viewers: minViewers,
+            max_viewers: maxViewers,
+          }),
+        }
+      );
+
+      if (!res.ok) {
+        throw new Error("Failed to save filter");
+      }
+
+      toast.success(`Your filter "${filterName}" has been saved`);
+
+      setSaveFilterDialogOpen(false);
+      setFilterName("");
+
+      // Call the onSaveFilter callback if provided
+      if (onSaveFilter) {
+        onSaveFilter();
+      }
+    } catch (error) {
+      console.error("Error saving filter:", error);
+      toast.error("Failed to save filter. Please try again.");
+
+    }
+  };
+
   // Animation variants for accordion items
   const accordionVariants = {
     open: {
@@ -237,6 +320,12 @@ export default function FilterSection({
       ],
       transition: { duration: 0.4 },
     },
+  };
+
+  // Button animation
+  const buttonVariants = {
+    hover: { scale: 1.02, transition: { duration: 0.2 } },
+    tap: { scale: 0.98, transition: { duration: 0.1 } },
   };
 
   return (
@@ -658,19 +747,100 @@ export default function FilterSection({
             </AccordionItem>
           </Accordion>
 
-          <motion.div
-            className="mt-6"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            transition={{ duration: 0.2 }}
-          >
-            <Button
-              className="w-full py-6 bg-blue-700 hover:bg-blue-800 transition-all duration-300 shadow-sm hover:shadow"
-              onClick={onApplyFilters}
+          <div className="mt-6 space-y-3">
+            <motion.div
+              whileHover="hover"
+              whileTap="tap"
+              variants={buttonVariants}
+              transition={{ duration: 0.2 }}
             >
-              Search Now {activeFiltersCount > 0 && `(${activeFiltersCount})`}
-            </Button>
-          </motion.div>
+              <Button
+                className="w-full py-6 bg-blue-700 hover:bg-blue-800 transition-all duration-300 shadow-sm hover:shadow"
+                onClick={onApplyFilters}
+              >
+                Search Now {activeFiltersCount > 0 && `(${activeFiltersCount})`}
+              </Button>
+            </motion.div>
+
+            <motion.div
+              whileHover="hover"
+              whileTap="tap"
+              variants={buttonVariants}
+              transition={{ duration: 0.2 }}
+            >
+              <Dialog
+                open={saveFilterDialogOpen}
+                onOpenChange={setSaveFilterDialogOpen}
+              >
+                <DialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full border-blue-200 text-blue-700 hover:bg-blue-50 transition-all"
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    Save Current Filter
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Save Filter</DialogTitle>
+                    <DialogDescription>
+                      Save your current filter settings for future use.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="py-4">
+                    <Label htmlFor="filter-name">Filter Name</Label>
+                    <Input
+                      id="filter-name"
+                      value={filterName}
+                      onChange={(e) => setFilterName(e.target.value)}
+                      placeholder="e.g., English Fortnite Streamers"
+                      className="mt-2"
+                    />
+                  </div>
+                  <div className="bg-blue-50 p-3 rounded-md">
+                    <h4 className="text-sm font-medium text-blue-800 mb-2">
+                      Current Filter Settings
+                    </h4>
+                    <div className="grid grid-cols-2 gap-2 text-xs text-blue-700">
+                      <div>
+                        <span className="font-medium">Language:</span>{" "}
+                        {language || "Any"}
+                      </div>
+                      <div>
+                        <span className="font-medium">
+                          Category<span className="text-red-500">*</span>:
+                        </span>{" "}
+                        {category || "Any"}
+                      </div>
+                      <div>
+                        <span className="font-medium">Followers:</span>{" "}
+                        {minFollowers.toLocaleString()} -{" "}
+                        {maxFollowers.toLocaleString()}
+                      </div>
+                      <div>
+                        <span className="font-medium">Viewers:</span>{" "}
+                        {minViewers.toLocaleString()} -{" "}
+                        {maxViewers.toLocaleString()}
+                      </div>
+                    </div>
+                    <p className="text-xs text-blue-700 mt-2">
+                      <span className="text-red-500">*</span> Required field
+                    </p>
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() => setSaveFilterDialogOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button onClick={handleSaveFilter}>Save</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </motion.div>
+          </div>
         </motion.div>
       )}
     </motion.div>

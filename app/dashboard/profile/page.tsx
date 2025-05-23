@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useEffect, useState } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import User from "@/app/types/user";
 import { useUser } from "@/app/context/UserContext";
 import Spinner from "@/components/spinner";
@@ -30,7 +30,6 @@ import { createClient } from "@/utils/supabase-browser";
 
 export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const { user, loading: userLoading } = useUser();
   const [firstName, setFirstName] = useState(user?.first_name || "");
@@ -61,17 +60,9 @@ export default function ProfilePage() {
     const { error } = await updateName({ firstName, lastName });
 
     if (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update name",
-        variant: "destructive", // You can use "default" or "destructive"
-      });
+      toast.error("Failed to update name");
     } else {
-      toast({
-        title: "Success",
-        description: "Your profile has been updated successfully.",
-        variant: "default", // You can use "default" or "destructive"
-      });
+      toast.success("Your profile has been updated successfully.");
     }
     setLoading(false);
   };
@@ -81,11 +72,7 @@ export default function ProfilePage() {
     setIsLoading(true);
 
     if (newPassword !== confirmPassword) {
-      toast({
-        title: "Error",
-        description: "New passwords do not match.",
-        variant: "destructive",
-      });
+      toast.error("New passwords do not match.");
       setIsLoading(false);
       return;
     }
@@ -97,11 +84,7 @@ export default function ProfilePage() {
       });
 
       if (signInError) {
-        toast({
-          title: "Invalid password",
-          description: "The current password is incorrect.",
-          variant: "destructive",
-        });
+        toast.error("Invalid password");
         setIsLoading(false);
         return;
       }
@@ -111,16 +94,9 @@ export default function ProfilePage() {
       });
 
       if (updateError) {
-        toast({
-          title: "Error",
-          description: "Could not update password.",
-          variant: "destructive",
-        });
+        toast.error("Could not update password.");
       } else {
-        toast({
-          title: "Success",
-          description: "Your password has been updated.",
-        });
+        toast.success("Your password has been updated.");
 
         // Optional: clear fields
         setCurrentPassword("");
@@ -128,11 +104,7 @@ export default function ProfilePage() {
         setConfirmPassword("");
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Something went wrong. Please try again.",
-        variant: "destructive",
-      });
+      toast.error("Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);
     }

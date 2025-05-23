@@ -14,7 +14,7 @@ import {
   FolderX,
   Plus,
 } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 import SavedStreamersTable from "../saved-streamers-table";
 import type { Folder, TwitchData } from "../types";
 import {
@@ -42,7 +42,6 @@ export default function SavedStreamersTab({}: SavedStreamersTabProps) {
   const [newFolderName, setNewFolderName] = useState("");
   const [isAddFolderDialogOpen, setIsAddFolderDialogOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const { toast } = useToast();
   const { user } = useUser();
 
   const isMobile = useMediaQuery("(max-width: 768px)");
@@ -124,11 +123,7 @@ export default function SavedStreamersTab({}: SavedStreamersTabProps) {
       setSavedStreamers(sortedStreamers); // <-- Use sorted here
     } catch (err) {
       console.error("Error fetching data:", err);
-      toast({
-        title: "Error",
-        description: "Failed to fetch saved data",
-        variant: "destructive",
-      });
+      toast.error("Failed to fetch saved data");
     } finally {
       setIsLoading(false);
     }
@@ -167,17 +162,10 @@ export default function SavedStreamersTab({}: SavedStreamersTabProps) {
         }
       );
       setSavedStreamers((prev) => prev.filter((s) => s.id !== id));
-      toast({
-        title: "Deleted",
-        description: "Streamer removed from saved list.",
-      });
+      toast.success("Streamer removed from saved list.");
       fetchData(user?.id, "all");
     } catch (err) {
-      toast({
-        title: "Error",
-        description: "Failed to delete streamer",
-        variant: "destructive",
-      });
+      toast.error("Failed to delete streamer");
     }
   };
   const handleMoveToFolder = async (
@@ -213,11 +201,7 @@ export default function SavedStreamersTab({}: SavedStreamersTabProps) {
       );
       fetchData(user?.id, selectedFolder?.id);
     } catch (err) {
-      toast({
-        title: "Error",
-        description: "Failed to move streamer",
-        variant: "destructive",
-      });
+      toast.error("Failed to move streamer");
     }
   };
 
@@ -244,13 +228,9 @@ export default function SavedStreamersTab({}: SavedStreamersTabProps) {
       setFolders((prev) => [...prev, newFolder]);
       setNewFolderName("");
       setIsAddFolderDialogOpen(false);
-      toast({ title: "Folder Created" });
+      toast.success("Folder Created");
     } catch (err) {
-      toast({
-        title: "Error",
-        description: "Failed to create folder",
-        variant: "destructive",
-      });
+      toast.error("Failed to create folder");
     }
   };
 
@@ -273,13 +253,9 @@ export default function SavedStreamersTab({}: SavedStreamersTabProps) {
           s.folder_id === folderId ? { ...s, folder_id: undefined } : s
         )
       );
-      toast({ title: "Folder deleted" });
+      toast.success("Folder deleted");
     } catch (err) {
-      toast({
-        title: "Error",
-        description: "Failed to delete folder",
-        variant: "destructive",
-      });
+      toast.error("Failed to delete folder");
     }
   };
 

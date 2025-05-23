@@ -65,7 +65,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useUser } from "@/app/context/UserContext";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { exportToCSV, exportToExcel, exportToJSON } from "@/utils/export";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -137,7 +137,6 @@ export default function SavedStreamersTable({
   const [exportFormat, setExportFormat] = useState("csv");
   const [exportColumns, setExportColumns] = useState({ ...visibleColumns });
   const [exportOptionsDialogOpen, setExportOptionsDialogOpen] = useState(false);
-  const { toast } = useToast();
 
   // Adjust visible columns based on screen size
   useEffect(() => {
@@ -335,11 +334,7 @@ export default function SavedStreamersTable({
       : data;
 
     if (data.length === 0) {
-      toast({
-        title: "No data to export",
-        description: "There are no saved streamers to export.",
-        variant: "destructive",
-      });
+      toast.error("There are no saved streamers to export.");
       return;
     }
 
@@ -352,12 +347,11 @@ export default function SavedStreamersTable({
       exportToExcel(exportData, "saved-streamers.xlsx", exportColumns);
     }
 
-    toast({
-      title: `Exporting data as ${exportFormat.toUpperCase()}`,
-      description: `${exportData.length} records with ${
+    toast.success(
+      `${exportData.length} records with ${
         Object.values(exportColumns).filter(Boolean).length
-      } columns will be exported.`,
-    });
+      } columns will be exported. as ${exportFormat.toUpperCase()}`
+    );
   };
 
   // Apply sorting and pagination

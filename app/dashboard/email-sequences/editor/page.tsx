@@ -1,131 +1,137 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { useSearchParams, useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft, Save } from "lucide-react"
-import { useToast } from "@/components/ui/use-toast"
-import SequenceEditor from "@/components/email-sequences/sequence-editor"
-import RichTextEditor from "@/components/email-sequences/rich-text-editor"
+import { useEffect, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { ArrowLeft, Save } from "lucide-react";
+import { toast } from "sonner";
+import SequenceEditor from "@/components/email-sequences/sequence-editor";
+import RichTextEditor from "@/components/email-sequences/rich-text-editor";
 
 export default function SequenceEditorPage() {
-  const searchParams = useSearchParams()
-  const router = useRouter()
-  const { toast } = useToast()
-
-  const [sequence, setSequence] = useState<any | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [selectedEmailIndex, setSelectedEmailIndex] = useState<number | null>(null)
-  const [emailContent, setEmailContent] = useState<string>("")
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const [sequence, setSequence] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedEmailIndex, setSelectedEmailIndex] = useState<number | null>(
+    null
+  );
+  const [emailContent, setEmailContent] = useState<string>("");
 
   // Load sequence data only once on component mount
   useEffect(() => {
     const loadSequence = () => {
-      const sequenceId = searchParams.get("id")
+      const sequenceId = searchParams.get("id");
       if (!sequenceId) {
-        router.push("/dashboard/email-sequences")
-        return
+        router.push("/dashboard/email-sequences");
+        return;
       }
 
       // Load sequences from localStorage
-      const sequencesFromStorage = localStorage.getItem("emailSequences")
+      const sequencesFromStorage = localStorage.getItem("emailSequences");
       if (sequencesFromStorage) {
-        const sequences = JSON.parse(sequencesFromStorage)
-        const foundSequence = sequences.find((seq: any) => seq.id === sequenceId)
+        const sequences = JSON.parse(sequencesFromStorage);
+        const foundSequence = sequences.find(
+          (seq: any) => seq.id === sequenceId
+        );
 
         if (foundSequence) {
-          setSequence(foundSequence)
-          setLoading(false)
+          setSequence(foundSequence);
+          setLoading(false);
         } else {
-          toast({
-            title: "Sequence not found",
-            description: "The requested sequence could not be found.",
-            variant: "destructive",
-          })
-          router.push("/dashboard/email-sequences")
+          toast.error("The requested sequence could not be found.");
+          router.push("/dashboard/email-sequences");
         }
       } else {
-        toast({
-          title: "No sequences found",
-          description: "No email sequences were found in your account.",
-          variant: "destructive",
-        })
-        router.push("/dashboard/email-sequences")
+        toast.error("No email sequences were found in your account.");
+        router.push("/dashboard/email-sequences");
       }
-    }
+    };
 
-    loadSequence()
-  }, [searchParams, router, toast])
+    loadSequence();
+  }, [searchParams, router, toast]);
 
   // Update email content when selected email changes
   useEffect(() => {
-    if (sequence && selectedEmailIndex !== null && sequence.emails?.[selectedEmailIndex]) {
-      setEmailContent(sequence.emails[selectedEmailIndex].body)
+    if (
+      sequence &&
+      selectedEmailIndex !== null &&
+      sequence.emails?.[selectedEmailIndex]
+    ) {
+      setEmailContent(sequence.emails[selectedEmailIndex].body);
     } else {
-      setEmailContent("")
+      setEmailContent("");
     }
-  }, [sequence, selectedEmailIndex])
+  }, [sequence, selectedEmailIndex]);
 
   const handleUpdateSequence = (updatedSequence: any) => {
-    setSequence(updatedSequence)
+    setSequence(updatedSequence);
 
     // Update in localStorage
-    const sequencesFromStorage = localStorage.getItem("emailSequences")
+    const sequencesFromStorage = localStorage.getItem("emailSequences");
     if (sequencesFromStorage) {
-      const sequences = JSON.parse(sequencesFromStorage)
-      const updatedSequences = sequences.map((seq: any) => (seq.id === updatedSequence.id ? updatedSequence : seq))
-      localStorage.setItem("emailSequences", JSON.stringify(updatedSequences))
+      const sequences = JSON.parse(sequencesFromStorage);
+      const updatedSequences = sequences.map((seq: any) =>
+        seq.id === updatedSequence.id ? updatedSequence : seq
+      );
+      localStorage.setItem("emailSequences", JSON.stringify(updatedSequences));
     }
 
-    toast({
-      title: "Sequence Updated",
-      description: "Your email sequence has been updated successfully.",
-    })
-  }
+    toast.success("Your email sequence has been updated successfully.");
+  };
 
   const handleSaveEmailContent = (content: string) => {
-    if (selectedEmailIndex === null || !sequence) return
+    if (selectedEmailIndex === null || !sequence) return;
 
-    const updatedEmails = [...sequence.emails]
+    const updatedEmails = [...sequence.emails];
     updatedEmails[selectedEmailIndex] = {
       ...updatedEmails[selectedEmailIndex],
       body: content,
-    }
+    };
 
     const updatedSequence = {
       ...sequence,
       emails: updatedEmails,
-    }
+    };
 
-    handleUpdateSequence(updatedSequence)
-  }
+    handleUpdateSequence(updatedSequence);
+  };
 
   const handleSaveAndExit = () => {
-    toast({
-      title: "Sequence Saved",
-      description: "Your email sequence has been saved successfully.",
-    })
-    router.push("/dashboard/email-sequences")
-  }
+    toast.success( "Your email sequence has been saved successfully.");
+    router.push("/dashboard/email-sequences");
+  };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-[400px]">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-700"></div>
       </div>
-    )
+    );
   }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={() => router.push("/dashboard/email-sequences")}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => router.push("/dashboard/email-sequences")}
+          >
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">{sequence?.name}</h1>
+            <h1 className="text-3xl font-bold tracking-tight">
+              {sequence?.name}
+            </h1>
             <p className="text-muted-foreground">{sequence?.description}</p>
           </div>
         </div>
@@ -140,7 +146,9 @@ export default function SequenceEditorPage() {
           <Card>
             <CardHeader>
               <CardTitle>Email Sequence</CardTitle>
-              <CardDescription>Manage the emails in your sequence</CardDescription>
+              <CardDescription>
+                Manage the emails in your sequence
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <SequenceEditor
@@ -157,7 +165,8 @@ export default function SequenceEditorPage() {
           <Card>
             <CardHeader>
               <CardTitle>
-                {selectedEmailIndex !== null && sequence?.emails?.[selectedEmailIndex]
+                {selectedEmailIndex !== null &&
+                sequence?.emails?.[selectedEmailIndex]
                   ? `Edit Email: ${sequence.emails[selectedEmailIndex].subject}`
                   : "Email Editor"}
               </CardTitle>
@@ -168,8 +177,12 @@ export default function SequenceEditorPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {selectedEmailIndex !== null && sequence?.emails?.[selectedEmailIndex] ? (
-                <RichTextEditor initialContent={emailContent} onSave={handleSaveEmailContent} />
+              {selectedEmailIndex !== null &&
+              sequence?.emails?.[selectedEmailIndex] ? (
+                <RichTextEditor
+                  initialContent={emailContent}
+                  onSave={handleSaveEmailContent}
+                />
               ) : (
                 <div className="flex flex-col items-center justify-center h-[400px] text-center">
                   <div className="text-gray-400 mb-4">
@@ -188,7 +201,9 @@ export default function SequenceEditorPage() {
                       />
                     </svg>
                   </div>
-                  <p className="text-gray-500">Select an email from the sequence to edit its content</p>
+                  <p className="text-gray-500">
+                    Select an email from the sequence to edit its content
+                  </p>
                 </div>
               )}
             </CardContent>
@@ -196,5 +211,5 @@ export default function SequenceEditorPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
