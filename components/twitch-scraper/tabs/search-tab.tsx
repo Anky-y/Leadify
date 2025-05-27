@@ -11,11 +11,8 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-// Import components
 import FilterSection from "../filter-section";
 import TwitchDataTable from "../twitch-data-table";
-
-// Import types
 import type { ScrapingProgress, TwitchData } from "../types";
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -74,7 +71,6 @@ export default function SearchTab({
   const [isFilterCollapsed, setIsFilterCollapsed] = useState(false);
   const [activeFiltersCount, setActiveFiltersCount] = useState(0);
 
-  // Update active filters count
   useEffect(() => {
     let count = 0;
     if (language && language !== "any") count++;
@@ -85,19 +81,6 @@ export default function SearchTab({
     if (maxViewers < 100000) count++;
     setActiveFiltersCount(count);
   }, [language, category, minFollowers, maxFollowers, minViewers, maxViewers]);
-
-  // Add animation effect for progress changes
-  useEffect(() => {
-    if (progressData && progressData.Percentage > 0) {
-      const progressElement = document.querySelector(".progress-animation");
-      if (progressElement) {
-        progressElement.classList.add("animate-pulse");
-        setTimeout(() => {
-          progressElement?.classList.remove("animate-pulse");
-        }, 1000);
-      }
-    }
-  }, [progressData, progressData?.Percentage]);
 
   const resetFilters = () => {
     setLanguage("");
@@ -176,7 +159,7 @@ export default function SearchTab({
   ];
 
   const getStatusMessage = () => {
-    if (!isLoading || !progressData) return "Idle";
+    if (!isLoading || !progressData) return "Ready to search";
 
     const currentStage = stageConfig[progressData.Stage];
     if (!currentStage) return "Processing...";
@@ -194,7 +177,6 @@ export default function SearchTab({
     }
   };
 
-  // Helper function to render the progress details
   const renderProgressDetails = () => {
     if (!isLoading || !progressData) return null;
     const currentStage = stageConfig[progressData.Stage];
@@ -202,114 +184,148 @@ export default function SearchTab({
     if (!currentStage) return null;
 
     return (
-      <div className="space-y-4">
+      <div className="space-y-6">
         <div className="flex justify-center items-center">
-          <div className="text-base font-medium text-blue-700">
+          <div className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             {currentStage.name}
           </div>
           {currentStage.showRatio && (
-            <div className="ml-2 text-sm font-medium bg-blue-50 text-blue-700 px-3 py-1 rounded-full">
+            <div className="ml-3 text-sm font-medium bg-gradient-to-r from-slate-50 to-gray-50 text-blue-700 px-4 py-2 rounded-full border border-blue-200">
               {progressData.Completed}/{progressData.Streamers}
             </div>
           )}
           {currentStage.showFoundStreamerNumber && (
-            <div className="ml-2 text-sm font-medium bg-blue-50 text-blue-700 px-3 py-1 rounded-full">
+            <div className="ml-3 text-sm font-medium bg-gradient-to-r from-slate-50 to-gray-50 text-blue-700 px-4 py-2 rounded-full border border-blue-200">
               {progressData.Streamers} Streamers Found
             </div>
           )}
         </div>
 
         {currentStage.showPercentage && (
-          <div className="relative pt-1">
-            <div className="overflow-hidden h-3 mb-2 text-xs flex rounded-full bg-blue-100">
+          <div className="relative pt-2">
+            <div className="overflow-hidden h-4 mb-3 text-xs flex rounded-full bg-gradient-to-r from-slate-50 to-gray-50 border border-blue-100">
               <motion.div
                 initial={{ width: "0%" }}
                 animate={{ width: `${progressData.Percentage}%` }}
-                transition={{ duration: 0.5, ease: "easeInOut" }}
-                className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-gradient-to-r from-blue-500 to-blue-700"
-              ></motion.div>
+                transition={{ duration: 0.8, ease: "easeInOut" }}
+                className="shadow-sm flex flex-col text-center whitespace-nowrap text-white justify-center bg-gradient-to-r from-blue-500 via-blue-600 to-purple-600 relative overflow-hidden"
+              >
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                  animate={{ x: ["-100%", "100%"] }}
+                  transition={{
+                    duration: 2,
+                    repeat: Number.POSITIVE_INFINITY,
+                    ease: "linear",
+                  }}
+                />
+              </motion.div>
             </div>
-            <div className="flex justify-between items-center text-xs text-gray-600">
+            <div className="flex justify-between items-center text-sm text-gray-600">
               <div className="flex items-center">
-                <span className="inline-block mr-1 w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                <motion.span
+                  className="inline-block mr-2 w-2 h-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-500"
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{
+                    duration: 1.5,
+                    repeat: Number.POSITIVE_INFINITY,
+                  }}
+                />
                 {currentStage.description}
               </div>
-              <div className="font-bold">{progressData.Percentage}%</div>
+              <div className="font-bold text-blue-700">
+                {progressData.Percentage}%
+              </div>
             </div>
           </div>
         )}
 
-        {/* Additional Details for Current Stage */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
           {currentStage.showRate && progressData.Rate && (
-            <div className="bg-gray-50 p-3 rounded-lg flex items-center">
-              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-3">
-                <Loader2 className="w-4 h-4 text-blue-700 animate-spin" />
+            <motion.div
+              className="bg-gradient-to-br from-slate-50 to-slate-100 p-4 rounded-xl border border-blue-100 flex items-center shadow-sm"
+              whileHover={{ scale: 1.02 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center mr-4 shadow-sm">
+                <Loader2 className="w-5 h-5 text-white animate-spin" />
               </div>
               <div>
-                <div className="text-xs text-gray-500">Processing Rate</div>
-                <div className="text-sm font-medium">
-                  {Number(progressData.Rate).toFixed(0)
-                    ? Number(progressData.Rate).toFixed(0)
-                    : "N/A"}{" "}
-                  streamers/sec
+                <div className="text-xs text-blue-600 font-medium">
+                  Processing Rate
+                </div>
+                <div className="text-sm font-bold text-gray-800">
+                  {Number(progressData.Rate).toFixed(0) || "N/A"} streamers/sec
                 </div>
               </div>
-            </div>
+            </motion.div>
           )}
 
           {currentStage.showETA && (
-            <div className="bg-gray-50 p-3 rounded-lg flex items-center">
-              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-3">
-                <AlertCircle className="w-4 h-4 text-blue-700" />
+            <motion.div
+              className="bg-gradient-to-br from-slate-50 to-slate-100 p-4 rounded-xl border border-blue-100 flex items-center shadow-sm"
+              whileHover={{ scale: 1.02 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center mr-4 shadow-sm">
+                <AlertCircle className="w-5 h-5 text-white" />
               </div>
               <div>
-                <div className="text-xs text-gray-500">Estimated Time</div>
-                <div className="text-sm font-medium">
-                  {Number(progressData.ETA).toFixed(0)
-                    ? Number(progressData.ETA).toFixed(0)
-                    : "N/A"}
-                  seconds remaining
+                <div className="text-xs text-blue-600 font-medium">
+                  Estimated Time
+                </div>
+                <div className="text-sm font-bold text-gray-800">
+                  {Number(progressData.ETA).toFixed(0) || "N/A"} seconds
+                  remaining
                 </div>
               </div>
-            </div>
+            </motion.div>
           )}
 
           {currentStage.showStreamers && (
-            <div className="bg-gray-50 p-3 rounded-lg flex items-center">
-              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-3">
-                <Search className="w-4 h-4 text-blue-700" />
+            <motion.div
+              className="bg-gradient-to-br from-slate-50 to-slate-100 p-4 rounded-xl border border-blue-100 flex items-center shadow-sm"
+              whileHover={{ scale: 1.02 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center mr-4 shadow-sm">
+                <Search className="w-5 h-5 text-white" />
               </div>
               <div>
-                <div className="text-xs text-gray-500">
-                  Total live streamers
+                <div className="text-xs text-blue-600 font-medium">
+                  Total Live Streamers
                 </div>
-                <div className="text-sm font-medium">
+                <div className="text-sm font-bold text-gray-800">
                   {progressData.Total_Streamers}
                 </div>
               </div>
-            </div>
+            </motion.div>
           )}
 
           {currentStage.showCompleted && (
-            <div className="bg-gray-50 p-3 rounded-lg flex items-center">
-              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-3">
-                <CheckCircle2 className="w-4 h-4 text-blue-700" />
+            <motion.div
+              className="bg-gradient-to-br from-slate-50 to-slate-100 p-4 rounded-xl border border-blue-100 flex items-center shadow-sm"
+              whileHover={{ scale: 1.02 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center mr-4 shadow-sm">
+                <CheckCircle2 className="w-5 h-5 text-white" />
               </div>
               <div>
-                <div className="text-xs text-gray-500">Completed</div>
-                <div className="text-sm font-medium">
+                <div className="text-xs text-blue-600 font-medium">
+                  Completed
+                </div>
+                <div className="text-sm font-bold text-gray-800">
                   {progressData.Completed}
                 </div>
               </div>
-            </div>
+            </motion.div>
           )}
         </div>
       </div>
     );
   };
 
-  // Animation variants
   const fadeIn = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { duration: 0.4 } },
@@ -326,37 +342,19 @@ export default function SearchTab({
     exit: { opacity: 0, y: -20, transition: { duration: 0.3 } },
   };
 
-  // Layout variants for grid
-  const gridVariants = {
-    expanded: {
-      gridTemplateColumns: isFilterCollapsed ? "60px 1fr" : "300px 1fr",
-      transition: { duration: 0.3 },
-    },
-    collapsed: {
-      gridTemplateColumns: "1fr",
-      transition: { duration: 0.3 },
-    },
-  };
-
   return (
-    <div className="space-y-6">
-      <motion.div
-        className="grid gap-6"
-        initial={false}
-        animate={isLoading ? "collapsed" : "expanded"}
-        variants={gridVariants}
-        style={{
-          display: "grid",
-          gridTemplateColumns: isLoading
-            ? "1fr"
+    <div className="w-full max-w-none">
+      <div
+        className={`grid gap-6 ${
+          isLoading
+            ? "grid-cols-1"
             : isFilterCollapsed
-            ? "60px 1fr"
-            : "300px 1fr",
-        }}
+            ? "grid-cols-[80px_1fr]"
+            : "grid-cols-[400px_1fr]"
+        } transition-all duration-300`}
       >
-        {/* Left column - Filter section or empty space when loading */}
         {!isLoading && (
-          <div className="md:self-start">
+          <div className="h-fit">
             <AnimatePresence mode="wait">
               <motion.div
                 key="filter"
@@ -364,7 +362,7 @@ export default function SearchTab({
                 animate="visible"
                 exit="exit"
                 variants={fadeIn}
-                className="sticky top-4"
+                className="sticky top-6"
               >
                 <FilterSection
                   language={language}
@@ -389,14 +387,12 @@ export default function SearchTab({
           </div>
         )}
 
-        {/* Right column - Content area */}
-        <div className="space-y-2">
-          {/* Mobile filter toggle - only visible on small screens when not loading */}
+        <div className="min-w-0 flex-1">
           {!isLoading && (
-            <div className="md:hidden mb-4">
+            <div className="lg:hidden mb-4">
               <Button
                 variant="outline"
-                className="w-full flex items-center justify-center gap-2"
+                className="w-full flex items-center justify-center gap-2 border-blue-200 text-blue-700 hover:bg-blue-50 transition-all duration-200"
                 onClick={toggleFilterCollapse}
               >
                 <SlidersHorizontal className="h-4 w-4" />
@@ -420,11 +416,31 @@ export default function SearchTab({
                 variants={slideUp}
                 className="w-full"
               >
-                <Card className="border border-blue-100 shadow-sm overflow-hidden">
-                  <CardContent className="p-6">
-                    <div className="flex flex-col items-center justify-center py-4 mb-4">
-                      <RefreshCw className="h-12 w-12 text-blue-500 animate-spin mx-auto mb-4" />
-                      <h3 className="text-lg font-medium mt-4 text-gray-800">
+                <Card className="border-2 border-blue-100 shadow-lg overflow-hidden bg-white/90 backdrop-blur-sm">
+                  <CardContent className="p-8">
+                    <div className="flex flex-col items-center justify-center py-6 mb-6">
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{
+                          duration: 2,
+                          repeat: Number.POSITIVE_INFINITY,
+                          ease: "linear",
+                        }}
+                        className="relative"
+                      >
+                        <div className="w-16 h-16 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
+                          <Search className="h-8 w-8 text-white" />
+                        </div>
+                        <motion.div
+                          className="absolute inset-0 rounded-full border-4 border-blue-200"
+                          animate={{ scale: [1, 1.2, 1] }}
+                          transition={{
+                            duration: 2,
+                            repeat: Number.POSITIVE_INFINITY,
+                          }}
+                        />
+                      </motion.div>
+                      <h3 className="text-xl font-bold mt-6 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                         {getStatusMessage()}
                       </h3>
                     </div>
@@ -442,11 +458,20 @@ export default function SearchTab({
                 exit="exit"
                 variants={slideUp}
               >
-                <Card className="border border-blue-100 shadow-sm overflow-hidden">
-                  <CardContent className="p-6">
-                    <div className="flex flex-col items-center justify-center py-4 mb-4">
-                      <RefreshCw className="h-12 w-12 text-blue-500 animate-spin mx-auto mb-4" />
-                      <h3 className="text-lg font-medium mt-4 text-gray-800">
+                <Card className="border-2 border-blue-100 shadow-lg overflow-hidden bg-gradient-to-br from-white to-blue-50/30">
+                  <CardContent className="p-8">
+                    <div className="flex flex-col items-center justify-center py-6">
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{
+                          duration: 2,
+                          repeat: Number.POSITIVE_INFINITY,
+                          ease: "linear",
+                        }}
+                      >
+                        <RefreshCw className="h-12 w-12 text-blue-500" />
+                      </motion.div>
+                      <h3 className="text-lg font-semibold mt-4 text-gray-800">
                         Loading data table...
                       </h3>
                     </div>
@@ -461,17 +486,18 @@ export default function SearchTab({
                 exit="exit"
                 variants={slideUp}
               >
-                <div className="overflow-hidden rounded-lg border border-gray-200 shadow-sm">
+                <div className="w-full overflow-hidden rounded-xl border-2 border-blue-100 shadow-lg bg-white">
                   <TwitchDataTable data={streamers} subscribed={subscribed} />
                 </div>
-                <div className="flex justify-between items-center mt-2 text-sm text-gray-500">
-                  <div>
+                <div className="flex justify-between items-center mt-4 text-sm text-gray-500 px-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-500"></div>
                     {streamers.length} results{" "}
                     {!subscribed && streamers.length === 3 && "(limited)"}
                   </div>
                   {streamers.length > 5 && (
                     <div className="text-sm text-gray-500">
-                      Showing 15 results per page
+                      Showing results per page
                     </div>
                   )}
                 </div>
@@ -484,23 +510,36 @@ export default function SearchTab({
                 exit="exit"
                 variants={slideUp}
               >
-                <Card className="border border-blue-100 shadow-sm overflow-hidden">
-                  <CardContent className="flex flex-col items-center justify-center py-12">
-                    <div className="text-center space-y-4 w-full max-w-md">
-                      <div className="bg-gray-50 p-6 rounded-full inline-block mx-auto">
-                        <Search className="h-12 w-12 text-blue-400" />
-                      </div>
-                      <h3 className="text-lg font-medium">No search results</h3>
-                      <p className="text-gray-500 max-w-md">
-                        Use the search bar and filters to find Twitch streamers
-                        that match your criteria.
-                      </p>
-                      <Button
-                        className="mt-4 bg-blue-700 hover:bg-blue-800 transition-all duration-300 transform hover:scale-105"
-                        onClick={handleSearch}
+                <Card className="border-2 border-blue-100 shadow-lg overflow-hidden bg-gradient-to-br from-white to-blue-50/30">
+                  <CardContent className="flex flex-col items-center justify-center py-16">
+                    <div className="text-center space-y-6 w-full max-w-md">
+                      <motion.div
+                        className="bg-gradient-to-br from-blue-50 to-purple-50 p-8 rounded-full inline-block mx-auto border-2 border-blue-100"
+                        whileHover={{ scale: 1.05 }}
+                        transition={{ duration: 0.2 }}
                       >
-                        Search Now
-                      </Button>
+                        <Search className="h-12 w-12 text-blue-500" />
+                      </motion.div>
+                      <h3 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                        Ready to Find Streamers
+                      </h3>
+                      <p className="text-gray-600 max-w-md leading-relaxed">
+                        Use the search filters to find Twitch streamers that
+                        match your criteria. Set your preferences and start
+                        discovering!
+                      </p>
+                      <motion.div
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        <Button
+                          className="mt-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 rounded-xl shadow-lg transition-all duration-300 transform"
+                          onClick={handleSearch}
+                        >
+                          <Search className="mr-2 h-5 w-5" />
+                          Start Searching
+                        </Button>
+                      </motion.div>
                     </div>
                   </CardContent>
                 </Card>
@@ -508,7 +547,7 @@ export default function SearchTab({
             )}
           </AnimatePresence>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }
