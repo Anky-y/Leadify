@@ -84,7 +84,7 @@ export default function TwitchScraperUI({
       //const old_request = `${process.env.NEXT_PUBLIC_BACKEND_URL}Twitch_scraper?category=${category}&minimum_followers=10&viewer_count=10&user_id=${user?.id}&language=en&maximum_followers=100005`
       console.log(process.env.NEXT_PUBLIC_BACKEND_URL);
       const triggerRes = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}Twitch_scraper/`,
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}Twitch_scraper`,
         {
           method: "POST",
           headers: {
