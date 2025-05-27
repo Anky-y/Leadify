@@ -1,5 +1,7 @@
 "use client";
 
+import type React from "react";
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,9 +32,10 @@ import {
   Trash2,
   AlertCircle,
   RefreshCw,
+  Sparkles,
+  Zap,
 } from "lucide-react";
 
-// Define the saved filter type based on the database schema
 interface SavedFilter {
   id: string;
   user_id: string;
@@ -62,7 +65,6 @@ interface SavedFiltersTabProps {
   maxFollowers: number;
   minViewers: number;
   maxViewers: number;
-  // Add other props as needed
 }
 
 export default function SavedFiltersTab({
@@ -73,7 +75,7 @@ export default function SavedFiltersTab({
   setMaxFollowers,
   setMinViewers,
   setMaxViewers,
-  setRunSearchOnTab
+  setRunSearchOnTab,
 }: SavedFiltersTabProps) {
   const [savedFilters, setSavedFilters] = useState<SavedFilter[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -82,7 +84,6 @@ export default function SavedFiltersTab({
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const { user } = useUser();
 
-  // Fetch saved filters when component mounts or user changes
   useEffect(() => {
     if (user?.id) {
       fetchSavedFilters();
@@ -92,13 +93,11 @@ export default function SavedFiltersTab({
     }
   }, [user]);
 
-  // Function to fetch saved filters from the database
   const fetchSavedFilters = async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      console.log(process.env.NEXT_PUBLIC_BACKEND_URL);
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}filters?user_id=${user?.id}`,
         {
@@ -114,7 +113,6 @@ export default function SavedFiltersTab({
       }
 
       const data = await response.json();
-      console.log(data);
       setSavedFilters(data);
     } catch (error) {
       console.error("Error fetching saved filters:", error);
@@ -124,10 +122,7 @@ export default function SavedFiltersTab({
     }
   };
 
-  // Function to handle running a saved filter
   const runSavedFilter = (filter: SavedFilter) => {
-    console.log(filter.category);
-    // Apply the filter settings
     setLanguage(filter.language || "");
     setCategory(filter.category || "");
     setMinFollowers(filter.min_followers);
@@ -135,13 +130,11 @@ export default function SavedFiltersTab({
     setMinViewers(filter.min_viewers);
     setMaxViewers(filter.max_viewers);
 
-    // Switch to search tab nd run the search
     setActiveTab("search");
     setRunSearchOnTab(true);
     toast.success(`Running search with "${filter.name}" filter`);
   };
 
-  // Function to delete a saved filter
   const deleteFilter = async () => {
     if (!deleteId) return;
 
@@ -165,10 +158,8 @@ export default function SavedFiltersTab({
         throw new Error("Failed to delete filter");
       }
 
-      // Remove the deleted filter from the state
       setSavedFilters(savedFilters.filter((filter) => filter.id !== deleteId));
-
-      toast.success("The filter has been removed from your saved filters");
+      toast.success("Filter has been removed from your saved filters");
     } catch (error) {
       console.error("Error deleting filter:", error);
       toast.error("Failed to delete filter. Please try again.");
@@ -178,13 +169,12 @@ export default function SavedFiltersTab({
     }
   };
 
-  // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.05,
+        staggerChildren: 0.1,
       },
     },
   };
@@ -195,7 +185,7 @@ export default function SavedFiltersTab({
       opacity: 1,
       y: 0,
       transition: {
-        duration: 0.3,
+        duration: 0.4,
       },
     },
   };
@@ -205,14 +195,23 @@ export default function SavedFiltersTab({
     tap: { scale: 0.95, transition: { duration: 0.1 } },
   };
 
-  // Render loading state
   if (isLoading) {
     return (
-      <Card className="border border-blue-100 shadow-sm overflow-hidden">
-        <CardContent className="p-6">
-          <div className="flex flex-col items-center justify-center py-8">
-            <RefreshCw className="h-10 w-10 text-blue-500 animate-spin mx-auto mb-4" />
-            <h3 className="text-lg font-medium mt-2 text-gray-800">
+      <Card className="border-2 border-blue-100 shadow-lg overflow-hidden bg-gradient-to-br from-white to-blue-50/30">
+        <CardContent className="p-8">
+          <div className="flex flex-col items-center justify-center py-12">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{
+                duration: 2,
+                repeat: Number.POSITIVE_INFINITY,
+                ease: "linear",
+              }}
+              className="mb-6"
+            >
+              <RefreshCw className="h-12 w-12 text-blue-500" />
+            </motion.div>
+            <h3 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
               Loading saved filters...
             </h3>
           </div>
@@ -221,21 +220,21 @@ export default function SavedFiltersTab({
     );
   }
 
-  // Render error state
   if (error) {
     return (
-      <Card className="border border-red-100 shadow-sm overflow-hidden">
-        <CardContent className="p-6">
-          <div className="flex flex-col items-center justify-center py-8">
-            <AlertCircle className="h-10 w-10 text-red-500 mx-auto mb-4" />
-            <h3 className="text-lg font-medium mt-2 text-gray-800">
+      <Card className="border-2 border-red-100 shadow-lg overflow-hidden bg-gradient-to-br from-white to-red-50/30">
+        <CardContent className="p-8">
+          <div className="flex flex-col items-center justify-center py-12">
+            <div className="bg-gradient-to-br from-red-50 to-red-100 p-6 rounded-full border-2 border-red-200 mb-6">
+              <AlertCircle className="h-12 w-12 text-red-500" />
+            </div>
+            <h3 className="text-xl font-bold text-red-700 mb-3">
               Error loading filters
             </h3>
-            <p className="text-gray-500 mt-2">{error}</p>
+            <p className="text-red-600 mb-6 text-center">{error}</p>
             <Button
-              className="mt-4"
-              variant="outline"
               onClick={fetchSavedFilters}
+              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700"
             >
               Try Again
             </Button>
@@ -245,19 +244,24 @@ export default function SavedFiltersTab({
     );
   }
 
-  // Render empty state
   if (savedFilters.length === 0) {
     return (
-      <Card>
-        <CardContent className="flex flex-col items-center justify-center py-12">
-          <div className="text-center space-y-2">
-            <div className="bg-blue-50 p-4 rounded-full inline-block mx-auto">
-              <Filter className="h-10 w-10 text-blue-500" />
-            </div>
-            <h3 className="text-lg font-medium mt-4">No saved filters</h3>
-            <p className="text-gray-500 max-w-md">
-              Save your search filters to quickly access them later. Your saved
-              filters will appear here.
+      <Card className="border-2 border-blue-100 shadow-lg bg-gradient-to-br from-white to-blue-50/30">
+        <CardContent className="flex flex-col items-center justify-center py-16">
+          <div className="text-center space-y-6">
+            <motion.div
+              className="bg-gradient-to-br from-blue-50 to-purple-50 p-8 rounded-full inline-block mx-auto border-2 border-blue-100"
+              whileHover={{ scale: 1.05 }}
+              transition={{ duration: 0.2 }}
+            >
+              <Filter className="h-12 w-12 text-blue-500" />
+            </motion.div>
+            <h3 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              No saved filters yet
+            </h3>
+            <p className="text-gray-600 max-w-md leading-relaxed">
+              Save your search filters to quickly access them later. Create
+              custom filter combinations and reuse them whenever you need.
             </p>
           </div>
         </CardContent>
@@ -265,14 +269,13 @@ export default function SavedFiltersTab({
     );
   }
 
-  // Render saved filters
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <motion.div
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="grid gap-4 md:grid-cols-2 lg:grid-cols-3"
+        className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
       >
         <AnimatePresence>
           {savedFilters.map((filter) => (
@@ -282,28 +285,41 @@ export default function SavedFiltersTab({
               layout
               exit={{ opacity: 0, scale: 0.8 }}
               className="group"
+              whileHover={{ y: -4 }}
+              transition={{ duration: 0.2 }}
             >
-              <Card className="h-full border border-gray-200 hover:border-blue-200 transition-all duration-200 hover:shadow-md">
-                <CardHeader className="pb-2">
+              <Card className="h-full flex flex-col transition-all duration-300 border-2 border-blue-100 hover:border-blue-300 hover:shadow-xl bg-gradient-to-br from-white to-blue-50/30 group-hover:shadow-blue-100/50">
+                <CardHeader className="pb-3 relative">
                   <div className="flex justify-between items-start">
-                    <CardTitle className="text-lg font-semibold text-blue-800 group-hover:text-blue-700 transition-colors">
-                      {filter.name}
-                    </CardTitle>
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
+                        <Sparkles className="h-4 w-4 text-white" />
+                      </div>
+                      <CardTitle className="text-lg font-bold bg-gradient-to-r from-blue-700 to-purple-700 bg-clip-text text-transparent group-hover:from-blue-800 group-hover:to-purple-800 transition-all">
+                        {filter.name}
+                      </CardTitle>
+                    </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-gray-500"
+                          className="h-8 w-8 text-gray-500 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200"
                         >
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                      <DropdownMenuContent
+                        align="end"
+                        className="border-blue-100"
+                      >
+                        <DropdownMenuLabel className="text-blue-700">
+                          Actions
+                        </DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           onClick={() => runSavedFilter(filter)}
+                          className="hover:bg-blue-50 hover:text-blue-700"
                         >
                           <Play className="h-4 w-4 mr-2" />
                           Run Filter
@@ -314,7 +330,7 @@ export default function SavedFiltersTab({
                             setIsDeleting(true);
                             setDeleteId(filter.id);
                           }}
-                          className="text-red-600"
+                          className="text-red-600 hover:bg-red-50 hover:text-red-700"
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
                           Delete
@@ -323,35 +339,52 @@ export default function SavedFiltersTab({
                     </DropdownMenu>
                   </div>
                 </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="space-y-3">
-                    <div className="flex items-center text-xs text-gray-600">
+                <CardContent className="pt-0 flex-grow">
+                  <div className="space-y-4">
+                    <div className="flex items-center text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full w-fit">
                       <Calendar className="h-3 w-3 mr-1" />
                       {new Date(filter.created_at).toLocaleDateString()}
                     </div>
 
-                    <div className="bg-gray-50 p-3 rounded-md">
-                      <h4 className="text-xs font-medium text-gray-700 mb-2">
+                    <div className="bg-gradient-to-br from-blue-50 to-purple-50 p-4 rounded-xl border border-blue-100">
+                      <h4 className="text-sm font-bold text-blue-700 mb-3 flex items-center gap-1">
+                        <Filter className="h-3 w-3" />
                         Filter Settings
                       </h4>
-                      <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
-                        <div>
-                          <span className="font-medium">Language:</span>{" "}
-                          {filter.language || "Any"}
+                      <div className="grid grid-cols-2 gap-3 text-xs">
+                        <div className="space-y-1">
+                          <span className="font-semibold text-blue-600">
+                            Language:
+                          </span>
+                          <div className="text-gray-700 bg-white px-2 py-1 rounded border">
+                            {filter.language || "Any"}
+                          </div>
                         </div>
-                        <div>
-                          <span className="font-medium">Category:</span>{" "}
-                          {filter.category || "Any"}
+                        <div className="space-y-1">
+                          <span className="font-semibold text-blue-600">
+                            Category:
+                          </span>
+                          <div className="text-gray-700 bg-white px-2 py-1 rounded border">
+                            {filter.category || "Any"}
+                          </div>
                         </div>
-                        <div>
-                          <span className="font-medium">Followers:</span>{" "}
-                          {filter.min_followers.toLocaleString()} -{" "}
-                          {filter.max_followers.toLocaleString()}
+                        <div className="space-y-1">
+                          <span className="font-semibold text-blue-600">
+                            Followers:
+                          </span>
+                          <div className="text-gray-700 bg-white px-2 py-1 rounded border">
+                            {filter.min_followers.toLocaleString()} -{" "}
+                            {filter.max_followers.toLocaleString()}
+                          </div>
                         </div>
-                        <div>
-                          <span className="font-medium">Viewers:</span>{" "}
-                          {filter.min_viewers.toLocaleString()} -{" "}
-                          {filter.max_viewers.toLocaleString()}
+                        <div className="space-y-1">
+                          <span className="font-semibold text-blue-600">
+                            Viewers:
+                          </span>
+                          <div className="text-gray-700 bg-white px-2 py-1 rounded border">
+                            {filter.min_viewers.toLocaleString()} -{" "}
+                            {filter.max_viewers.toLocaleString()}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -360,13 +393,13 @@ export default function SavedFiltersTab({
                       variants={buttonVariants}
                       whileHover="hover"
                       whileTap="tap"
-                      className="mt-2"
+                      className="mt-auto"
                     >
                       <Button
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
                         onClick={() => runSavedFilter(filter)}
                       >
-                        <Play className="h-4 w-4 mr-2" />
+                        <Zap className="h-4 w-4 mr-2" />
                         Run Filter
                       </Button>
                     </motion.div>
@@ -378,22 +411,32 @@ export default function SavedFiltersTab({
         </AnimatePresence>
       </motion.div>
 
-      {/* Delete confirmation dialog */}
       <Dialog open={isDeleting} onOpenChange={setIsDeleting}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="border-red-100">
           <DialogHeader>
-            <DialogTitle>Delete Filter</DialogTitle>
+            <DialogTitle className="text-red-700 flex items-center gap-2">
+              <AlertCircle className="h-5 w-5" />
+              Delete Filter
+            </DialogTitle>
             <DialogDescription>
               Are you sure you want to delete this filter? This action cannot be
-              undone.
+              undone and you'll lose all the saved filter settings.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setIsDeleting(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsDeleting(false)}
+              className="border-gray-300 hover:bg-gray-50"
+            >
               Cancel
             </Button>
-            <Button variant="destructive" onClick={deleteFilter}>
-              Delete
+            <Button
+              variant="destructive"
+              onClick={deleteFilter}
+              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700"
+            >
+              Delete Filter
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -5,8 +5,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SearchTab from "./tabs/search-tab";
 import SavedStreamersTab from "./tabs/saved-streamers-tab";
 import SavedFiltersTab from "./tabs/saved-filters-tab";
-// Remove or comment out the old import:
-// import SearchHistoryTab from "./tabs/search-history-tab";
 
 // Import types and mock data
 import type { ScrapingProgress, TwitchData } from "./types";
@@ -59,8 +57,6 @@ export default function TwitchScraperUI({
       setUser(contextUser);
     }
   }, [contextUser, loading]);
-
-
 
   // Update the ref whenever progressData changes
   const updateProgressData = (data: ScrapingProgress) => {
@@ -138,7 +134,7 @@ export default function TwitchScraperUI({
                   complete: (result) => {
                     console.log(result);
                     setStreamers(result.data);
-                    console.log(streamers)
+                    console.log(streamers);
                     setLoadingStreamers(false);
                   },
                   error: (err: any) => {
@@ -166,12 +162,49 @@ export default function TwitchScraperUI({
     }
   };
 
+  const handleSearchRef = useRef(handleSearch);
+
+  useEffect(() => {
+    handleSearchRef.current = handleSearch;
+  }, []);
+
   useEffect(() => {
     if (activeTab === "search" && runSearchOnTab) {
-      handleSearch();
+      handleSearchRef.current();
       setRunSearchOnTab(false);
     }
-  }, [activeTab, runSearchOnTab, handleSearch]);
+  }, [activeTab, runSearchOnTab]);
+
+  // Get dynamic header text based on active tab
+  const getHeaderText = () => {
+    switch (activeTab) {
+      case "search":
+        return {
+          title: "Streamer Discovery",
+          subtitle:
+            "Find and analyze Twitch streamers based on your specific requirements",
+        };
+      case "saved":
+        return {
+          title: "Saved Streamers",
+          subtitle:
+            "Manage and organize your saved Twitch streamers collection",
+        };
+      case "filters":
+        return {
+          title: "Saved Filters",
+          subtitle: "Quick access to your saved search filter configurations",
+        };
+      default:
+        return {
+          title: "Twitch Scraper",
+          subtitle:
+            "Find and analyze Twitch streamers based on your specific requirements",
+        };
+    }
+  };
+
+  const headerText = getHeaderText();
 
   // Animation variants
   const pageTransition = {
@@ -195,127 +228,135 @@ export default function TwitchScraperUI({
 
   return (
     <motion.div
-      className="space-y-6"
+      className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100"
       initial="hidden"
       animate="visible"
       variants={pageTransition}
     >
-      <motion.div variants={itemTransition}>
-        <h1 className="text-3xl font-bold tracking-tight">Twitch Scraper</h1>
-        <p className="text-muted-foreground">
-          Find and filter Twitch streamers based on your specific requirements.
-        </p>
-      </motion.div>
+      <div className="w-full max-w-none px-6 py-6 space-y-6">
+        <motion.div variants={itemTransition} className="text-center">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-2">
+            {headerText.title}
+          </h1>
+          <p className="text-slate-600 text-lg">{headerText.subtitle}</p>
+        </motion.div>
 
-      <motion.div variants={itemTransition}>
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList>
-            <TabsTrigger
-              value="search"
-              className="transition-all duration-200 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700"
-            >
-              Search
-            </TabsTrigger>
-            <TabsTrigger
-              value="saved"
-              className="transition-all duration-200 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700"
-            >
-              Saved Streamers
-            </TabsTrigger>
-            <TabsTrigger
-              value="filters"
-              className="transition-all duration-200 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700"
-            >
-              Saved Filters
-            </TabsTrigger>
-          </TabsList>
+        <motion.div variants={itemTransition}>
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="w-full"
+          >
+            <div className="flex justify-center mb-6">
+              <TabsList className="bg-white/80 backdrop-blur-sm border border-slate-200 p-0 rounded-xl shadow-lg">
+                <TabsTrigger
+                  value="search"
+                  className="transition-all duration-300 data-[state=active]:bg-slate-100 data-[state=active]:text-slate-800 data-[state=active]:shadow-md px-8 py-3 rounded-lg font-semibold"
+                >
+                  Search
+                </TabsTrigger>
+                <TabsTrigger
+                  value="saved"
+                  className="transition-all duration-300 data-[state=active]:bg-slate-100 data-[state=active]:text-slate-800 data-[state=active]:shadow-md px-8 py-3 rounded-lg font-semibold"
+                >
+                  Saved Streamers
+                </TabsTrigger>
+                <TabsTrigger
+                  value="filters"
+                  className="transition-all duration-300 data-[state=active]:bg-slate-100 data-[state=active]:text-slate-800 data-[state=active]:shadow-md px-8 py-3 rounded-lg font-semibold"
+                >
+                  Saved Filters
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
-          <AnimatePresence mode="wait">
-            {activeTab === "search" && (
-              <motion.div
-                key="search-tab"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.3 }}
-              >
-                <TabsContent value="search" forceMount>
-                  <SearchTab
-                    searchTerm={searchTerm}
-                    setSearchTerm={setSearchTerm}
-                    language={language}
-                    setLanguage={setLanguage}
-                    category={category}
-                    setCategory={setCategory}
-                    minFollowers={minFollowers}
-                    setMinFollowers={setMinFollowers}
-                    maxFollowers={maxFollowers}
-                    setMaxFollowers={setMaxFollowers}
-                    minViewers={minViewers}
-                    setMinViewers={setMinViewers}
-                    maxViewers={maxViewers}
-                    setMaxViewers={setMaxViewers}
-                    isLoading={isLoading}
-                    loadingProgress={loadingProgress}
-                    data={data}
-                    subscribed={subscribed}
-                    setSubscribed={setSubscribed}
-                    initialSubscribed={initialSubscribed}
-                    handleSearch={handleSearch}
-                    progressData={progressData}
-                    streamers={streamers}
-                    loadingStreamers={loadingStreamers}
-                  />
-                </TabsContent>
-              </motion.div>
-            )}
+            <AnimatePresence mode="wait">
+              {activeTab === "search" && (
+                <motion.div
+                  key="search-tab"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <TabsContent value="search" forceMount className="mt-0">
+                    <SearchTab
+                      searchTerm={searchTerm}
+                      setSearchTerm={setSearchTerm}
+                      language={language}
+                      setLanguage={setLanguage}
+                      category={category}
+                      setCategory={setCategory}
+                      minFollowers={minFollowers}
+                      setMinFollowers={setMinFollowers}
+                      maxFollowers={maxFollowers}
+                      setMaxFollowers={setMaxFollowers}
+                      minViewers={minViewers}
+                      setMinViewers={setMinViewers}
+                      maxViewers={maxViewers}
+                      setMaxViewers={setMaxViewers}
+                      isLoading={isLoading}
+                      loadingProgress={loadingProgress}
+                      data={data}
+                      subscribed={subscribed}
+                      setSubscribed={setSubscribed}
+                      initialSubscribed={initialSubscribed}
+                      handleSearch={handleSearch}
+                      progressData={progressData}
+                      streamers={streamers}
+                      loadingStreamers={loadingStreamers}
+                    />
+                  </TabsContent>
+                </motion.div>
+              )}
 
-            {activeTab === "saved" && (
-              <motion.div
-                key="saved-tab"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.3 }}
-              >
-                <TabsContent value="saved" forceMount>
-                  <SavedStreamersTab />
-                </TabsContent>
-              </motion.div>
-            )}
+              {activeTab === "saved" && (
+                <motion.div
+                  key="saved-tab"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <TabsContent value="saved" forceMount className="mt-0">
+                    <SavedStreamersTab />
+                  </TabsContent>
+                </motion.div>
+              )}
 
-            {activeTab === "filters" && (
-              <motion.div
-                key="filters-tab"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.3 }}
-              >
-                <TabsContent value="filters" forceMount>
-                  <SavedFiltersTab
-                    setActiveTab={setActiveTab}
-                    handleSearch={handleSearch}
-                    setLanguage={setLanguage}
-                    setCategory={setCategory}
-                    setMinFollowers={setMinFollowers}
-                    setMaxFollowers={setMaxFollowers}
-                    setMinViewers={setMinViewers}
-                    setMaxViewers={setMaxViewers}
-                    setRunSearchOnTab={setRunSearchOnTab} // <-- add this
-                    language={language}
-                    category={category}
-                    minFollowers={minFollowers}
-                    maxFollowers={maxFollowers}
-                    minViewers={minViewers}
-                    maxViewers={maxViewers}
-                  />
-                </TabsContent>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </Tabs>
-      </motion.div>
+              {activeTab === "filters" && (
+                <motion.div
+                  key="filters-tab"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <TabsContent value="filters" forceMount className="mt-0">
+                    <SavedFiltersTab
+                      setActiveTab={setActiveTab}
+                      handleSearch={handleSearch}
+                      setLanguage={setLanguage}
+                      setCategory={setCategory}
+                      setMinFollowers={setMinFollowers}
+                      setMaxFollowers={setMaxFollowers}
+                      setMinViewers={setMinViewers}
+                      setMaxViewers={setMaxViewers}
+                      setRunSearchOnTab={setRunSearchOnTab}
+                      language={language}
+                      category={category}
+                      minFollowers={minFollowers}
+                      maxFollowers={maxFollowers}
+                      minViewers={minViewers}
+                      maxViewers={maxViewers}
+                    />
+                  </TabsContent>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </Tabs>
+        </motion.div>
+      </div>
     </motion.div>
   );
 }

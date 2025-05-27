@@ -182,6 +182,8 @@ export default function SavedStreamersTable({
     }
   }, [isDesktop, isTablet, isMobile]);
 
+  console.log(data);
+
   const { user } = useUser();
 
   const itemsPerPage = isDesktop ? 10 : isTablet ? 7 : 5;
@@ -356,6 +358,7 @@ export default function SavedStreamersTable({
 
   // Apply sorting and pagination
   const sortedData = sortData(data);
+  console.log(sortedData);
   const totalPages = Math.ceil(sortedData.length / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
@@ -382,6 +385,7 @@ export default function SavedStreamersTable({
   };
 
   console.log(data);
+  console.log(currentItems);
 
   return (
     <motion.div
