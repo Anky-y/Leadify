@@ -252,7 +252,7 @@ export default function SearchTab({
                   {Number(progressData.Rate).toFixed(0)
                     ? Number(progressData.Rate).toFixed(0)
                     : "N/A"}{" "}
-                  streamers/sec
+                  sec/streamer
                 </div>
               </div>
             </div>
@@ -266,10 +266,10 @@ export default function SearchTab({
               <div>
                 <div className="text-xs text-gray-500">Estimated Time</div>
                 <div className="text-sm font-medium">
-                  {Number(progressData.ETA).toFixed(0)
-                    ? Number(progressData.ETA).toFixed(0)
+                  {progressData.ETA
+                    ? progressData.ETA
                     : "N/A"}
-                  seconds remaining
+                   remaining
                 </div>
               </div>
             </div>
