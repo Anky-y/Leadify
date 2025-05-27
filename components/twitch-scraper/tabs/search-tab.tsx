@@ -251,11 +251,13 @@ export default function SearchTab({
                 <Loader2 className="w-5 h-5 text-white animate-spin" />
               </div>
               <div>
-                <div className="text-xs text-blue-600 font-medium">
-                  Processing Rate
-                </div>
+
+                <div className="text-xs text-blue-600 font-medium">Processing Rate</div>
                 <div className="text-sm font-bold text-gray-800">
-                  {Number(progressData.Rate).toFixed(0) || "N/A"} streamers/sec
+                  {Number(progressData.Rate).toFixed(0)
+                    ? Number(progressData.Rate).toFixed(0)
+                    : "N/A"}{" "}
+                  sec/streamer
                 </div>
               </div>
             </motion.div>
@@ -271,12 +273,12 @@ export default function SearchTab({
                 <AlertCircle className="w-5 h-5 text-white" />
               </div>
               <div>
-                <div className="text-xs text-blue-600 font-medium">
-                  Estimated Time
-                </div>
+                <div className="text-xs text-blue-600 font-medium">Estimated Time</div>
                 <div className="text-sm font-bold text-gray-800">
-                  {Number(progressData.ETA).toFixed(0) || "N/A"} seconds
-                  remaining
+                  {progressData.ETA
+                    ? progressData.ETA
+                    : "N/A"}
+                   remaining
                 </div>
               </div>
             </motion.div>
