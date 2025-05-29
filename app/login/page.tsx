@@ -33,7 +33,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.FormEvent<HTMLButtonElement>) {
     e.preventDefault();
 
     if (!email || !password) {
@@ -58,6 +58,7 @@ export default function LoginPage() {
         className="w-full bg-blue-700 hover:bg-blue-800"
         type="submit"
         disabled={pending}
+        onClick={handleSubmit}
       >
         {pending ? "Signing in..." : "Sign In"}
       </Button>
@@ -94,7 +95,7 @@ export default function LoginPage() {
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
                   <Input

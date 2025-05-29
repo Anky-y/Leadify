@@ -163,7 +163,7 @@ export default function SavedStreamersTab({}: SavedStreamersTabProps) {
       );
       setSavedStreamers((prev) => prev.filter((s) => s.id !== id));
       toast.success("Streamer removed from saved list.");
-      fetchData(user?.id, "all");
+      handleFolderClick(selectedFolder?.id!);
     } catch (err) {
       toast.error("Failed to delete streamer");
     }
@@ -251,6 +251,7 @@ export default function SavedStreamersTab({}: SavedStreamersTabProps) {
         )
       );
       toast.success("Folder deleted");
+      handleFolderClick(folders[0].id);
     } catch (err) {
       toast.error("Failed to delete folder");
     }

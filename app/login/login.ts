@@ -7,14 +7,14 @@ export async function handleLogin(
   refreshUser: () => Promise<void> // Accept refreshUser as a parameter
 ): Promise<{ error: string | null }> {
   const supabase = createClient();
-  const { error } = await supabase.auth.signInWithPassword({
+  const response = await supabase.auth.signInWithPassword({
     email,
     password,
   });
 
-  if (error) {
-    console.error("Login error:", error.message);
-    return { error: error.message };
+  if (response.error) {
+    console.error("Login error:", response.error.message);
+    return { error: response.error.message };
   }
   await refreshUser();
   return { error: null };
