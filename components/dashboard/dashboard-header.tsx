@@ -37,24 +37,7 @@ interface DashboardHeaderProps {
   onLogout?: () => void;
 }
 
-/*************  ✨ Windsurf Command ⭐  *************/
-/**
- * Renders the dashboard header component which includes the sidebar trigger,
- * page title, credits display, notifications, help button, theme toggle, and
- * user profile dropdown. This component manages the page title based on the
- * current URL pathname and displays notifications with an unread count badge.
- * It also provides user profile information and actions, including a logout
- * functionality.
- *
- * @param {Object} props - The properties object.
- * @param {User} [props.user] - The current user object with user details.
- * @param {Function} [props.onLogout] - Callback function to handle user logout.
- */
-
-/*******  d3c4490c-ad0e-4cc0-960e-ea6f1dd24240  *******/ export function DashboardHeader({
-  user,
-  onLogout,
-}: DashboardHeaderProps) {
+export function DashboardHeader({ user, onLogout }: DashboardHeaderProps) {
   const pathname = usePathname();
   const [pageTitle, setPageTitle] = React.useState<string>("");
 
@@ -111,6 +94,7 @@ interface DashboardHeaderProps {
       .join(" ");
   }
 
+  console.log(user);
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-16 items-center gap-4 px-4">
@@ -136,7 +120,7 @@ interface DashboardHeaderProps {
           >
             <div className="flex items-center gap-1.5">
               <CreditCard className="h-4 w-4 text-amber-500 transition-transform duration-300 group-hover:scale-110" />
-              <span className="font-semibold">200</span>
+              <span className="font-semibold">{user?.credits || 0}</span>
               <span className="hidden sm:inline text-xs">Credits</span>
             </div>
           </Button>

@@ -14,7 +14,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
+import { useUser } from "@/app/context/UserContext";
+import { createClient } from "@/utils/supabase-browser";
+import { toast } from "sonner";
 
+// Calculate savings}
 // Animated counter component
 function AnimatedCounter({
   value,
@@ -50,7 +54,13 @@ function AnimatedCounter({
 export default function BillingPage() {
   const [isYearly, setIsYearly] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState("pro");
-  const [currentCredits] = useState(142);
+  const [currentCredits, setCurrentCredits] = useState(0);
+  const { user } = useUser();
+
+  useEffect(() => {
+    const credits = user?.credits || 0;
+    setCurrentCredits(credits);
+  });
 
   // Current subscription data
   const currentPlan = {
@@ -118,6 +128,8 @@ export default function BillingPage() {
       credits: 100,
       price: 5,
       description: "Perfect for small projects",
+      checkout_url:
+        "https://leadifysolutions.lemonsqueezy.com/buy/d82a2214-2b2b-436a-be26-6105a7fcdf65",
     },
     {
       id: "growth",
@@ -126,6 +138,8 @@ export default function BillingPage() {
       price: 20,
       description: "Great for growing businesses",
       popular: true,
+      checkout_url:
+        "https://leadifysolutions.lemonsqueezy.com/buy/7658cebc-9507-4278-aa94-e09ee20cd766",
     },
     {
       id: "scale",
@@ -133,6 +147,8 @@ export default function BillingPage() {
       credits: 1000,
       price: 35,
       description: "For scaling operations",
+      checkout_url:
+        "https://leadifysolutions.lemonsqueezy.com/buy/c69f17b9-a809-4aef-abb1-47989c0e5c2a",
     },
     {
       id: "power",
@@ -140,6 +156,8 @@ export default function BillingPage() {
       credits: 5000,
       price: 150,
       description: "Maximum value pack",
+      checkout_url:
+        "https://leadifysolutions.lemonsqueezy.com/buy/c69f17b9-a809-4aef-abb1-47989c0e5c2a",
     },
   ];
 
@@ -147,6 +165,69 @@ export default function BillingPage() {
     if (monthly === 0) return 0;
     return Math.round(((monthly * 12 - yearly) / (monthly * 12)) * 100);
   };
+
+  const handleBuyCredits = async (pack: {
+    id: string;
+    credits: number;
+    checkout_url: string;
+  }) => {
+    if (!user) {
+      toast.error("You need to be logged in to buy credits.");
+      return;
+    }
+    const redirectUrl = new URL(`${pack.checkout_url}`);
+    redirectUrl.searchParams.set("checkout[user_id]", user?.id || "");
+
+    // You can also pass email or other custom values if needed
+    // redirectUrl.searchParams.set("checkout[email]", user?.email || "");
+
+    window.location.href = redirectUrl.toString();
+  };
+  // const handleBuyCredits = async (credits: number) => {
+  //   const supabase = createClient();
+
+  //   if (!user) {
+  //     toast.error("You need to be logged in to buy credits.");
+  //     return;
+  //   }
+
+  //   try {
+  //     // Get the user's JWT
+  //     const {
+  //       data: { session },
+  //     } = await supabase.auth.getSession();
+
+  //     const token = session?.access_token;
+  //     if (!token) {
+  //       toast.error("Could not authenticate request.");
+  //       return;
+  //     }
+
+  //     const res = await fetch(
+  //       `${process.env.NEXT_PUBLIC_API_URL}/buy-credits`,
+  //       {
+  //         method: "POST",
+  //         headers: {
+  //           "Content-Type": "application/json",
+  //           Authorization: `Bearer ${token}`, // backend should verify this
+  //         },
+  //         body: JSON.stringify({ credits }),
+  //       }
+  //     );
+
+  //     const result = await res.json();
+
+  //     if (res.ok && result.success) {
+  //       toast.success(`Successfully added ${credits} credits!`);
+  //       // Optional: refresh UI or user state
+  //     } else {
+  //       toast.error(result.error || "Failed to add credits.");
+  //     }
+  //   } catch (err) {
+  //     console.error("Error buying credits:", err);
+  //     toast.error("Something went wrong.");
+  //   }
+  // };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-4 md:p-8">
@@ -403,6 +484,7 @@ export default function BillingPage() {
                         : "hover:bg-green-50 dark:hover:bg-green-950"
                     )}
                     variant={pack.popular ? "default" : "outline"}
+                    onClick={() => handleBuyCredits(pack)}
                   >
                     <CreditCard className="mr-2 h-4 w-4" />
                     Buy Credits
