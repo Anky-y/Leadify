@@ -1,19 +1,10 @@
-"use client";
+"use client"
 
-import * as React from "react";
-import {
-  Bell,
-  HelpCircle,
-  CreditCard,
-  Settings,
-  LogOut,
-  User as UserIcon,
-  ChevronDown,
-  Zap,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import * as React from "react"
+import { Bell, HelpCircle, CreditCard, Settings, LogOut, UserIcon, ChevronDown, Zap } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,56 +12,95 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { SidebarTrigger } from "@/components/ui/sidebar";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { usePathname } from "next/navigation";
-import User from "../../app/types/user";
+} from "@/components/ui/dropdown-menu"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { SidebarTrigger } from "@/components/ui/sidebar"
+import { ThemeToggle } from "@/components/theme-toggle"
+import { usePathname } from "next/navigation"
+import type User from "../../app/types/user"
+import { createClient } from "@supabase/supabase-js"
 
 interface DashboardHeaderProps {
-  user?: User | null;
-  onLogout?: () => void;
+  user?: User | null
+  onLogout?: () => void
 }
 
 export function DashboardHeader({ user, onLogout }: DashboardHeaderProps) {
-  const pathname = usePathname();
-  const [pageTitle, setPageTitle] = React.useState<string>("");
+  const pathname = usePathname()
+  const [pageTitle, setPageTitle] = React.useState<string>("")
 
   React.useEffect(() => {
     if (pathname) {
-      setPageTitle(getTitleFromUrl(pathname));
+      setPageTitle(getTitleFromUrl(pathname))
     }
-  }, [pathname]);
-  const [notifications] = React.useState([
-    {
-      id: 1,
-      title: "New search completed",
-      description: "Your Twitch scraper search found 127 new streamers",
-      time: "2 minutes ago",
-      unread: true,
-    },
-    {
-      id: 2,
-      title: "Credits running low",
-      description: "You have 142 credits remaining",
-      time: "1 hour ago",
-      unread: true,
-    },
-    {
-      id: 3,
-      title: "Export ready",
-      description: "Your CSV export is ready for download",
-      time: "3 hours ago",
-      unread: false,
-    },
-  ]);
+  }, [pathname])
 
-  const unreadCount = notifications.filter((n) => n.unread).length;
+  // Create Supabase client
+  const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
+
+  // Replace the hardcoded notifications state with:
+  const [notifications, setNotifications] = React.useState<any[]>([])
+  const [isLoadingNotifications, setIsLoadingNotifications] = React.useState(true)
+
+  // Add useEffect to fetch notifications
+  React.useEffect(() => {
+    const fetchNotifications = async () => {
+      if (!user?.id) {
+        setIsLoadingNotifications(false)
+        return
+      }
+
+      try {
+        setIsLoadingNotifications(true)
+        const { data, error } = await supabase
+          .from("notifications")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+
+        if (error) {
+          console.error("Error fetching notifications:", error)
+          return
+        }
+
+        // Format the data to match the existing structure
+        const formattedNotifications =
+          data?.map((notification: any) => ({
+            id: notification.id,
+            title: notification.title,
+            description: notification.description,
+            time: formatTimeAgo(notification.created_at),
+            unread: !notification.read,
+          })) || []
+
+        setNotifications(formattedNotifications)
+      } catch (error) {
+        console.error("Error fetching notifications:", error)
+      } finally {
+        setIsLoadingNotifications(false)
+      }
+    }
+
+    fetchNotifications()
+  }, [user?.id])
+
+  // Add helper function to format time
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60))
+
+    if (diffInMinutes < 1) return "Just now"
+    if (diffInMinutes < 60) return `${diffInMinutes} minute${diffInMinutes > 1 ? "s" : ""} ago`
+
+    const diffInHours = Math.floor(diffInMinutes / 60)
+    if (diffInHours < 24) return `${diffInHours} hour${diffInHours > 1 ? "s" : ""} ago`
+
+    const diffInDays = Math.floor(diffInHours / 24)
+    return `${diffInDays} day${diffInDays > 1 ? "s" : ""} ago`
+  }
+
+  const unreadCount = notifications.filter((n) => n.unread).length
 
   const mockUser = user || {
     id: "1",
@@ -78,23 +108,23 @@ export function DashboardHeader({ user, onLogout }: DashboardHeaderProps) {
     email: "john@example.com",
     subscription_status: true,
     credits: 142,
-  };
+  }
 
-  function getTitleFromUrl(url: String) {
+  function getTitleFromUrl(url: string) {
     // Split the URL by slashes and take the last part
-    const segments = url.split("/");
-    const lastSegment = segments.pop() || segments.pop(); // handles trailing slashes
+    const segments = url.split("/")
+    const lastSegment = segments.pop() || segments.pop() // handles trailing slashes
 
-    if (!lastSegment) return "Dashboard";
+    if (!lastSegment) return "Dashboard"
 
     // Replace hyphens with spaces and capitalize each word
     return lastSegment
       .split("-")
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
+      .join(" ")
   }
 
-  console.log(user);
+  console.log(user)
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-16 items-center gap-4 px-4">
@@ -128,11 +158,7 @@ export function DashboardHeader({ user, onLogout }: DashboardHeaderProps) {
           {/* Notifications */}
           <Popover>
             <PopoverTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="relative transition-all duration-200 hover:bg-accent"
-              >
+              <Button variant="ghost" size="icon" className="relative transition-all duration-200 hover:bg-accent">
                 <Bell className="h-5 w-5" />
                 {unreadCount > 0 && (
                   <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-[0.35rem] text-xs bg-blue-600 hover:bg-blue-600">
@@ -145,43 +171,57 @@ export function DashboardHeader({ user, onLogout }: DashboardHeaderProps) {
             <PopoverContent className="w-80 p-0" align="end">
               <div className="border-b p-4">
                 <h4 className="font-semibold">Notifications</h4>
-                <p className="text-sm text-muted-foreground">
-                  You have {unreadCount} unread notifications
-                </p>
+                <p className="text-sm text-muted-foreground">You have {unreadCount} unread notifications</p>
               </div>
               <div className="max-h-80 overflow-y-auto">
-                {notifications.map((notification) => (
-                  <div
-                    key={notification.id}
-                    className={`border-b p-4 transition-colors hover:bg-accent ${
-                      notification.unread
-                        ? "bg-blue-50/50 dark:bg-blue-950/20"
-                        : ""
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div
-                        className={`h-2 w-2 rounded-full mt-2 ${
-                          notification.unread ? "bg-blue-600" : "bg-gray-300"
-                        }`}
-                      />
-                      <div className="flex-1 space-y-1">
-                        <p className="text-sm font-medium">
-                          {notification.title}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {notification.description}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {notification.time}
-                        </p>
+                {isLoadingNotifications ? (
+                  <div className="p-4 text-center text-sm text-muted-foreground">Loading notifications...</div>
+                ) : notifications.length === 0 ? (
+                  <div className="p-4 text-center text-sm text-muted-foreground">No notifications yet</div>
+                ) : (
+                  notifications.map((notification) => (
+                    <div
+                      key={notification.id}
+                      className={`border-b p-4 transition-colors hover:bg-accent ${
+                        notification.unread ? "bg-blue-50/50 dark:bg-blue-950/20" : ""
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div
+                          className={`h-2 w-2 rounded-full mt-2 ${notification.unread ? "bg-blue-600" : "bg-gray-300"}`}
+                        />
+                        <div className="flex-1 space-y-1">
+                          <p className="text-sm font-medium">{notification.title}</p>
+                          <p className="text-xs text-muted-foreground">{notification.description}</p>
+                          <p className="text-xs text-muted-foreground">{notification.time}</p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
               <div className="border-t p-2">
-                <Button variant="ghost" size="sm" className="w-full text-xs">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full text-xs"
+                  onClick={async () => {
+                    if (!user?.id) return
+
+                    try {
+                      await supabase
+                        .from("notifications")
+                        .update({ read: true })
+                        .eq("user_id", user.id)
+                        .eq("read", false)
+
+                      // Update local state
+                      setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })))
+                    } catch (error) {
+                      console.error("Error marking notifications as read:", error)
+                    }
+                  }}
+                >
                   Mark all as read
                 </Button>
               </div>
@@ -189,11 +229,7 @@ export function DashboardHeader({ user, onLogout }: DashboardHeaderProps) {
           </Popover>
 
           {/* Help */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="transition-all duration-200 hover:bg-accent"
-          >
+          <Button variant="ghost" size="icon" className="transition-all duration-200 hover:bg-accent">
             <HelpCircle className="h-5 w-5" />
             <span className="sr-only">Help</span>
           </Button>
@@ -210,18 +246,13 @@ export function DashboardHeader({ user, onLogout }: DashboardHeaderProps) {
               >
                 <div className="flex items-center gap-2">
                   <Avatar className="h-7 w-7">
-                    <AvatarImage
-                      src={`https://avatar.vercel.sh/${user?.id}`}
-                      alt={user?.first_name}
-                    />
+                    <AvatarImage src={`https://avatar.vercel.sh/${user?.id}`} alt={user?.first_name} />
                     <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white text-xs">
                       {user?.first_name?.charAt(0) || "U"}
                     </AvatarFallback>
                   </Avatar>
                   <div className="hidden sm:flex flex-col items-start">
-                    <span className="text-sm font-medium">
-                      {user?.first_name}
-                    </span>
+                    <span className="text-sm font-medium">{user?.first_name}</span>
                     <span className="text-xs text-muted-foreground">
                       {user?.subscription_status ? "Pro Plan" : "Free Plan"}
                     </span>
@@ -230,30 +261,19 @@ export function DashboardHeader({ user, onLogout }: DashboardHeaderProps) {
                 </div>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent
-              className="w-64 animate-in slide-in-from-top-2 duration-200"
-              align="end"
-              forceMount
-            >
+            <DropdownMenuContent className="w-64 animate-in slide-in-from-top-2 duration-200" align="end" forceMount>
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-2">
                   <div className="flex items-center gap-2">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage
-                        src={`https://avatar.vercel.sh/${user?.id}`}
-                        alt={user?.first_name}
-                      />
+                      <AvatarImage src={`https://avatar.vercel.sh/${user?.id}`} alt={user?.first_name} />
                       <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white text-xs">
                         {user?.first_name?.charAt(0) || "U"}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex flex-col">
-                      <p className="text-sm font-medium leading-none">
-                        {user?.first_name}
-                      </p>
-                      <p className="text-xs leading-none text-muted-foreground mt-1">
-                        {user?.email}
-                      </p>
+                      <p className="text-sm font-medium leading-none">{user?.first_name}</p>
+                      <p className="text-xs leading-none text-muted-foreground mt-1">{user?.email}</p>
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
@@ -290,8 +310,8 @@ export function DashboardHeader({ user, onLogout }: DashboardHeaderProps) {
               <DropdownMenuItem
                 className="cursor-pointer text-red-600 focus:text-red-600 dark:text-red-400 focus:bg-red-50 dark:focus:bg-red-950"
                 onSelect={(e) => {
-                  e.preventDefault();
-                  onLogout?.();
+                  e.preventDefault()
+                  onLogout?.()
                 }}
               >
                 <LogOut className="mr-2 h-4 w-4" />
@@ -302,5 +322,5 @@ export function DashboardHeader({ user, onLogout }: DashboardHeaderProps) {
         </div>
       </div>
     </header>
-  );
+  )
 }
