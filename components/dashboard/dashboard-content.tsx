@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { useUser } from "@/app/context/UserContext";
 
 // Animated counter component
 function AnimatedCounter({
@@ -115,6 +116,8 @@ export function DashboardContent() {
       bgColor: "bg-purple-50 dark:bg-purple-950",
     },
   ];
+
+  const { user } = useUser();
 
   return (
     <motion.div
@@ -401,12 +404,16 @@ export function DashboardContent() {
               <CardContent>
                 <div className="space-y-4">
                   {[
-                    { label: "Current Plan", value: "Pro Plan", icon: "✨" },
+                    {
+                      label: "Current Plan",
+                      value: `${user?.subscription_plan} Plan` || "Free Plan",
+                      icon: "✨",
+                    },
                     { label: "Search Limit", value: "Unlimited", icon: "🔍" },
                     { label: "Export Limit", value: "Unlimited", icon: "📊" },
                     {
                       label: "Credits Remaining",
-                      value: "142",
+                      value: `${user?.credits} Credits` || "0 Credits",
                       icon: "⚡",
                       highlight: true,
                     },

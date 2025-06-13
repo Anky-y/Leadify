@@ -10,7 +10,6 @@ export async function POST(req: Request) {
 
   const supabase = await createClient();
 
-
   try {
     // Sign up the user
     const { error, data } = await supabase.auth.signUp({
@@ -45,7 +44,7 @@ export async function POST(req: Request) {
         first_name: firstName,
         last_name: lastName,
         credits: 25,
-        subscription_plan: "test",
+        subscription_plan: "Free",
         subscription_status: false,
       },
     ]);

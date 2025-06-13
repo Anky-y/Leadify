@@ -79,18 +79,26 @@ export default function TwitchScraperUI({
     try {
       //const old_request = `${process.env.NEXT_PUBLIC_BACKEND_URL}Twitch_scraper?category=${category}&minimum_followers=10&viewer_count=10&user_id=${user?.id}&language=en&maximum_followers=100005`
       console.log(process.env.NEXT_PUBLIC_BACKEND_URL);
+      console.log(user?.id);
       const triggerRes = await fetch(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}Twitch_scraper`,
         {
           method: "POST",
           headers: {
-        "Accept": "application/json",
-        "Content-Type": "application/json", 
-      },
-      body: JSON.stringify({category: "VALORANT", minimum_followers: 10, maximum_followers: 100000, viewer_count:20, language:"en", user_id: user?.id })
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            category: "VALORANT",
+            minimum_followers: 10,
+            maximum_followers: 100000,
+            viewer_count: 20,
+            language: "en",
+            user_id: user?.id,
+          }),
         }
       );
-  
+      console.log(user?.id);
 
       if (!triggerRes.ok) {
         triggerRes.json().then((data) => console.log(data));

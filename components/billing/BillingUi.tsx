@@ -17,6 +17,8 @@ import { cn } from "@/lib/utils";
 import { useUser } from "@/app/context/UserContext";
 import { createClient } from "@/utils/supabase-browser";
 import { toast } from "sonner";
+import { useSubscription } from "@/app/context/SubscriptionContext";
+import { getPlanName } from "@/utils/qol_Functions";
 
 // Calculate savings}
 // Animated counter component
@@ -56,21 +58,14 @@ export default function BillingPage() {
   const [selectedPlan, setSelectedPlan] = useState("pro");
   const [currentCredits, setCurrentCredits] = useState(0);
   const { user } = useUser();
+  const { subscription } = useSubscription();
 
   useEffect(() => {
     const credits = user?.credits || 0;
     setCurrentCredits(credits);
   });
 
-  // Current subscription data
-  const currentPlan = {
-    name: "Pro Plan",
-    credits: currentCredits,
-    renewalDate: "May 15, 2025",
-    price: isYearly ? 490 : 49,
-  };
-
-  // Subscription plans
+  // Subscription plans with Lemon Squeezy product IDs for both monthly and yearly
   const plans = [
     {
       id: "free",
@@ -85,6 +80,10 @@ export default function BillingPage() {
         "Standard exports",
       ],
       popular: false,
+      monthly_checkout_url: "",
+      yearly_checkout_url: "",
+      monthly_product_id: "",
+      yearly_product_id: "",
     },
     {
       id: "basic",
@@ -100,6 +99,10 @@ export default function BillingPage() {
         "Basic analytics",
       ],
       popular: false,
+      monthly_checkout_url: `https://leadifysolutions.lemonsqueezy.com/buy/81a494e3-c10f-45c1-b768-3089d750219f?checkout[custom][user_id]=${user?.id}&checkout[custom][product_type]=subscription`,
+      yearly_checkout_url: `https://leadifysolutions.lemonsqueezy.com/buy/67939b0a-52be-45fd-9306-94d29241d78a?checkout[custom][user_id]=${user?.id}&checkout[custom][product_type]=subscription`,
+      monthly_product_id: "783425",
+      yearly_product_id: "783451",
     },
     {
       id: "pro",
@@ -117,8 +120,16 @@ export default function BillingPage() {
         "Team collaboration",
       ],
       popular: true,
+      monthly_checkout_url: `https://leadifysolutions.lemonsqueezy.com/buy/67939b0a-52be-45fd-9306-94d29241d78a?checkout[custom][user_id]=${user?.id}&checkout[custom][product_type]=subscription`,
+      yearly_checkout_url: `https://leadifysolutions.lemonsqueezy.com/buy/7aee438c-cd9a-4691-b71c-81407b0d273f?checkout[custom][user_id]=${user?.id}&checkout[custom][product_type]=subscription`,
+      monthly_product_id: "783455",
+      yearly_product_id: "783457",
     },
   ];
+
+  // Helper to get the correct product id for a plan based on billing period
+  const getPlanProductId = (plan: (typeof plans)[0], yearly: boolean) =>
+    yearly ? plan.yearly_product_id : plan.monthly_product_id;
 
   // Credit top-up packs
   const creditPacks = [
@@ -128,8 +139,7 @@ export default function BillingPage() {
       credits: 100,
       price: 5,
       description: "Perfect for small projects",
-      checkout_url:
-        "https://leadifysolutions.lemonsqueezy.com/buy/d82a2214-2b2b-436a-be26-6105a7fcdf65",
+      checkout_url: `https://leadifysolutions.lemonsqueezy.com/buy/d82a2214-2b2b-436a-be26-6105a7fcdf65?checkout[custom][user_id]=${user?.id}&checkout[custom][product_type]=topup`,
     },
     {
       id: "growth",
@@ -138,8 +148,7 @@ export default function BillingPage() {
       price: 20,
       description: "Great for growing businesses",
       popular: true,
-      checkout_url:
-        "https://leadifysolutions.lemonsqueezy.com/buy/7658cebc-9507-4278-aa94-e09ee20cd766",
+      checkout_url: `https://leadifysolutions.lemonsqueezy.com/buy/7658cebc-9507-4278-aa94-e09ee20cd766?checkout[custom][user_id]=${user?.id}&checkout[custom][product_type]=topup`,
     },
     {
       id: "scale",
@@ -147,8 +156,7 @@ export default function BillingPage() {
       credits: 1000,
       price: 35,
       description: "For scaling operations",
-      checkout_url:
-        "https://leadifysolutions.lemonsqueezy.com/buy/c69f17b9-a809-4aef-abb1-47989c0e5c2a",
+      checkout_url: `https://leadifysolutions.lemonsqueezy.com/buy/c69f17b9-a809-4aef-abb1-47989c0e5c2a?checkout[custom][user_id]=${user?.id}&checkout[custom][product_type]=topup`,
     },
     {
       id: "power",
@@ -156,8 +164,7 @@ export default function BillingPage() {
       credits: 5000,
       price: 150,
       description: "Maximum value pack",
-      checkout_url:
-        "https://leadifysolutions.lemonsqueezy.com/buy/c69f17b9-a809-4aef-abb1-47989c0e5c2a",
+      checkout_url: `https://leadifysolutions.lemonsqueezy.com/buy/c69f17b9-a809-4aef-abb1-47989c0e5c2a?checkout[custom][user_id]=${user?.id}&checkout[custom][product_type]=topup`,
     },
   ];
 
@@ -175,13 +182,25 @@ export default function BillingPage() {
       toast.error("You need to be logged in to buy credits.");
       return;
     }
-    const redirectUrl = new URL(`${pack.checkout_url}`);
-    redirectUrl.searchParams.set("checkout[user_id]", user?.id || "");
 
-    // You can also pass email or other custom values if needed
+    window.location.href = pack.checkout_url.toString();
+  };
+
+  const handleBuySubscription = async (plan: (typeof plans)[0]) => {
+    if (!user) {
+      toast.error("You need to be logged in to buy credits.");
+      return;
+    }
+    const baseUrl = isYearly
+      ? plan.yearly_checkout_url
+      : plan.monthly_checkout_url;
+    if (!baseUrl) {
+      toast.error("Checkout not available for this plan.");
+      return;
+    }
+    // Optionally add email or other params
     // redirectUrl.searchParams.set("checkout[email]", user?.email || "");
-
-    window.location.href = redirectUrl.toString();
+    window.location.href = baseUrl.toString();
   };
   // const handleBuyCredits = async (credits: number) => {
   //   const supabase = createClient();
@@ -228,7 +247,14 @@ export default function BillingPage() {
   //     toast.error("Something went wrong.");
   //   }
   // };
-
+  function formatDate(dateString: string): string {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  }
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-4 md:p-8">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -255,9 +281,17 @@ export default function BillingPage() {
                     Current Plan
                   </span>
                 </div>
-                <p className="text-2xl font-bold">{currentPlan.name}</p>
+                <p className="text-2xl font-bold">
+                  {subscription?.plan_name
+                    ? `${getPlanName(subscription.plan_name)}`
+                    : "Free Plan"}
+                </p>
                 <p className="text-sm text-muted-foreground">
-                  ${currentPlan.price}/{isYearly ? "year" : "month"}
+                  {subscription?.plan_name?.toLowerCase().startsWith("pro")
+                    ? "$49/month"
+                    : subscription?.plan_name?.toLowerCase().startsWith("basic")
+                    ? "$19/month"
+                    : ""}
                 </p>
               </div>
 
@@ -286,7 +320,10 @@ export default function BillingPage() {
                   </span>
                 </div>
                 <p className="text-lg font-semibold">
-                  {currentPlan.renewalDate}
+                  {typeof subscription?.renews_at === "string" &&
+                  subscription.renews_at
+                    ? formatDate(subscription.renews_at)
+                    : "N/A"}
                 </p>
               </div>
 
@@ -360,7 +397,7 @@ export default function BillingPage() {
                     "border-blue-500 shadow-lg shadow-blue-500/25",
                   selectedPlan === plan.id && "ring-2 ring-blue-500"
                 )}
-                onClick={() => setSelectedPlan(plan.id)}
+                onClick={() => handleBuySubscription}
               >
                 {plan.popular && (
                   <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-center py-2 text-sm font-medium">
@@ -415,8 +452,17 @@ export default function BillingPage() {
                         : "hover:bg-blue-50 dark:hover:bg-blue-950"
                     )}
                     variant={plan.popular ? "default" : "outline"}
+                    onClick={() => handleBuySubscription(plan)}
                   >
-                    {selectedPlan === plan.id ? "Current Plan" : "Choose Plan"}
+                    {user?.subscription_status &&
+                    getPlanProductId(plan, isYearly) &&
+                    getPlanName(subscription?.plan_name).toLowerCase() ===
+                      plan.name.toLowerCase()
+                      ? "Current Plan"
+                      : user?.subscription_plan.toLowerCase() === "free" &&
+                        plan.id.toLowerCase() === "free"
+                      ? "Current Plan"
+                      : "Choose Plan"}
                   </Button>
                 </CardFooter>
               </Card>
