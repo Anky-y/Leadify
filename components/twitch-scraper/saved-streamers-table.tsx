@@ -1,5 +1,7 @@
 "use client";
 
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+
 import { useState, useEffect, useRef } from "react";
 import {
   Table,
@@ -45,7 +47,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -340,20 +341,40 @@ export default function SavedStreamersTable({
       return;
     }
 
+    // Check subscription plan for export permissions
+    if (exportFormat === "json" && user?.subscription_plan === "Free") {
+      toast.error("JSON export is only available on Basic and Pro plans", {
+        description: "Upgrade your subscription to access this feature",
+        action: {
+          label: "Upgrade",
+          onClick: () => (window.location.href = "/dashboard/billing"),
+        },
+      });
+      return;
+    }
+
+    if (exportFormat === "excel" && user?.subscription_plan !== "Pro") {
+      toast.error("Excel export is only available on Pro plans", {
+        description: "Upgrade your subscription to access this feature",
+        action: {
+          label: "Upgrade",
+          onClick: () => (window.location.href = "/dashboard/billing"),
+        },
+      });
+      return;
+    }
+
     // Pass column visibility to export functions
     if (exportFormat === "csv") {
       exportToCSV(exportData, "saved-streamers.csv", exportColumns);
+      toast.success(`Exported ${exportData.length} records as CSV`);
     } else if (exportFormat === "json") {
       exportToJSON(exportData, "saved-streamers.json", exportColumns);
+      toast.success(`Exported ${exportData.length} records as JSON`);
     } else if (exportFormat === "excel") {
       exportToExcel(exportData, "saved-streamers.xlsx", exportColumns);
+      toast.success(`Exported ${exportData.length} records as Excel`);
     }
-
-    toast.success(
-      `${exportData.length} records with ${
-        Object.values(exportColumns).filter(Boolean).length
-      } columns will be exported. as ${exportFormat.toUpperCase()}`
-    );
   };
 
   // Apply sorting and pagination
@@ -556,16 +577,29 @@ export default function SavedStreamersTable({
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8 px-2 text-xs sm:text-sm sm:h-9 sm:px-3 border-blue-200 text-blue-700 hover:bg-blue-50 ml-2"
+                className={`h-8 px-2 text-xs sm:text-sm sm:h-9 sm:px-3 border-blue-200 text-blue-700 hover:bg-blue-50 ml-2 ${
+                  (exportFormat === "json" &&
+                    user?.subscription_plan === "Free") ||
+                  (exportFormat === "excel" &&
+                    user?.subscription_plan !== "Pro")
+                    ? "border-red-200 text-red-700 hover:bg-red-50"
+                    : ""
+                }`}
               >
                 <Download className="h-3.5 w-3.5 mr-1 sm:mr-2" />
                 <span className="hidden sm:inline">
                   Export as {exportFormat.toUpperCase()}
-                </span>{" "}
+                  {(exportFormat === "json" &&
+                    user?.subscription_plan === "Free") ||
+                  (exportFormat === "excel" &&
+                    user?.subscription_plan !== "Pro")
+                    ? " (Upgrade)"
+                    : ""}
+                </span>
                 <ChevronDown className="h-3.5 w-3.5 ml-0 sm:ml-1" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-[180px]">
+            <DropdownMenuContent align="end" className="w-[220px]">
               <DropdownMenuLabel>Export Format</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem
@@ -580,32 +614,78 @@ export default function SavedStreamersTable({
                 {exportFormat === "csv" && (
                   <Check className="h-4 w-4 ml-auto" />
                 )}
+                <Badge className="ml-auto bg-green-100 text-green-800 hover:bg-green-100">
+                  Free
+                </Badge>
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={(e) => {
                   e.preventDefault();
-                  setExportFormat("excel");
-                }}
-                className="flex items-center gap-2 cursor-pointer"
-              >
-                <FileSpreadsheet className="h-4 w-4" />
-                <span>Excel</span>
-                {exportFormat === "excel" && (
-                  <Check className="h-4 w-4 ml-auto" />
-                )}
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.preventDefault();
+                  if (user?.subscription_plan === "Free") {
+                    toast.error(
+                      "JSON export is only available on Basic and Pro plans",
+                      {
+                        description:
+                          "Upgrade your subscription to access this feature",
+                        action: {
+                          label: "Upgrade",
+                          onClick: () =>
+                            (window.location.href = "/dashboard/billing"),
+                        },
+                      }
+                    );
+                    return;
+                  }
                   setExportFormat("json");
                 }}
-                className="flex items-center gap-2 cursor-pointer"
+                className={`flex items-center gap-2 ${
+                  user?.subscription_plan === "Free"
+                    ? "opacity-60 cursor-not-allowed"
+                    : "cursor-pointer"
+                }`}
               >
                 <FileJson className="h-4 w-4" />
                 <span>JSON</span>
-                {exportFormat === "json" && (
-                  <Check className="h-4 w-4 ml-auto" />
-                )}
+                {exportFormat === "json" &&
+                  user?.subscription_plan !== "Free" && (
+                    <Check className="h-4 w-4 ml-auto" />
+                  )}
+                <Badge className="ml-auto bg-blue-100 text-blue-800 hover:bg-blue-100">
+                  Basic+
+                </Badge>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (user?.subscription_plan !== "Pro") {
+                    toast.error("Excel export is only available on Pro plans", {
+                      description:
+                        "Upgrade your subscription to access this feature",
+                      action: {
+                        label: "Upgrade",
+                        onClick: () =>
+                          (window.location.href = "/dashboard/billing"),
+                      },
+                    });
+                    return;
+                  }
+                  setExportFormat("excel");
+                }}
+                className={`flex items-center gap-2 ${
+                  user?.subscription_plan !== "Pro"
+                    ? "opacity-60 cursor-not-allowed"
+                    : "cursor-pointer"
+                }`}
+              >
+                <FileSpreadsheet className="h-4 w-4" />
+                <span>Excel</span>
+                {exportFormat === "excel" &&
+                  user?.subscription_plan === "Pro" && (
+                    <Check className="h-4 w-4 ml-auto" />
+                  )}
+                <Badge className="ml-auto bg-purple-100 text-purple-800 hover:bg-purple-100">
+                  Pro
+                </Badge>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
