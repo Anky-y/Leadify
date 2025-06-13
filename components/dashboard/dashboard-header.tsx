@@ -92,7 +92,6 @@ export function DashboardHeader({ user, onLogout }: DashboardHeaderProps) {
           })) || []
 
         setNotifications(formattedNotifications)
-        
       } catch (error) {
         console.error("Error fetching notifications:", error)
       } finally {
@@ -104,41 +103,41 @@ export function DashboardHeader({ user, onLogout }: DashboardHeaderProps) {
   }, [user?.id])
 
   React.useEffect(() => {
-  if (!user?.id) return
+    if (!user?.id) return
 
-  const channel = supabase
-    .channel("notifications-realtime")
-    .on(
-      "postgres_changes",
-      {
-        event: "INSERT",
-        schema: "public",
-        table: "notifications",
-        filter: `user_id=eq.${user.id}`,
-      },
-      (payload) => {
-        const newNotification = payload.new
-        setNotifications((prev) => [
-          {
-            id: newNotification.id,
-            title: newNotification.title,
-            description: newNotification.description,
-            time: formatTimeAgo(newNotification.created_at),
-            unread: !newNotification.read,
-            type: newNotification.type || null,
-            created_at: newNotification.created_at,
-          },
-          ...prev,
-        ])
-      }
-    )
-    .subscribe()
+    const channel = supabase
+      .channel("notifications-realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          const newNotification = payload.new
+          setNotifications((prev) => [
+            {
+              id: newNotification.id,
+              title: newNotification.title,
+              description: newNotification.description,
+              time: formatTimeAgo(newNotification.created_at),
+              unread: !newNotification.read,
+              type: newNotification.type || null,
+              created_at: newNotification.created_at,
+            },
+            ...prev,
+          ])
+        },
+      )
+      .subscribe()
 
-  // Cleanup on unmount or user change
-  return () => {
-    supabase.removeChannel(channel)
-  }
-}, [user?.id])
+    // Cleanup on unmount or user change
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [user?.id])
 
   // Add helper function to format time
   const formatTimeAgo = (dateString: string) => {
@@ -196,6 +195,24 @@ export function DashboardHeader({ user, onLogout }: DashboardHeaderProps) {
       setNotifications((prev) => prev.map((n) => (n.id === notificationId ? { ...n, unread: false } : n)))
     } catch (error) {
       console.error("Error marking notification as read:", error)
+    }
+  }
+
+  const deleteAllNotifications = async () => {
+    if (!user?.id) return
+
+    try {
+      const { error } = await supabase.from("notifications").delete().eq("user_id", user.id)
+
+      if (error) {
+        console.error("Error deleting all notifications:", error)
+        return
+      }
+
+      // Update local state
+      setNotifications([])
+    } catch (error) {
+      console.error("Error deleting all notifications:", error)
     }
   }
 
@@ -400,7 +417,7 @@ export function DashboardHeader({ user, onLogout }: DashboardHeaderProps) {
                             </div>
 
                             {/* Description */}
-                            <div className="text-xs text-muted-foreground leading-relaxed">
+                            <div className="text-sm text-muted-foreground/90 leading-relaxed">
                               <p className={isExpanded || !descriptionNeedsExpansion ? "" : "line-clamp-2"}>
                                 {notification.description}
                               </p>
@@ -424,7 +441,7 @@ export function DashboardHeader({ user, onLogout }: DashboardHeaderProps) {
 
                             {/* Time and Actions */}
                             <div className="flex items-center justify-between pt-1">
-                              <p className="text-xs text-muted-foreground font-medium">{notification.time}</p>
+                              <p className="text-[10px] text-muted-foreground/70 font-medium">{notification.time}</p>
                               <div className="flex items-center gap-2">
                                 {/* Mark as Read Button - always visible for unread notifications */}
                                 {notification.unread && (
@@ -453,11 +470,12 @@ export function DashboardHeader({ user, onLogout }: DashboardHeaderProps) {
                   })
                 )}
               </div>
-              <div className="border-t p-2">
+              <div className="border-t p-2 flex gap-2">
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="w-full text-xs"
+                  className="w-1/2 text-xs"
+                  disabled={notifications.length === 0 || unreadCount === 0}
                   onClick={async () => {
                     if (!user?.id) return
 
@@ -476,6 +494,16 @@ export function DashboardHeader({ user, onLogout }: DashboardHeaderProps) {
                   }}
                 >
                   Mark all as read
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-1/2 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/50 disabled:text-red-300 dark:disabled:text-red-800 disabled:hover:bg-transparent"
+                  onClick={deleteAllNotifications}
+                  disabled={notifications.length === 0}
+                >
+                  <Trash2 className="h-3.5 w-3.5 mr-1" />
+                  Delete all
                 </Button>
               </div>
             </PopoverContent>
