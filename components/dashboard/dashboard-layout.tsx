@@ -7,23 +7,34 @@ import { AppSidebar } from "./app-sidebar";
 import { MobileSidebarTrigger } from "./mobile-sidebar-trigger";
 import { DashboardHeader } from "./dashboard-header";
 import { useUser } from "@/app/context/UserContext";
+import { handleLogout } from "./logout";
+import { useRouter } from "next/navigation";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
-  const { user } = useUser();
-  const handleLogout = () => {
-    // Handle logout logic here
-    console.log("Logging out...");
+  const router = useRouter();
+  const { user, refreshUser } = useUser();
+  const handleLogoutClick = async () => {
+    const { error } = await handleLogout();
+
+    if (error) {
+      console.error("Logout failed:", error);
+      return;
+    }
+
+    // Redirect to login page after logout
+    router.replace("/");
+    refreshUser();
   };
 
   return (
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <DashboardHeader onLogout={handleLogout} user={user} />
+        <DashboardHeader onLogout={handleLogoutClick} user={user} />
         <div className="flex flex-1 flex-col ">{children}</div>
       </SidebarInset>
       <MobileSidebarTrigger />
