@@ -456,10 +456,10 @@ export default function BillingPage() {
                   >
                     {user?.subscription_status &&
                     getPlanProductId(plan, isYearly) &&
-                    getPlanName(subscription?.plan_name).toLowerCase() ===
+                    getPlanName(subscription?.plan_name ?? "").toLowerCase() ===
                       plan.name.toLowerCase()
                       ? "Current Plan"
-                      : user?.subscription_plan.toLowerCase() === "free" &&
+                      : user?.subscription_plan?.toLowerCase() === "free" &&
                         plan.id.toLowerCase() === "free"
                       ? "Current Plan"
                       : "Choose Plan"}
