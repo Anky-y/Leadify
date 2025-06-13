@@ -1,7 +1,22 @@
 "use client"
 
 import * as React from "react"
-import { Bell, HelpCircle, CreditCard, Settings, LogOut, UserIcon, ChevronDown, Zap } from "lucide-react"
+import {
+  Bell,
+  HelpCircle,
+  CreditCard,
+  Settings,
+  LogOut,
+  UserIcon,
+  ChevronDown,
+  Zap,
+  Trash2,
+  ChevronUp,
+  ChevronRight,
+  Megaphone,
+  Cog,
+  Sparkles,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -28,6 +43,7 @@ interface DashboardHeaderProps {
 export function DashboardHeader({ user, onLogout }: DashboardHeaderProps) {
   const pathname = usePathname()
   const [pageTitle, setPageTitle] = React.useState<string>("")
+  const [expandedNotifications, setExpandedNotifications] = React.useState<Record<string | number, boolean>>({})
 
   React.useEffect(() => {
     if (pathname) {
@@ -71,9 +87,12 @@ export function DashboardHeader({ user, onLogout }: DashboardHeaderProps) {
             description: notification.description,
             time: formatTimeAgo(notification.created_at),
             unread: !notification.read,
+            type: notification.type || null,
+            created_at: notification.created_at,
           })) || []
 
         setNotifications(formattedNotifications)
+        
       } catch (error) {
         console.error("Error fetching notifications:", error)
       } finally {
@@ -84,6 +103,43 @@ export function DashboardHeader({ user, onLogout }: DashboardHeaderProps) {
     fetchNotifications()
   }, [user?.id])
 
+  React.useEffect(() => {
+  if (!user?.id) return
+
+  const channel = supabase
+    .channel("notifications-realtime")
+    .on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "notifications",
+        filter: `user_id=eq.${user.id}`,
+      },
+      (payload) => {
+        const newNotification = payload.new
+        setNotifications((prev) => [
+          {
+            id: newNotification.id,
+            title: newNotification.title,
+            description: newNotification.description,
+            time: formatTimeAgo(newNotification.created_at),
+            unread: !newNotification.read,
+            type: newNotification.type || null,
+            created_at: newNotification.created_at,
+          },
+          ...prev,
+        ])
+      }
+    )
+    .subscribe()
+
+  // Cleanup on unmount or user change
+  return () => {
+    supabase.removeChannel(channel)
+  }
+}, [user?.id])
+
   // Add helper function to format time
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString)
@@ -91,13 +147,103 @@ export function DashboardHeader({ user, onLogout }: DashboardHeaderProps) {
     const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60))
 
     if (diffInMinutes < 1) return "Just now"
-    if (diffInMinutes < 60) return `${diffInMinutes} minute${diffInMinutes > 1 ? "s" : ""} ago`
+    if (diffInMinutes === 1) return "1 minute ago"
+    if (diffInMinutes < 60) return `${diffInMinutes} minutes ago`
 
     const diffInHours = Math.floor(diffInMinutes / 60)
-    if (diffInHours < 24) return `${diffInHours} hour${diffInHours > 1 ? "s" : ""} ago`
+    if (diffInHours === 1) return "1 hour ago"
+    if (diffInHours < 24) return `${diffInHours} hours ago`
 
     const diffInDays = Math.floor(diffInHours / 24)
-    return `${diffInDays} day${diffInDays > 1 ? "s" : ""} ago`
+    if (diffInDays === 1) return "1 day ago"
+    return `${diffInDays} days ago`
+  }
+
+  const deleteNotification = async (notificationId: number) => {
+    if (!user?.id) return
+
+    try {
+      const { error } = await supabase.from("notifications").delete().eq("id", notificationId).eq("user_id", user.id)
+
+      if (error) {
+        console.error("Error deleting notification:", error)
+        return
+      }
+
+      // Update local state
+      setNotifications((prev) => prev.filter((n) => n.id !== notificationId))
+    } catch (error) {
+      console.error("Error deleting notification:", error)
+    }
+  }
+
+  const markAsRead = async (notificationId: number) => {
+    if (!user?.id) return
+
+    try {
+      const { error } = await supabase
+        .from("notifications")
+        .update({ read: true })
+        .eq("id", notificationId)
+        .eq("user_id", user.id)
+
+      if (error) {
+        console.error("Error marking notification as read:", error)
+        return
+      }
+
+      // Update local state
+      setNotifications((prev) => prev.map((n) => (n.id === notificationId ? { ...n, unread: false } : n)))
+    } catch (error) {
+      console.error("Error marking notification as read:", error)
+    }
+  }
+
+  const toggleExpandNotification = (id: number | string) => {
+    setExpandedNotifications((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }))
+  }
+
+  const getTypeBadgeConfig = (type: string | null) => {
+    if (!type) return null
+
+    // Determine notification type and return appropriate styling for badges only
+    if (type.toLowerCase().includes("announcement")) {
+      return {
+        icon: Megaphone,
+        badgeClass:
+          "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200 border-emerald-200 dark:border-emerald-800",
+        iconClass: "text-emerald-600 dark:text-emerald-400",
+        displayText: "ANNOUNCEMENT",
+      }
+    } else if (type.toLowerCase().includes("system")) {
+      return {
+        icon: Cog,
+        badgeClass:
+          "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200 border-orange-200 dark:border-orange-800",
+        iconClass: "text-orange-600 dark:text-orange-400",
+        displayText: "SYSTEM",
+      }
+    } else if (type.toLowerCase().includes("feature")) {
+      return {
+        icon: Sparkles,
+        badgeClass:
+          "bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-200 border-violet-200 dark:border-violet-800",
+        iconClass: "text-violet-600 dark:text-violet-400",
+        displayText: "FEATURE",
+      }
+    } else {
+      // For any other non-empty type values - show actual type with important red styling
+      return {
+        icon: null,
+        badgeClass:
+          "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-200 dark:border-red-800 font-semibold",
+        iconClass: "text-red-600 dark:text-red-400",
+        displayText: type.toUpperCase(),
+      }
+    }
   }
 
   const unreadCount = notifications.filter((n) => n.unread).length
@@ -122,6 +268,16 @@ export function DashboardHeader({ user, onLogout }: DashboardHeaderProps) {
       .split("-")
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(" ")
+  }
+
+  // Function to check if description is long enough to need expansion
+  const isDescriptionLong = (description: string) => {
+    return description.length > 120
+  }
+
+  // Function to check if title is long enough to need expansion
+  const isTitleLong = (title: string) => {
+    return title.length > 60
   }
 
   console.log(user)
@@ -168,36 +324,133 @@ export function DashboardHeader({ user, onLogout }: DashboardHeaderProps) {
                 <span className="sr-only">Notifications</span>
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-80 p-0" align="end">
+            <PopoverContent className="w-96 p-0" align="end">
               <div className="border-b p-4">
                 <h4 className="font-semibold">Notifications</h4>
                 <p className="text-sm text-muted-foreground">You have {unreadCount} unread notifications</p>
               </div>
               <div className="max-h-80 overflow-y-auto">
                 {isLoadingNotifications ? (
-                  <div className="p-4 text-center text-sm text-muted-foreground">Loading notifications...</div>
+                  <div className="p-6 text-center">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                    <p className="text-sm text-muted-foreground">Loading notifications...</p>
+                  </div>
                 ) : notifications.length === 0 ? (
-                  <div className="p-4 text-center text-sm text-muted-foreground">No notifications yet</div>
+                  <div className="p-6 text-center">
+                    <Bell className="h-8 w-8 text-muted-foreground mx-auto mb-2 opacity-50" />
+                    <p className="text-sm text-muted-foreground">No notifications yet</p>
+                  </div>
                 ) : (
-                  notifications.map((notification) => (
-                    <div
-                      key={notification.id}
-                      className={`border-b p-4 transition-colors hover:bg-accent ${
-                        notification.unread ? "bg-blue-50/50 dark:bg-blue-950/20" : ""
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div
-                          className={`h-2 w-2 rounded-full mt-2 ${notification.unread ? "bg-blue-600" : "bg-gray-300"}`}
-                        />
-                        <div className="flex-1 space-y-1">
-                          <p className="text-sm font-medium">{notification.title}</p>
-                          <p className="text-xs text-muted-foreground">{notification.description}</p>
-                          <p className="text-xs text-muted-foreground">{notification.time}</p>
+                  notifications.map((notification) => {
+                    const badgeConfig = getTypeBadgeConfig(notification.type)
+                    const isExpanded = expandedNotifications[notification.id] || false
+                    const titleNeedsExpansion = isTitleLong(notification.title)
+                    const descriptionNeedsExpansion = isDescriptionLong(notification.description)
+                    const needsExpansion = titleNeedsExpansion || descriptionNeedsExpansion
+
+                    return (
+                      <div
+                        key={notification.id}
+                        className={`group relative border-b last:border-b-0 p-4 transition-all duration-200 hover:bg-accent/50 select-none ${
+                          notification.unread
+                            ? "bg-gradient-to-r from-blue-50/80 to-blue-50/40 dark:from-blue-950/40 dark:to-blue-950/20 border-l-2 border-l-blue-500"
+                            : "hover:bg-gray-50/50 dark:hover:bg-gray-800/50"
+                        }`}
+                      >
+                        <div className="flex items-start gap-3 pr-8">
+                          {/* Read/Unread Indicator */}
+                          <div className="flex-shrink-0 mt-1">
+                            {notification.unread ? (
+                              <div className="relative">
+                                <div className="h-3 w-3 bg-blue-600 rounded-full animate-pulse"></div>
+                                <div className="absolute inset-0 h-3 w-3 bg-blue-600 rounded-full animate-ping opacity-75"></div>
+                              </div>
+                            ) : (
+                              <div className="h-3 w-3 bg-gray-300 dark:bg-gray-600 rounded-full opacity-60"></div>
+                            )}
+                          </div>
+
+                          {/* Content */}
+                          <div className="flex-1 space-y-2 min-w-0">
+                            {/* Title and Type Badge */}
+                            <div className="flex items-start justify-between gap-2">
+                              <p
+                                className={`text-sm font-medium leading-tight ${
+                                  isExpanded || !titleNeedsExpansion ? "" : "line-clamp-1"
+                                } ${
+                                  notification.unread
+                                    ? "text-gray-900 dark:text-gray-100"
+                                    : "text-gray-700 dark:text-gray-300"
+                                }`}
+                              >
+                                {notification.title}
+                              </p>
+                              <div className="flex items-center gap-1 flex-shrink-0">
+                                {badgeConfig && (
+                                  <>
+                                    {badgeConfig.icon && (
+                                      <badgeConfig.icon className={`h-3 w-3 ${badgeConfig.iconClass}`} />
+                                    )}
+                                    <Badge className={`text-xs px-1.5 py-0.5 ${badgeConfig.badgeClass}`}>
+                                      {badgeConfig.displayText}
+                                    </Badge>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Description */}
+                            <div className="text-xs text-muted-foreground leading-relaxed">
+                              <p className={isExpanded || !descriptionNeedsExpansion ? "" : "line-clamp-2"}>
+                                {notification.description}
+                              </p>
+                              {needsExpansion && (
+                                <button
+                                  onClick={() => toggleExpandNotification(notification.id)}
+                                  className="text-xs text-blue-600 dark:text-blue-400 font-medium flex items-center mt-1 hover:underline transition-colors duration-200"
+                                >
+                                  {isExpanded ? (
+                                    <>
+                                      Show less <ChevronUp className="h-3 w-3 ml-0.5" />
+                                    </>
+                                  ) : (
+                                    <>
+                                      Read more <ChevronRight className="h-3 w-3 ml-0.5" />
+                                    </>
+                                  )}
+                                </button>
+                              )}
+                            </div>
+
+                            {/* Time and Actions */}
+                            <div className="flex items-center justify-between pt-1">
+                              <p className="text-xs text-muted-foreground font-medium">{notification.time}</p>
+                              <div className="flex items-center gap-2">
+                                {/* Mark as Read Button - always visible for unread notifications */}
+                                {notification.unread && (
+                                  <button
+                                    onClick={() => markAsRead(notification.id)}
+                                    className="px-2 py-1 text-xs rounded-md bg-blue-100 hover:bg-blue-200 dark:bg-blue-900 dark:hover:bg-blue-800 text-blue-700 dark:text-blue-300 transition-colors duration-200"
+                                    title="Mark as read"
+                                  >
+                                    Mark as read
+                                  </button>
+                                )}
+                                {/* Delete Button */}
+                                <button
+                                  onClick={() => deleteNotification(notification.id)}
+                                  className="p-1 rounded-md hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors duration-200 opacity-0 group-hover:opacity-100"
+                                  title="Delete notification"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))
+                    )
+                  })
                 )}
               </div>
               <div className="border-t p-2">
