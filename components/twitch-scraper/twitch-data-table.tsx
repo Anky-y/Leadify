@@ -1,5 +1,7 @@
 "use client";
 
+import { DialogTrigger } from "@/components/ui/dialog";
+
 import type React from "react";
 
 import {
@@ -16,12 +18,9 @@ import {
   InstagramLogo,
   TwitterLogo,
   YoutubeLogo,
-  EnvelopeSimple,
 } from "./social-icons";
 import {
   ExternalLink,
-  Eye,
-  EyeOff,
   ArrowDownAZ,
   ArrowUpAZ,
   ArrowDown01,
@@ -29,17 +28,9 @@ import {
   ArrowDownUp,
   SortAsc,
   SortDesc,
-  SearchCheck,
-  Download,
-  ChevronDown,
-  FileText,
-  Check,
-  FileSpreadsheet,
-  FileJson,
   UserPlus,
   MoreHorizontal,
   Filter,
-  Settings,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -71,10 +62,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { exportToCSV, exportToExcel, exportToJSON } from "@/utils/export";
 import { useUser } from "@/app/context/UserContext";
 import { motion, AnimatePresence } from "framer-motion";
@@ -93,10 +82,6 @@ export default function TwitchDataTable({
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const [menuMeasured, setMenuMeasured] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
-  // State to track which emails are revealed
-  const [revealedEmails, setRevealedEmails] = useState<Record<string, boolean>>(
-    {}
-  );
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedUsernames, setSelectedUsernames] = useState<
     Record<string, boolean>
@@ -255,13 +240,6 @@ export default function TwitchDataTable({
   const itemsPerPage = isDesktop ? 10 : isTablet ? 7 : 5;
 
   const { user } = useUser();
-  // Toggle email visibility for a specific row
-  const toggleEmailVisibility = (id: string) => {
-    setRevealedEmails((prev) => ({
-      ...prev,
-      [id]: !prev[id],
-    }));
-  };
 
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<
@@ -484,6 +462,17 @@ export default function TwitchDataTable({
   const fadeIn = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { duration: 0.3 } },
+  };
+
+  // Check if a streamer has any social media links
+  const hasSocialLinks = (streamer: TwitchData) => {
+    return Boolean(
+      streamer.discord ||
+        streamer.youtube ||
+        streamer.twitter ||
+        streamer.facebook ||
+        streamer.instagram
+    );
   };
 
   return (
@@ -967,140 +956,52 @@ export default function TwitchDataTable({
                       )}
                       {visibleColumns.social && (
                         <TableCell className="py-2 sm:py-3">
-                          <div className="flex space-x-1">
-                            {row.discord && (
-                              <a
-                                href={subscribed ? row.discord : "#"}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className={`${
-                                  subscribed
-                                    ? "text-gray-500 hover:text-indigo-600"
-                                    : "text-gray-300 cursor-not-allowed"
-                                } transition-colors duration-200 p-1 rounded-full hover:bg-gray-100`}
-                                title={
-                                  subscribed ? "Discord" : "Upgrade to view"
-                                }
-                                onClick={(e) =>
-                                  !subscribed && e.preventDefault()
-                                }
-                              >
-                                <DiscordLogo className="h-4 w-4" />
-                              </a>
-                            )}
-                            {row.youtube && (
-                              <a
-                                href={row.youtube}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-gray-500 hover:text-red-600 transition-colors duration-200 p-1 rounded-full hover:bg-gray-100"
-                                title="YouTube"
-                              >
-                                <YoutubeLogo className="h-4 w-4" />
-                              </a>
-                            )}
-                            {row.twitter && (
-                              <a
-                                href={row.twitter}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-gray-500 hover:text-blue-400 transition-colors duration-200 p-1 rounded-full hover:bg-gray-100"
-                                title="Twitter"
-                              >
-                                <TwitterLogo className="h-4 w-4" />
-                              </a>
-                            )}
-                            {row.facebook && (
-                              <a
-                                href={subscribed ? row.facebook : "#"}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className={`${
-                                  subscribed
-                                    ? "text-gray-500 hover:text-blue-600"
-                                    : "text-gray-300 cursor-not-allowed"
-                                } transition-colors duration-200 p-1 rounded-full hover:bg-gray-100`}
-                                title={
-                                  subscribed ? "Facebook" : "Upgrade to view"
-                                }
-                                onClick={(e) =>
-                                  !subscribed && e.preventDefault()
-                                }
-                              >
-                                <FacebookLogo className="h-4 w-4" />
-                              </a>
-                            )}
-                            {row.instagram && (
-                              <a
-                                href={subscribed ? row.instagram : "#"}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className={`${
-                                  subscribed
-                                    ? "text-gray-500 hover:text-pink-600"
-                                    : "text-gray-300 cursor-not-allowed"
-                                } transition-colors duration-200 p-1 rounded-full hover:bg-gray-100`}
-                                title={
-                                  subscribed ? "Instagram" : "Upgrade to view"
-                                }
-                                onClick={(e) =>
-                                  !subscribed && e.preventDefault()
-                                }
-                              >
-                                <InstagramLogo className="h-4 w-4" />
-                              </a>
-                            )}
-                          </div>
+                          {hasSocialLinks(row) ? (
+                            <div className="flex space-x-1 opacity-50">
+                              {row.discord && (
+                                <DiscordLogo className="h-4 w-4 text-gray-400" />
+                              )}
+                              {row.youtube && (
+                                <YoutubeLogo className="h-4 w-4 text-gray-400" />
+                              )}
+                              {row.twitter && (
+                                <TwitterLogo className="h-4 w-4 text-gray-400" />
+                              )}
+                              {row.facebook && (
+                                <FacebookLogo className="h-4 w-4 text-gray-400" />
+                              )}
+                              {row.instagram && (
+                                <InstagramLogo className="h-4 w-4 text-gray-400" />
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-gray-400 text-xs">
+                              No socials found
+                            </span>
+                          )}
                         </TableCell>
                       )}
                       {visibleColumns.email && (
                         <TableCell className="py-2 sm:py-3">
                           {row.gmail ? (
-                            subscribed || revealedEmails[row.id] ? (
-                              <div className="flex items-center">
-                                <a
-                                  href={`mailto:${row.gmail}`}
-                                  className="text-blue-600 hover:underline flex items-center group"
-                                >
-                                  <EnvelopeSimple className="h-4 w-4 mr-1 group-hover:text-blue-700" />
-                                  <span className="text-xs truncate max-w-[120px] sm:max-w-[180px]">
-                                    {row.gmail}
-                                  </span>
-                                </a>
-                                {!subscribed && (
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-6 w-6 ml-1 hover:bg-gray-100"
-                                    onClick={() =>
-                                      toggleEmailVisibility(row.id)
-                                    }
-                                    title="Hide email"
-                                  >
-                                    <EyeOff className="h-3 w-3" />
-                                  </Button>
-                                )}
+                          <div className="flex flex-col gap-1">
+                            {row.gmail
+                            .split(",")
+                            .map((email: string, idx: number) => (
+                              <div key={idx} className="flex items-center">
+                              <span className="text-gray-400 text-xs blur-sm select-none">
+                                {email.trim().replace(/./g, "•")}
+                              </span>
+                              <Badge className="ml-2 bg-blue-100 text-blue-800">
+                                Save to reveal
+                              </Badge>
                               </div>
-                            ) : (
-                              <div className="flex items-center">
-                                <span className="text-gray-400 text-xs blur-sm select-none">
-                                  {row.gmail.replace(/./g, "•")}
-                                </span>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-6 w-6 ml-1 hover:bg-gray-100"
-                                  onClick={() => toggleEmailVisibility(row.id)}
-                                  title="Reveal email (free users get 3 reveals per day)"
-                                >
-                                  <Eye className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            )
+                            ))}
+                          </div>
                           ) : (
-                            <span className="text-gray-400 text-xs">
-                              Couldn't find a valid mail
-                            </span>
+                          <span className="text-gray-400 text-xs">
+                            No email available
+                          </span>
                           )}
                         </TableCell>
                       )}
@@ -1150,17 +1051,6 @@ export default function TwitchDataTable({
                                 <ExternalLink className="mr-2 h-4 w-4" />
                                 <span>View Channel</span>
                               </DropdownMenuItem>
-                              {row.gmail && (
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    window.open(`mailto:${row.gmail}`, "_blank")
-                                  }
-                                  className="cursor-pointer"
-                                >
-                                  <EnvelopeSimple className="mr-2 h-4 w-4" />
-                                  <span>Send Email</span>
-                                </DropdownMenuItem>
-                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
@@ -1222,19 +1112,6 @@ export default function TwitchDataTable({
               <ExternalLink className="h-4 w-4" />
               <span>View Channel</span>
             </button>
-
-            {contextMenu.row.gmail && (
-              <button
-                className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 transition-colors"
-                onClick={() => {
-                  window.open(`mailto:${contextMenu.row!.gmail}`, "_blank");
-                  setContextMenu((prev) => ({ ...prev, visible: false }));
-                }}
-              >
-                <EnvelopeSimple className="h-4 w-4" />
-                <span>Send Email</span>
-              </button>
-            )}
 
             <button
               className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 transition-colors"

@@ -35,11 +35,16 @@ import {
   Filter,
   Settings,
   Download,
+  ChevronDown,
   FileText,
+  Check,
   FileSpreadsheet,
   FileJson,
-  Check,
-  ChevronDown,
+  Share2,
+  Eye,
+  EyeOff,
+  Mail,
+  ChevronUp,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -76,6 +81,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import {
+  canAccessFeature,
+  revealSocialLinks,
+  revealEmail,
+  showUpgradeToast,
+} from "@/utils/reveal";
 
 interface SavedStreamersTableProps {
   data: TwitchData[];
@@ -138,6 +149,21 @@ export default function SavedStreamersTable({
   const [exportFormat, setExportFormat] = useState("csv");
   const [exportColumns, setExportColumns] = useState({ ...visibleColumns });
   const [exportOptionsDialogOpen, setExportOptionsDialogOpen] = useState(false);
+  const [exportOptionsAdvancedOpen, setExportOptionsAdvancedOpen] =
+    useState(false);
+
+  const [revealedSocials, setRevealedSocials] = useState<
+    Record<string, boolean>
+  >({});
+  const [revealedEmails, setRevealedEmails] = useState<Record<string, boolean>>(
+    {}
+  );
+  const [expandedEmails, setExpandedEmails] = useState<Record<string, boolean>>(
+    {}
+  );
+
+  const [revealSocialsOnExport, setRevealSocialsOnExport] = useState(false);
+  const [revealEmailsOnExport, setRevealEmailsOnExport] = useState(false);
 
   // Adjust visible columns based on screen size
   useEffect(() => {
@@ -182,8 +208,6 @@ export default function SavedStreamersTable({
       });
     }
   }, [isDesktop, isTablet, isMobile]);
-
-  console.log(data);
 
   const { user } = useUser();
 
@@ -330,7 +354,7 @@ export default function SavedStreamersTable({
     refreshStreamers(); // <- Your data refresh function here
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     const selected = Object.values(selectedStreamers).some(Boolean);
     const exportData = selected
       ? data.filter((row) => selectedStreamers[row.id])
@@ -364,22 +388,129 @@ export default function SavedStreamersTable({
       return;
     }
 
+    // Process reveal options if selected
+    const processedExportData = [...exportData];
+
+    if (revealSocialsOnExport) {
+      // This would be a real API call to reveal social links
+      toast.info("Revealing social links for export...", { duration: 1500 });
+
+      // For our placeholder, we'll just update the local state
+      const newRevealedSocials = { ...revealedSocials };
+      processedExportData.forEach((streamer) => {
+        newRevealedSocials[streamer.id] = true;
+      });
+      setRevealedSocials(newRevealedSocials);
+    }
+
+    if (revealEmailsOnExport) {
+      if (!canAccessFeature("email", user?.subscription_plan)) {
+        toast.error("Email reveals are only available on Basic and Pro plans", {
+          description: "Upgrade your subscription to access this feature",
+          action: {
+            label: "Upgrade",
+            onClick: () => (window.location.href = "/dashboard/billing"),
+          },
+        });
+        return;
+      }
+
+      // This would be a real API call to reveal emails
+      toast.info("Revealing emails for export...", { duration: 1500 });
+
+      // For our placeholder, we'll just update the local state
+      const newRevealedEmails = { ...revealedEmails };
+      processedExportData.forEach((streamer) => {
+        newRevealedEmails[streamer.id] = true;
+      });
+      setRevealedEmails(newRevealedEmails);
+    }
+
     // Pass column visibility to export functions
     if (exportFormat === "csv") {
-      exportToCSV(exportData, "saved-streamers.csv", exportColumns);
-      toast.success(`Exported ${exportData.length} records as CSV`);
+      exportToCSV(processedExportData, "saved-streamers.csv", exportColumns);
+      toast.success(`Exported ${processedExportData.length} records as CSV`);
     } else if (exportFormat === "json") {
-      exportToJSON(exportData, "saved-streamers.json", exportColumns);
-      toast.success(`Exported ${exportData.length} records as JSON`);
+      exportToJSON(processedExportData, "saved-streamers.json", exportColumns);
+      toast.success(`Exported ${processedExportData.length} records as JSON`);
     } else if (exportFormat === "excel") {
-      exportToExcel(exportData, "saved-streamers.xlsx", exportColumns);
-      toast.success(`Exported ${exportData.length} records as Excel`);
+      exportToExcel(processedExportData, "saved-streamers.xlsx", exportColumns);
+      toast.success(`Exported ${processedExportData.length} records as Excel`);
     }
+
+    // Reset reveal options after export
+    setRevealSocialsOnExport(false);
+    setRevealEmailsOnExport(false);
+    setExportOptionsAdvancedOpen(false);
+  };
+
+  const handleRevealSocials = async (streamerId: string) => {
+    try {
+      const success = await revealSocialLinks(streamerId);
+      if (success) {
+        setRevealedSocials((prev) => ({
+          ...prev,
+          [streamerId]: true,
+        }));
+        toast.success("Social links revealed successfully");
+      }
+    } catch (error) {
+      toast.error("Failed to reveal social links");
+    }
+  };
+
+  const handleRevealEmail = async (streamerId: string) => {
+    if (!user) return;
+
+    if (!canAccessFeature("email", user.subscription_plan)) {
+      showUpgradeToast("email");
+      return;
+    }
+
+    try {
+      const success = await revealEmail(streamerId);
+      if (success) {
+        setRevealedEmails((prev) => ({
+          ...prev,
+          [streamerId]: true,
+        }));
+        toast.success("Email address revealed successfully");
+      }
+    } catch (error) {
+      toast.error("Failed to reveal email address");
+    }
+  };
+
+  const toggleExpandEmails = (streamerId: string) => {
+    setExpandedEmails((prev) => ({
+      ...prev,
+      [streamerId]: !prev[streamerId],
+    }));
+  };
+
+  function normalizeEmails(gmail: string | string[] | undefined): string[] {
+    if (!gmail) return [];
+    if (Array.isArray(gmail)) return gmail.filter(Boolean);
+    // If it's a string, split by comma and trim
+    return gmail
+      .split(",")
+      .map((e) => e.trim())
+      .filter(Boolean);
+  }
+
+  // Check if a streamer has any social media links
+  const hasSocialLinks = (streamer: TwitchData) => {
+    return Boolean(
+      streamer.discord ||
+        streamer.youtube ||
+        streamer.twitter ||
+        streamer.facebook ||
+        streamer.instagram
+    );
   };
 
   // Apply sorting and pagination
   const sortedData = sortData(data);
-  console.log(sortedData);
   const totalPages = Math.ceil(sortedData.length / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
@@ -404,9 +535,6 @@ export default function SavedStreamersTable({
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { duration: 0.3 } },
   };
-
-  console.log(data);
-  console.log(currentItems);
 
   return (
     <motion.div
@@ -596,10 +724,11 @@ export default function SavedStreamersTable({
                     ? " (Upgrade)"
                     : ""}
                 </span>
-                <ChevronDown className="h-3.5 w-3.5 ml-0 sm:ml-1" />
+                <span className="inline sm:hidden">Export</span>
+                <ChevronDown className="h-3.5 w-3.5 ml-1" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-[220px]">
+            <DropdownMenuContent align="end" className="w-[240px]">
               <DropdownMenuLabel>Export Format</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem
@@ -657,6 +786,7 @@ export default function SavedStreamersTable({
               <DropdownMenuItem
                 onClick={(e) => {
                   e.preventDefault();
+                  console.log(user);
                   if (user?.subscription_plan !== "Pro") {
                     toast.error("Excel export is only available on Pro plans", {
                       description:
@@ -687,12 +817,50 @@ export default function SavedStreamersTable({
                   Pro
                 </Badge>
               </DropdownMenuItem>
+
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Reveal Options</DropdownMenuLabel>
+
+              <DropdownMenuItem
+                onClick={() => {
+                  setRevealSocialsOnExport(true);
+                  setExportOptionsAdvancedOpen(false);
+                  handleExport();
+                }}
+                className="flex items-center gap-2 cursor-pointer"
+              >
+                <Share2 className="h-4 w-4" />
+                <span>Reveal Socials & Export</span>
+              </DropdownMenuItem>
+
+              <DropdownMenuItem
+                onClick={() => {
+                  if (!canAccessFeature("email", user?.subscription_plan)) {
+                    showUpgradeToast("email");
+                    return;
+                  }
+                  setRevealEmailsOnExport(true);
+                  setExportOptionsAdvancedOpen(false);
+                  handleExport();
+                }}
+                className={`flex items-center gap-2 ${
+                  !canAccessFeature("email", user?.subscription_plan)
+                    ? "opacity-60 cursor-not-allowed"
+                    : "cursor-pointer"
+                }`}
+              >
+                <Mail className="h-4 w-4" />
+                <span>Reveal Emails & Export</span>
+                <Badge className="ml-auto bg-blue-100 text-blue-800 hover:bg-blue-100">
+                  Basic+
+                </Badge>
+              </DropdownMenuItem>
+
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => {
-                  // Reset export columns to match current visible columns
                   setExportColumns({ ...visibleColumns });
-                  setExportOptionsDialogOpen(true);
+                  setExportOptionsAdvancedOpen(true);
                 }}
                 className="flex items-center gap-2 cursor-pointer"
               >
@@ -701,7 +869,11 @@ export default function SavedStreamersTable({
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                onClick={handleExport}
+                onClick={() => {
+                  setRevealSocialsOnExport(false);
+                  setRevealEmailsOnExport(false);
+                  handleExport();
+                }}
                 className="flex items-center gap-2 cursor-pointer"
               >
                 <Download className="h-4 w-4" />
@@ -711,15 +883,15 @@ export default function SavedStreamersTable({
           </DropdownMenu>
 
           <Dialog
-            open={exportOptionsDialogOpen}
-            onOpenChange={setExportOptionsDialogOpen}
+            open={exportOptionsAdvancedOpen}
+            onOpenChange={setExportOptionsAdvancedOpen}
           >
             <DialogContent className="max-w-md">
               <DialogHeader>
-                <DialogTitle>Export Options</DialogTitle>
+                <DialogTitle>Advanced Export Options</DialogTitle>
                 <DialogDescription>
-                  Select which columns to include in your export. The export
-                  will use the {exportFormat.toUpperCase()} format.
+                  Select which columns to include in your export and choose
+                  reveal options.
                 </DialogDescription>
               </DialogHeader>
               <div className="py-4 max-h-[60vh] overflow-y-auto">
@@ -788,19 +960,77 @@ export default function SavedStreamersTable({
                       )
                     )}
                   </div>
+
+                  <div className="border-t pt-4 mt-4">
+                    <Label className="mb-3 block text-blue-700 font-medium">
+                      Reveal Options
+                    </Label>
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="reveal-socials"
+                          checked={revealSocialsOnExport}
+                          onCheckedChange={(checked) =>
+                            setRevealSocialsOnExport(!!checked)
+                          }
+                        />
+                        <Label htmlFor="reveal-socials">
+                          Reveal Social Links
+                        </Label>
+                      </div>
+
+                      <div
+                        className={`flex items-center space-x-2 ${
+                          !canAccessFeature("email", user?.subscription_plan)
+                            ? "opacity-60"
+                            : ""
+                        }`}
+                      >
+                        <Checkbox
+                          id="reveal-emails"
+                          checked={revealEmailsOnExport}
+                          disabled={
+                            !canAccessFeature("email", user?.subscription_plan)
+                          }
+                          onCheckedChange={(checked) => {
+                            if (
+                              !canAccessFeature(
+                                "email",
+                                user?.subscription_plan
+                              )
+                            ) {
+                              showUpgradeToast("email");
+                              return;
+                            }
+                            setRevealEmailsOnExport(!!checked);
+                          }}
+                        />
+                        <div className="flex items-center">
+                          <Label htmlFor="reveal-emails">Reveal Emails</Label>
+                          {!canAccessFeature(
+                            "email",
+                            user?.subscription_plan
+                          ) && (
+                            <Badge className="ml-2 bg-blue-100 text-blue-800">
+                              Basic+
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
               <DialogFooter>
                 <Button
                   variant="outline"
-                  onClick={() => setExportOptionsDialogOpen(false)}
+                  onClick={() => setExportOptionsAdvancedOpen(false)}
                 >
                   Cancel
                 </Button>
                 <Button
                   onClick={() => {
                     handleExport();
-                    setExportOptionsDialogOpen(false);
                   }}
                 >
                   Export Now
@@ -826,7 +1056,6 @@ export default function SavedStreamersTable({
                 <DropdownMenuContent align="end">
                   <DropdownMenuLabel className="flex justify-between items-center">
                     Move to folder
-                    <ChevronDown className="h-3 w-3 text-gray-400" />
                   </DropdownMenuLabel>
                   <div className="max-h-[150px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
                     {folders
@@ -1140,79 +1369,236 @@ export default function SavedStreamersTable({
                     )}
                     {visibleColumns.social && (
                       <TableCell className="py-2 sm:py-3">
-                        <div className="flex space-x-1">
-                          {row.discord && (
-                            <a
-                              href={row.discord}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-gray-500 hover:text-indigo-600 transition-colors duration-200 p-1 rounded-full hover:bg-gray-100"
-                              title="Discord"
+                        {hasSocialLinks(row) ? (
+                          revealedSocials[row.id] ? (
+                            <div className="flex flex-wrap gap-1">
+                              {row.discord && (
+                                <a
+                                  href={row.discord}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-gray-500 hover:text-indigo-600 transition-colors duration-200 p-1 rounded-full hover:bg-gray-100"
+                                  title="Discord"
+                                >
+                                  <DiscordLogo className="h-4 w-4" />
+                                </a>
+                              )}
+                              {row.youtube && (
+                                <a
+                                  href={row.youtube}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-gray-500 hover:text-red-600 transition-colors duration-200 p-1 rounded-full hover:bg-gray-100"
+                                  title="YouTube"
+                                >
+                                  <YoutubeLogo className="h-4 w-4" />
+                                </a>
+                              )}
+                              {row.twitter && (
+                                <a
+                                  href={row.twitter}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-gray-500 hover:text-blue-400 transition-colors duration-200 p-1 rounded-full hover:bg-gray-100"
+                                  title="Twitter"
+                                >
+                                  <TwitterLogo className="h-4 w-4" />
+                                </a>
+                              )}
+                              {row.facebook && (
+                                <a
+                                  href={row.facebook}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-gray-500 hover:text-blue-600 transition-colors duration-200 p-1 rounded-full hover:bg-gray-100"
+                                  title="Facebook"
+                                >
+                                  <FacebookLogo className="h-4 w-4" />
+                                </a>
+                              )}
+                              {row.instagram && (
+                                <a
+                                  href={row.instagram}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-gray-500 hover:text-pink-600 transition-colors duration-200 p-1 rounded-full hover:bg-gray-100"
+                                  title="Instagram"
+                                >
+                                  <InstagramLogo className="h-4 w-4" />
+                                </a>
+                              )}
+                            </div>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 px-3 py-0 text-xs rounded-full border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700 transition-all"
+                              onClick={() => handleRevealSocials(row.id)}
                             >
-                              <DiscordLogo className="h-4 w-4" />
-                            </a>
-                          )}
-                          {row.youtube && (
-                            <a
-                              href={row.youtube}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-gray-500 hover:text-red-600 transition-colors duration-200 p-1 rounded-full hover:bg-gray-100"
-                              title="YouTube"
-                            >
-                              <YoutubeLogo className="h-4 w-4" />
-                            </a>
-                          )}
-                          {row.twitter && (
-                            <a
-                              href={row.twitter}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-gray-500 hover:text-blue-400 transition-colors duration-200 p-1 rounded-full hover:bg-gray-100"
-                              title="Twitter"
-                            >
-                              <TwitterLogo className="h-4 w-4" />
-                            </a>
-                          )}
-                          {row.facebook && (
-                            <a
-                              href={row.facebook}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-gray-500 hover:text-blue-600 transition-colors duration-200 p-1 rounded-full hover:bg-gray-100"
-                              title="Facebook"
-                            >
-                              <FacebookLogo className="h-4 w-4" />
-                            </a>
-                          )}
-                          {row.instagram && (
-                            <a
-                              href={row.instagram}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-gray-500 hover:text-pink-600 transition-colors duration-200 p-1 rounded-full hover:bg-gray-100"
-                              title="Instagram"
-                            >
-                              <InstagramLogo className="h-4 w-4" />
-                            </a>
-                          )}
-                        </div>
+                              <Eye className="h-3 w-3 mr-1.5" />
+                              Reveal Socials
+                            </Button>
+                          )
+                        ) : (
+                          <span className="text-gray-400 text-xs">
+                            No socials found
+                          </span>
+                        )}
                       </TableCell>
                     )}
                     {visibleColumns.email && (
-                      <TableCell className="py-2 sm:py-3 max-w-[150px] truncate">
-                        {row.gmail ? (
-                          <div className="flex items-center">
-                            <a
-                              href={`mailto:${row.gmail}`}
-                              className="text-blue-600 hover:underline flex items-center truncate group"
-                            >
-                              <EnvelopeSimple className="h-4 w-4 mr-1 flex-shrink-0 group-hover:text-blue-700" />
-                              <span className="text-xs truncate">
-                                {row.gmail}
+                      <TableCell className="py-2 sm:py-3 max-w-[200px]">
+                        {normalizeEmails(row.gmail).length > 0 ? (
+                          revealedEmails[row.id] ? (
+                            <div className="flex flex-col">
+                              {normalizeEmails(row.gmail).length > 1 ? (
+                                <>
+                                  <div className="flex items-center">
+                                    <a
+                                      href={`mailto:${
+                                        normalizeEmails(row.gmail)[0]
+                                      }`}
+                                      className="text-blue-600 hover:underline flex items-center truncate group"
+                                    >
+                                      <EnvelopeSimple className="h-4 w-4 mr-1 flex-shrink-0 group-hover:text-blue-700" />
+                                      <span className="text-xs truncate">
+                                        {normalizeEmails(row.gmail)[0]}
+                                      </span>
+                                    </a>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6 ml-1 hover:bg-gray-100 text-gray-400 hover:text-gray-600"
+                                      onClick={() =>
+                                        setRevealedEmails((prev) => ({
+                                          ...prev,
+                                          [row.id]: false,
+                                        }))
+                                      }
+                                      title="Hide email"
+                                    >
+                                      <EyeOff className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                  {normalizeEmails(row.gmail).length > 1 && (
+                                    <div className="mt-1">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-6 px-2 py-0 text-xs text-gray-500 hover:text-gray-700 flex items-center"
+                                        onClick={() =>
+                                          toggleExpandEmails(row.id)
+                                        }
+                                      >
+                                        {expandedEmails[row.id] ? (
+                                          <>
+                                            <ChevronUp className="h-3 w-3 mr-1" />
+                                            Hide{" "}
+                                            {normalizeEmails(row.gmail).length -
+                                              1}{" "}
+                                            more
+                                          </>
+                                        ) : (
+                                          <>
+                                            <ChevronDown className="h-3 w-3 mr-1" />
+                                            Show{" "}
+                                            {normalizeEmails(row.gmail).length -
+                                              1}{" "}
+                                            more
+                                          </>
+                                        )}
+                                      </Button>
+                                      {expandedEmails[row.id] && (
+                                        <div className="mt-1 space-y-1 pl-1 border-l-2 border-gray-100">
+                                          {normalizeEmails(row.gmail)
+                                            .slice(1)
+                                            .map((email, idx) => (
+                                              <a
+                                                key={idx}
+                                                href={`mailto:${email}`}
+                                                className="text-blue-600 hover:underline flex items-center truncate group text-xs"
+                                              >
+                                                <EnvelopeSimple className="h-3 w-3 mr-1 flex-shrink-0 group-hover:text-blue-700" />
+                                                <span className="truncate">
+                                                  {email}
+                                                </span>
+                                              </a>
+                                            ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </>
+                              ) : (
+                                <div className="flex items-center">
+                                  <a
+                                    href={`mailto:${
+                                      normalizeEmails(row.gmail)[0]
+                                    }`}
+                                    className="text-blue-600 hover:underline flex items-center truncate group"
+                                  >
+                                    <EnvelopeSimple className="h-4 w-4 mr-1 flex-shrink-0 group-hover:text-blue-700" />
+                                    <span className="text-xs truncate">
+                                      {normalizeEmails(row.gmail)[0]}
+                                    </span>
+                                  </a>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6 ml-1 hover:bg-gray-100 text-gray-400 hover:text-gray-600"
+                                    onClick={() =>
+                                      setRevealedEmails((prev) => ({
+                                        ...prev,
+                                        [row.id]: false,
+                                      }))
+                                    }
+                                    title="Hide email"
+                                  >
+                                    <EyeOff className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="flex items-center">
+                              <span className="text-gray-400 text-xs blur-sm select-none truncate max-w-[120px]">
+                                {normalizeEmails(row.gmail).length > 0
+                                  ? normalizeEmails(row.gmail)[0].replace(
+                                      /./g,
+                                      "•"
+                                    )
+                                  : ""}
                               </span>
-                            </a>
-                          </div>
+
+                              {canAccessFeature(
+                                "email",
+                                user?.subscription_plan
+                              ) ? (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-7 rounded-full text-xs px-3 py-0 ml-2 border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700 transition-all"
+                                  onClick={() => handleRevealEmail(row.id)}
+                                >
+                                  <Eye className="h-3 w-3 mr-1.5" />
+                                  Reveal
+                                </Button>
+                              ) : (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-7 rounded-full text-xs px-3 py-0 ml-2 border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700 transition-all"
+                                  onClick={() => showUpgradeToast("email")}
+                                >
+                                  <Eye className="h-3 w-3 mr-1.5" />
+                                  <span className="mr-1">Reveal</span>
+                                  <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
+                                    Basic+
+                                  </Badge>
+                                </Button>
+                              )}
+                            </div>
+                          )
                         ) : (
                           <span className="text-gray-400 text-xs">
                             No email available
@@ -1277,6 +1663,46 @@ export default function SavedStreamersTable({
                               </>
                             )}
                           </DropdownMenuItem>
+
+                          {hasSocialLinks(row) && !revealedSocials[row.id] && (
+                            <DropdownMenuItem
+                              onClick={() => handleRevealSocials(row.id)}
+                              className="cursor-pointer"
+                            >
+                              <Share2 className="mr-2 h-4 w-4" />
+                              <span>Reveal Social Links</span>
+                            </DropdownMenuItem>
+                          )}
+
+                          {row.gmail && !revealedEmails[row.id] && (
+                            <DropdownMenuItem
+                              onClick={() => {
+                                if (
+                                  !canAccessFeature(
+                                    "email",
+                                    user?.subscription_plan
+                                  )
+                                ) {
+                                  showUpgradeToast("email");
+                                  return;
+                                }
+                                handleRevealEmail(row.id);
+                              }}
+                              className="cursor-pointer"
+                            >
+                              <Mail className="mr-2 h-4 w-4" />
+                              <span>Reveal Email</span>
+                              {!canAccessFeature(
+                                "email",
+                                user?.subscription_plan
+                              ) && (
+                                <Badge className="ml-auto bg-blue-100 text-blue-800">
+                                  Basic+
+                                </Badge>
+                              )}
+                            </DropdownMenuItem>
+                          )}
+
                           <DropdownMenuSeparator />
                           <DropdownMenuLabel className="flex justify-between items-center">
                             Move to folder
@@ -1393,6 +1819,63 @@ export default function SavedStreamersTable({
               <span>View Channel</span>
             </button>
 
+            {/* Social Links Action */}
+            {hasSocialLinks(contextMenu.row) &&
+              !revealedSocials[contextMenu.row.id] && (
+                <button
+                  className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 transition-colors"
+                  onClick={() => {
+                    handleRevealSocials(contextMenu.row!.id);
+                    setContextMenu((prev) => ({ ...prev, visible: false }));
+                  }}
+                >
+                  <Share2 className="h-4 w-4" />
+                  <span>Reveal Social Links</span>
+                </button>
+              )}
+
+            {/* Email Actions */}
+            {contextMenu.row.gmail && (
+              <>
+                {revealedEmails[contextMenu.row.id] ? (
+                  <button
+                    className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 transition-colors"
+                    onClick={() => {
+                      const email = Array.isArray(contextMenu.row!.gmail)
+                        ? contextMenu.row!.gmail[0]
+                        : contextMenu.row!.gmail;
+                      window.open(`mailto:${email}`, "_blank");
+                      setContextMenu((prev) => ({ ...prev, visible: false }));
+                    }}
+                  >
+                    <EnvelopeSimple className="h-4 w-4" />
+                    <span>Send Email</span>
+                  </button>
+                ) : (
+                  <button
+                    className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 transition-colors"
+                    onClick={() => {
+                      if (!canAccessFeature("email", user?.subscription_plan)) {
+                        showUpgradeToast("email");
+                        setContextMenu((prev) => ({ ...prev, visible: false }));
+                        return;
+                      }
+                      handleRevealEmail(contextMenu.row!.id);
+                      setContextMenu((prev) => ({ ...prev, visible: false }));
+                    }}
+                  >
+                    <Eye className="h-4 w-4" />
+                    <span>Reveal Email</span>
+                    {!canAccessFeature("email", user?.subscription_plan) && (
+                      <Badge className="ml-auto bg-blue-100 text-blue-800">
+                        Basic+
+                      </Badge>
+                    )}
+                  </button>
+                )}
+              </>
+            )}
+
             {/* Favorite/Unfavorite */}
             <div
               className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 transition-colors"
@@ -1421,7 +1904,6 @@ export default function SavedStreamersTable({
             <div className="border-t my-1" />
             <div className="px-4 py-2 text-xs text-gray-500 flex justify-between items-center">
               <span>Add to folders</span>
-              {/* <ChevronDown className="h-3 w-3 text-gray-400" /> */}
             </div>
             <div className="max-h-[150px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
               {folders
@@ -1449,11 +1931,6 @@ export default function SavedStreamersTable({
                     <span>{folder.name}</span>
                   </button>
                 ))}
-              {/* {folders.length > 5 && (
-                <div className="px-4 py-2 text-xs text-gray-500 border-t">
-                  Scroll for more folders
-                </div>
-              )} */}
               {folders
                 .filter(
                   (folder) => folder.id !== "all" && folder.id !== "favourites"
