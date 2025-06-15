@@ -13,6 +13,7 @@ import { getUserData } from "@/utils/auth";
 interface UserContextValue {
   user: User | null;
   loading: boolean;
+  updateCredits: (delta: number) => void; // ✅ Optimistic update helper
   refreshUser: () => Promise<void>; // Add a function to refresh user data
 }
 
@@ -28,11 +29,18 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     setLoading(false);
   };
 
+  // ✅ Optimistic credit update
+  const updateCredits = (delta: number) => {
+    setUser((prev) =>
+      prev ? { ...prev, credits: prev.credits + delta } : prev
+    );
+  };
+
   useEffect(() => {
     refreshUser(); // Fetch user data on mount
   }, []);
   return (
-    <UserContext.Provider value={{ user, loading, refreshUser }}>
+    <UserContext.Provider value={{ user, loading, refreshUser, updateCredits }}>
       {children}
     </UserContext.Provider>
   );

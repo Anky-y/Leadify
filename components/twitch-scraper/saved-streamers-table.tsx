@@ -213,7 +213,7 @@ export default function SavedStreamersTable({
     }
   }, [isDesktop, isTablet, isMobile]);
 
-  const { user, refreshUser } = useUser();
+  const { user, updateCredits } = useUser();
   const [savedStreamers, setSavedStreamers] = useState<TwitchData[]>(data);
 
   const itemsPerPage = isDesktop ? 10 : isTablet ? 7 : 5;
@@ -462,6 +462,7 @@ export default function SavedStreamersTable({
       [streamerId]: true,
     }));
 
+    updateCredits(-1);
     try {
       const success = await revealSocialLinks(streamerId);
       if (success) {
@@ -511,6 +512,7 @@ export default function SavedStreamersTable({
       ...prev,
       [streamerId]: true,
     }));
+    updateCredits(-2);
 
     try {
       const success = await revealEmail(streamerId);
@@ -592,6 +594,7 @@ export default function SavedStreamersTable({
                   : streamer
               )
             );
+            updateCredits(-1);
           } else {
             failCount++;
           }
@@ -673,6 +676,7 @@ export default function SavedStreamersTable({
                   : streamer
               )
             );
+            updateCredits(-2);
           } else {
             failCount++;
           }

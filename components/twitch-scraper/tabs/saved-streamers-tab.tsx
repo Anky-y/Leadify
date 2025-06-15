@@ -57,7 +57,7 @@ export default function SavedStreamersTab({}: SavedStreamersTabProps) {
   useEffect(() => {
     if (!user) return;
     fetchData(user.id, "all");
-  }, [user]);
+  }, []);
 
   const fetchData = async (userId: string | undefined, folderId = "all") => {
     try {
