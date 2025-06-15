@@ -12,7 +12,7 @@ import {
   RefreshCw,
   FolderX,
   Plus,
-  Folder as FolderIcon,
+  FolderIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import SavedStreamersTable from "../saved-streamers-table";
@@ -146,6 +146,11 @@ export default function SavedStreamersTab({}: SavedStreamersTabProps) {
   });
 
   const handleDeleteStreamer = async (id: string) => {
+    const streamerToDelete = savedStreamers.find((s) => s.id === id);
+
+    // Optimistic update - remove from UI immediately
+    setSavedStreamers((prev) => prev.filter((s) => s.id !== id));
+
     try {
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
@@ -154,18 +159,45 @@ export default function SavedStreamersTab({}: SavedStreamersTabProps) {
       if (user?.id) {
         headers["x-user-id"] = user.id;
       }
-      await fetch(
+
+      const response = await fetch(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}saved-streamers/${id}`,
         {
           method: "DELETE",
           headers,
         }
       );
-      setSavedStreamers((prev) => prev.filter((s) => s.id !== id));
-      toast.success("Streamer removed from saved list.");
-      fetchData(user?.id, "all");
-    } catch (err) {
+
+      if (!response.ok) {
+        throw new Error("Failed to delete streamer");
+      }
+
+      toast.success("Streamer removed from saved list");
+
+      // Update folder counts without full refresh
+      setFolders((prev) =>
+        prev.map((folder) => ({
+          ...folder,
+          streamer_count:
+            folder.id === "all"
+              ? (folder.streamer_count || 0) - 1
+              : folder.streamer_count,
+        }))
+      );
+    } catch (error) {
+      // Revert optimistic update on error
+      if (streamerToDelete) {
+        setSavedStreamers((prev) =>
+          [...prev, streamerToDelete].sort((a, b) => {
+            if (a.is_favourite && !b.is_favourite) return -1;
+            if (!a.is_favourite && b.is_favourite) return 1;
+            return 0;
+          })
+        );
+      }
+
       toast.error("Failed to delete streamer");
+      console.error("Error deleting streamer:", error);
     }
   };
 
@@ -173,6 +205,18 @@ export default function SavedStreamersTab({}: SavedStreamersTabProps) {
     streamerId: string,
     folderId: string | null
   ) => {
+    const originalStreamer = savedStreamers.find((s) => s.id === streamerId);
+    const originalFolderId = originalStreamer?.folder_id;
+
+    // Optimistic update
+    setSavedStreamers((prev) =>
+      prev.map((s) =>
+        s.id === streamerId
+          ? { ...s, folder_id: folderId === null ? undefined : folderId }
+          : s
+      )
+    );
+
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
@@ -180,25 +224,37 @@ export default function SavedStreamersTab({}: SavedStreamersTabProps) {
     if (user?.id) {
       headers["x-user-id"] = user.id;
     }
+
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}streamers/move`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          streamer_id: streamerId,
-          folder_id: folderId,
-        }),
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}streamers/move`,
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            streamer_id: streamerId,
+            folder_id: folderId,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to move streamer");
+      }
+
+      const folderName =
+        folders.find((f) => f.id === folderId)?.name || "Default";
+      toast.success(`Moved to ${folderName}`);
+    } catch (error) {
+      // Revert optimistic update on error
       setSavedStreamers((prev) =>
         prev.map((s) =>
-          s.id === streamerId
-            ? { ...s, folder_id: folderId === null ? undefined : folderId }
-            : s
+          s.id === streamerId ? { ...s, folder_id: originalFolderId } : s
         )
       );
-      fetchData(user?.id, selectedFolder?.id);
-    } catch (err) {
+
       toast.error("Failed to move streamer");
+      console.error("Error moving streamer:", error);
     }
   };
 

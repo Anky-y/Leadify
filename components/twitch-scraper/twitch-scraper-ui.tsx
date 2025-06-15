@@ -89,7 +89,7 @@ export default function TwitchScraperUI({
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            category: "VALORANT",
+            category: "Fortnite",
             minimum_followers: 10,
             maximum_followers: 100000,
             viewer_count: 20,
