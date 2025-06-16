@@ -404,12 +404,12 @@ export default function SavedStreamersTable({
       ? data.filter((row) => selectedStreamers[row.id])
       : data;
 
-    if (data.length === 0) {
+    if (exportData.length === 0) {
       toast.error("There are no saved streamers to export.");
       return;
     }
 
-    // Check subscription plan for export permissions
+    // Subscription plan checks
     if (exportFormat === "json" && user?.subscription_plan === "Free") {
       toast.error("JSON export is only available on Basic and Pro plans", {
         description: "Upgrade your subscription to access this feature",
@@ -432,16 +432,49 @@ export default function SavedStreamersTable({
       return;
     }
 
-    // Export without reveal processing
+    // 🔒 Apply export-safe transformation (censoring)
+    const exportSafeData = exportData.map((row) => {
+      const censoredEmail = row.email_revealed
+        ? row.gmail
+        : row.gmail
+        ? normalizeEmails(row.gmail)
+            .map(() => "••••••••")
+            .join(", ")
+        : "";
+
+      const censoredSocials = row.socials_revealed
+        ? {
+            twitter: row.twitter,
+            youtube: row.youtube,
+            instagram: row.instagram,
+            discord: row.discord,
+            facebook: row.facebook,
+          }
+        : {
+            twitter: row.twitter ? "••••••••" : "",
+            youtube: row.youtube ? "••••••••" : "",
+            instagram: row.instagram ? "••••••••" : "",
+            discord: row.discord ? "••••••••" : "",
+            facebook: row.facebook ? "••••••••" : "",
+          };
+
+      return {
+        ...row,
+        gmail: censoredEmail,
+        ...censoredSocials,
+      };
+    });
+
+    // 🚀 Export logic
     if (exportFormat === "csv") {
-      exportToCSV(exportData, "saved-streamers.csv", exportColumns);
-      toast.success(`Exported ${exportData.length} records as CSV`);
+      exportToCSV(exportSafeData, "saved-streamers.csv", exportColumns);
+      toast.success(`Exported ${exportSafeData.length} records as CSV`);
     } else if (exportFormat === "json") {
-      exportToJSON(exportData, "saved-streamers.json", exportColumns);
-      toast.success(`Exported ${exportData.length} records as JSON`);
+      exportToJSON(exportSafeData, "saved-streamers.json", exportColumns);
+      toast.success(`Exported ${exportSafeData.length} records as JSON`);
     } else if (exportFormat === "excel") {
-      exportToExcel(exportData, "saved-streamers.xlsx", exportColumns);
-      toast.success(`Exported ${exportData.length} records as Excel`);
+      exportToExcel(exportSafeData, "saved-streamers.xlsx", exportColumns);
+      toast.success(`Exported ${exportSafeData.length} records as Excel`);
     }
 
     setExportOptionsDialogOpen(false);
