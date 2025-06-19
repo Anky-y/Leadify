@@ -45,6 +45,7 @@ import {
   ChevronUp,
   Unlock,
   Loader2,
+  AlertTriangle,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -92,12 +93,22 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface SavedStreamersTableProps {
   data: TwitchData[];
   folders: Folder[];
-  onDelete: (id: string) => Promise<void>; // Changed to async
-  onMoveToFolder: (id: string, folder: string) => Promise<void>; // Changed to async
+  onDelete: (id: string) => Promise<void>;
+  onMoveToFolder: (id: string, folder: string) => Promise<void>;
   refreshStreamers: () => void;
   setFolders: (folders: Folder[]) => void;
 }
@@ -170,6 +181,10 @@ export default function SavedStreamersTable({
   // Bulk reveal loading states
   const [bulkRevealingSocials, setBulkRevealingSocials] = useState(false);
   const [bulkRevealingEmails, setBulkRevealingEmails] = useState(false);
+
+  // Confirmation dialogs
+  const [bulkSocialsConfirmOpen, setBulkSocialsConfirmOpen] = useState(false);
+  const [bulkEmailsConfirmOpen, setBulkEmailsConfirmOpen] = useState(false);
 
   // Adjust visible columns based on screen size
   useEffect(() => {
@@ -264,6 +279,15 @@ export default function SavedStreamersTable({
 
   // Handle sorting
   const handleSort = (column: string) => {
+    // Check if email sorting is restricted
+    if (
+      column === "email" &&
+      !canAccessFeature("email", user?.subscription_plan)
+    ) {
+      showUpgradeToast("email");
+      return;
+    }
+
     if (sortColumn === column) {
       if (sortDirection === "default") {
         setSortDirection("asc");
@@ -310,6 +334,15 @@ export default function SavedStreamersTable({
         return sortDirection === "asc" ? valueA - valueB : valueB - valueA;
       }
 
+      // Email sorting (Basic+ only)
+      if (sortColumn === "email") {
+        const valueA = (a.gmail || "").toString().toLowerCase();
+        const valueB = (b.gmail || "").toString().toLowerCase();
+        return sortDirection === "asc"
+          ? valueA.localeCompare(valueB)
+          : valueB.localeCompare(valueA);
+      }
+
       return 0;
     });
   };
@@ -319,13 +352,34 @@ export default function SavedStreamersTable({
     setCurrentPage(page);
   };
 
-  // Handle select all checkbox
+  // Fixed: Handle select all checkbox - now selects ALL streamers across all pages
   const handleSelectAllChange = (checked: boolean) => {
     const newSelectedStreamers: Record<string, boolean> = {};
-    currentItems.forEach((streamer) => {
+    // Select ALL streamers, not just current page
+    savedStreamers.forEach((streamer) => {
       newSelectedStreamers[streamer.id] = checked;
     });
     setSelectedStreamers(newSelectedStreamers);
+  };
+
+  // Handler for "Select all" (across all pages)
+  const handleSelectAllGlobalChange = (checked: boolean) => {
+    const newSelected: Record<string, boolean> = {};
+    data.forEach((streamer) => {
+      newSelected[streamer.id] = checked;
+    });
+    setSelectedStreamers(newSelected);
+  };
+
+  // Handler for "Select page" (current page only)
+  const handleSelectAllPageChange = (checked: boolean) => {
+    setSelectedStreamers((prev) => {
+      const updated = { ...prev };
+      currentItems.forEach((streamer) => {
+        updated[streamer.id] = checked;
+      });
+      return updated;
+    });
   };
 
   // Handle individual checkbox change
@@ -341,6 +395,12 @@ export default function SavedStreamersTable({
     streamerId: string,
     currentStatus: boolean | undefined
   ) => {
+    // Check if favoriting is available for user tier
+    if (!canAccessFeature("favorite", user?.subscription_plan)) {
+      showUpgradeToast("favorite");
+      return;
+    }
+
     const newStatus = !currentStatus;
 
     // Optimistic update - update UI immediately
@@ -400,9 +460,6 @@ export default function SavedStreamersTable({
           duration: 3000,
         }
       );
-
-      // Refresh user data for any quota updates
-      // refreshUser();
     } catch (error) {
       // Revert optimistic update on error
       setSavedStreamers((prev) =>
@@ -426,7 +483,7 @@ export default function SavedStreamersTable({
     }
   };
 
-  // Simplified export function without reveal options
+  // Enhanced export function with column selection for Pro users
   const handleExport = async () => {
     const selected = Object.values(selectedStreamers).some(Boolean);
     const exportData = selected
@@ -463,8 +520,10 @@ export default function SavedStreamersTable({
       return;
     }
 
-    // 🔒 Apply export-safe transformation (censoring)
+    // Remove User ID column from export data
     const exportSafeData = exportData.map((row) => {
+      const { user_id, ...rowWithoutUserId } = row as any;
+
       const censoredEmail = row.email_revealed
         ? row.gmail
         : row.gmail
@@ -490,13 +549,13 @@ export default function SavedStreamersTable({
           };
 
       return {
-        ...row,
+        ...rowWithoutUserId,
         gmail: censoredEmail,
         ...censoredSocials,
       };
     });
 
-    // 🚀 Export logic
+    // Export logic
     if (exportFormat === "csv") {
       exportToCSV(exportSafeData, "saved-streamers.csv", exportColumns);
       toast.success(`Exported ${exportSafeData.length} records as CSV`, {
@@ -551,7 +610,6 @@ export default function SavedStreamersTable({
           closeButton: true,
           duration: 3000,
         });
-        // refreshUser();
       } else {
         throw new Error("Failed to reveal social links");
       }
@@ -616,7 +674,6 @@ export default function SavedStreamersTable({
           closeButton: true,
           duration: 3000,
         });
-        // refreshUser();
       } else {
         throw new Error("Failed to reveal email");
       }
@@ -649,7 +706,7 @@ export default function SavedStreamersTable({
     }
   };
 
-  // Bulk reveal socials for selected streamers
+  // Bulk reveal socials for selected streamers with confirmation
   const handleBulkRevealSocials = async () => {
     const selectedStreamerIds = Object.entries(selectedStreamers)
       .filter(([_, selected]) => selected)
@@ -685,6 +742,21 @@ export default function SavedStreamersTable({
       return;
     }
 
+    setBulkSocialsConfirmOpen(true);
+  };
+
+  const confirmBulkRevealSocials = async () => {
+    setBulkSocialsConfirmOpen(false);
+
+    const selectedStreamerIds = Object.entries(selectedStreamers)
+      .filter(([_, selected]) => selected)
+      .map(([id]) => id);
+
+    const streamersToReveal = selectedStreamerIds.filter((id) => {
+      const streamer = data.find((s) => s.id === id);
+      return streamer && hasSocialLinks(streamer) && !streamer.socials_revealed;
+    });
+
     setBulkRevealingSocials(true);
     let successCount = 0;
     let failCount = 0;
@@ -706,13 +778,11 @@ export default function SavedStreamersTable({
           if (success) {
             successCount++;
 
-            // ✅ Update revealedSocials state
             setRevealedSocials((prev) => ({
               ...prev,
               [streamerId]: true,
             }));
 
-            // ✅ Update savedStreamers state so UI reflects the change
             setSavedStreamers((prev) =>
               prev.map((streamer) =>
                 streamer.id === streamerId
@@ -758,7 +828,7 @@ export default function SavedStreamersTable({
     }
   };
 
-  // Bulk reveal emails for selected streamers
+  // Bulk reveal emails for selected streamers with confirmation
   const handleBulkRevealEmails = async () => {
     if (!user) return;
 
@@ -774,7 +844,7 @@ export default function SavedStreamersTable({
     if (selectedStreamerIds.length === 0) {
       toast.error("No streamers selected", {
         description:
-          "Please select at least one streamer to reveal social links",
+          "Please select at least one streamer to reveal email addresses",
         icon: "⚠️",
         closeButton: true,
         duration: 4000,
@@ -801,6 +871,21 @@ export default function SavedStreamersTable({
       return;
     }
 
+    setBulkEmailsConfirmOpen(true);
+  };
+
+  const confirmBulkRevealEmails = async () => {
+    setBulkEmailsConfirmOpen(false);
+
+    const selectedStreamerIds = Object.entries(selectedStreamers)
+      .filter(([_, selected]) => selected)
+      .map(([id]) => id);
+
+    const streamersToReveal = selectedStreamerIds.filter((id) => {
+      const streamer = data.find((s) => s.id === id);
+      return streamer && streamer.gmail && !streamer.email_revealed;
+    });
+
     setBulkRevealingEmails(true);
     let successCount = 0;
     let failCount = 0;
@@ -822,13 +907,11 @@ export default function SavedStreamersTable({
           if (success) {
             successCount++;
 
-            // ✅ Update revealedEmails state
             setRevealedEmails((prev) => ({
               ...prev,
               [streamerId]: true,
             }));
 
-            // ✅ Update savedStreamers state so UI updates
             setSavedStreamers((prev) =>
               prev.map((streamer) =>
                 streamer.id === streamerId
@@ -873,16 +956,14 @@ export default function SavedStreamersTable({
       setBulkRevealingEmails(false);
     }
   };
+
   const handleBulkMoveToFolder = async (
     streamerIds: string[],
     targetFolderId: string
   ) => {
-    // 1. Map of folderId -> number of streamers leaving that folder
     const leavingCount: Record<string, number> = {};
-    // 2. Count how many are being added to the target folder
     let addedCount = 0;
 
-    // Find original folders for each streamer
     savedStreamers.forEach((s) => {
       if (streamerIds.includes(s.id)) {
         if (s.folder_id && s.folder_id !== targetFolderId) {
@@ -894,23 +975,19 @@ export default function SavedStreamersTable({
       }
     });
 
-    // 3. Optimistically update streamers
     setSavedStreamers((prev) =>
       prev.map((s) =>
         streamerIds.includes(s.id) ? { ...s, folder_id: targetFolderId } : s
       )
     );
 
-    // 4. Optimistically update folder counts
     const updatedFolders = folders.map((folder) => {
       let count = folder.streamer_count || 0;
 
-      // Subtract for folders streamers are leaving
       if (leavingCount[folder.id]) {
         count = Math.max(count - leavingCount[folder.id], 0);
       }
 
-      // Add for the target folder
       if (folder.id === targetFolderId) {
         count += addedCount;
       }
@@ -920,7 +997,6 @@ export default function SavedStreamersTable({
 
     setFolders(updatedFolders);
 
-    // 5. Call your API for each streamer (or batch if supported)
     for (const id of streamerIds) {
       await handleMoveToFolder(id, targetFolderId);
     }
@@ -936,14 +1012,12 @@ export default function SavedStreamersTable({
   function normalizeEmails(gmail: string | string[] | undefined): string[] {
     if (!gmail) return [];
     if (Array.isArray(gmail)) return gmail.filter(Boolean);
-    // If it's a string, split by comma and trim
     return gmail
       .split(",")
       .map((e) => e.trim())
       .filter(Boolean);
   }
 
-  // Check if a streamer has any social media links
   const hasSocialLinks = (streamer: TwitchData) => {
     return Boolean(
       streamer.discord ||
@@ -961,7 +1035,6 @@ export default function SavedStreamersTable({
     const originalStreamer = savedStreamers.find((s) => s.id === streamerId);
     const originalFolderId = originalStreamer?.folder_id;
 
-    // Optimistic update - update folder immediately
     setSavedStreamers((prev) =>
       prev.map((s) =>
         s.id === streamerId
@@ -1004,7 +1077,6 @@ export default function SavedStreamersTable({
         duration: 3000,
       });
     } catch (error) {
-      // Revert optimistic update on error
       setSavedStreamers((prev) =>
         prev.map((s) =>
           s.id === streamerId ? { ...s, folder_id: originalFolderId } : s
@@ -1027,10 +1099,8 @@ export default function SavedStreamersTable({
   const handleDeleteStreamer = async (streamerId: string) => {
     const streamerToDelete = savedStreamers.find((s) => s.id === streamerId);
 
-    // Optimistic update - remove from UI immediately
     setSavedStreamers((prev) => prev.filter((s) => s.id !== streamerId));
 
-    // Also remove from selected streamers if it was selected
     setSelectedStreamers((prev) => {
       const updated = { ...prev };
       delete updated[streamerId];
@@ -1066,7 +1136,6 @@ export default function SavedStreamersTable({
         duration: 3000,
       });
     } catch (error) {
-      // Revert optimistic update on error
       if (streamerToDelete) {
         setSavedStreamers((prev) =>
           [...prev, streamerToDelete].sort((a, b) => {
@@ -1143,11 +1212,11 @@ export default function SavedStreamersTable({
               <Checkbox
                 id="select-all"
                 checked={
-                  currentItems.length > 0 &&
-                  currentItems.every((s) => selectedStreamers[s.id])
+                  savedStreamers.length > 0 &&
+                  savedStreamers.every((s) => selectedStreamers[s.id])
                 }
                 onCheckedChange={(checked) =>
-                  handleSelectAllChange(checked === true)
+                  handleSelectAllGlobalChange(checked === true)
                 }
               />
               <label
@@ -1163,6 +1232,7 @@ export default function SavedStreamersTable({
           </div>
 
           <div className="flex flex-wrap gap-2">
+            {/* Enhanced Column Toggle Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -1178,22 +1248,27 @@ export default function SavedStreamersTable({
                 <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
                 <DropdownMenuSeparator />
 
-                <DropdownMenuItem
-                  onClick={() =>
-                    setVisibleColumns((prev) => ({
-                      ...prev,
-                      favorite: !prev.favorite,
-                    }))
-                  }
-                  className="flex items-center gap-2 cursor-pointer"
-                >
-                  <Checkbox checked={visibleColumns.favorite} />
-                  <span>Favorite</span>
-                </DropdownMenuItem>
+                {Object.entries(visibleColumns).map(([column, isVisible]) => (
+                  <DropdownMenuItem
+                    key={column}
+                    onClick={() =>
+                      setVisibleColumns((prev) => ({
+                        ...prev,
+                        [column]: !prev[column as keyof typeof prev],
+                      }))
+                    }
+                    className="flex items-center gap-2 cursor-pointer"
+                  >
+                    <Checkbox checked={isVisible} />
+                    <span className="capitalize">
+                      {column === "viewers" ? "Viewers" : column}
+                    </span>
+                  </DropdownMenuItem>
+                ))}
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Simplified Export Dropdown */}
+            {/* Enhanced Export Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -1315,15 +1390,40 @@ export default function SavedStreamersTable({
                 </DropdownMenuItem>
 
                 <DropdownMenuSeparator />
+                {/* Pro-only column selection */}
                 <DropdownMenuItem
                   onClick={() => {
+                    if (user?.subscription_plan !== "Pro") {
+                      toast.error(
+                        "Column selection is only available on Pro plans",
+                        {
+                          description:
+                            "Upgrade your subscription to access this feature",
+                          action: {
+                            label: "Upgrade",
+                            onClick: () =>
+                              (window.location.href = "/dashboard/billing"),
+                          },
+                        }
+                      );
+                      return;
+                    }
                     setExportColumns({ ...visibleColumns });
                     setExportOptionsDialogOpen(true);
                   }}
-                  className="flex items-center gap-2 cursor-pointer"
+                  className={`flex items-center gap-2 ${
+                    user?.subscription_plan !== "Pro"
+                      ? "opacity-60 cursor-not-allowed"
+                      : "cursor-pointer"
+                  }`}
                 >
                   <Settings className="h-4 w-4" />
                   <span>Column Options</span>
+                  {user?.subscription_plan !== "Pro" && (
+                    <Badge className="ml-auto bg-purple-100 text-purple-800 hover:bg-purple-100">
+                      Pro
+                    </Badge>
+                  )}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -1336,7 +1436,7 @@ export default function SavedStreamersTable({
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Simplified Export Options Dialog */}
+            {/* Export Options Dialog */}
             <Dialog
               open={exportOptionsDialogOpen}
               onOpenChange={setExportOptionsDialogOpen}
@@ -1428,10 +1528,9 @@ export default function SavedStreamersTable({
               </DialogContent>
             </Dialog>
 
-            {/* Bulk Action Buttons - Show when streamers are selected */}
+            {/* Bulk Action Buttons with Confirmation Dialogs */}
             {selectedCount > 0 && (
               <>
-                {/* Bulk Reveal Socials Button */}
                 {selectedWithSocials > 0 && (
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -1466,7 +1565,6 @@ export default function SavedStreamersTable({
                   </Tooltip>
                 )}
 
-                {/* Bulk Reveal Emails Button */}
                 {selectedWithEmails > 0 && (
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -1514,7 +1612,6 @@ export default function SavedStreamersTable({
                   </Tooltip>
                 )}
 
-                {/* Existing bulk action buttons */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
@@ -1547,7 +1644,6 @@ export default function SavedStreamersTable({
                                 .filter(([_, selected]) => selected)
                                 .map(([id]) => id);
 
-                              // Process moves sequentially
                               await handleBulkMoveToFolder(
                                 selectedIds,
                                 folder.id
@@ -1573,7 +1669,6 @@ export default function SavedStreamersTable({
                       .filter(([_, selected]) => selected)
                       .map(([id]) => id);
 
-                    // Process deletions sequentially to avoid overwhelming the server
                     for (const id of selectedIds) {
                       await handleDeleteStreamer(id);
                     }
@@ -1598,10 +1693,10 @@ export default function SavedStreamersTable({
                   <Checkbox
                     checked={
                       currentItems.length > 0 &&
-                      currentItems.every((item) => selectedStreamers[item.id])
+                      currentItems.every((s) => selectedStreamers[s.id])
                     }
                     onCheckedChange={(checked) =>
-                      handleSelectAllChange(checked === true)
+                      handleSelectAllPageChange(checked === true)
                     }
                     aria-label="Select all"
                     className="ml-2"
@@ -1682,7 +1777,38 @@ export default function SavedStreamersTable({
                 {visibleColumns.language && <TableHead>Language</TableHead>}
                 {visibleColumns.category && <TableHead>Category</TableHead>}
                 {visibleColumns.social && <TableHead>Social Media</TableHead>}
-                {visibleColumns.email && <TableHead>Email</TableHead>}
+                {visibleColumns.email && (
+                  <TableHead
+                    className={`cursor-pointer ${
+                      !canAccessFeature("email", user?.subscription_plan)
+                        ? "opacity-60"
+                        : ""
+                    }`}
+                    onClick={() => handleSort("email")}
+                  >
+                    <div className="flex items-center">
+                      Email
+                      {!canAccessFeature("email", user?.subscription_plan) && (
+                        <Badge className="ml-1 bg-amber-100 text-amber-800 hover:bg-amber-100 text-xs px-1">
+                          Basic+
+                        </Badge>
+                      )}
+                      <div className="ml-1">
+                        {sortColumn === "email" ? (
+                          sortDirection === "asc" ? (
+                            <ArrowDownAZ className="h-4 w-4 text-blue-600" />
+                          ) : sortDirection === "desc" ? (
+                            <ArrowUpAZ className="h-4 w-4 text-blue-600" />
+                          ) : (
+                            <ArrowDownUp className="h-4 w-4 text-gray-400" />
+                          )
+                        ) : (
+                          <ArrowDownUp className="h-4 w-4 text-gray-400 opacity-50" />
+                        )}
+                      </div>
+                    </div>
+                  </TableHead>
+                )}
                 {visibleColumns.folder && <TableHead>Folder</TableHead>}
                 {visibleColumns.date && (
                   <TableHead
@@ -2285,12 +2411,12 @@ export default function SavedStreamersTable({
         </div>
       </motion.div>
 
-      {/* Context Menu */}
+      {/* Fixed Context Menu */}
       <AnimatePresence>
         {contextMenu.visible && contextMenu.row && (
           <motion.div
             ref={contextMenuRef}
-            className="fixed z-50 bg-white border rounded-md shadow-md overflow-hidden"
+            className="fixed z-50 bg-white border rounded-md shadow-lg overflow-hidden"
             style={{
               top: menuPosition.y,
               left: menuPosition.x,
@@ -2300,13 +2426,13 @@ export default function SavedStreamersTable({
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.1 }}
           >
-            <DropdownMenuContent
-              align="start"
-              className="w-[220px] p-0 m-0 border-none shadow-none"
-            >
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
+            <div className="w-[220px] p-1">
+              <div className="px-2 py-1.5 text-sm font-semibold text-gray-900">
+                Actions
+              </div>
+              <div className="h-px bg-gray-200 my-1" />
+
+              <button
                 onClick={() => {
                   if (contextMenu.row) {
                     toggleFavorite(
@@ -2316,7 +2442,7 @@ export default function SavedStreamersTable({
                     setContextMenu((prev) => ({ ...prev, visible: false }));
                   }
                 }}
-                className="cursor-pointer"
+                className="w-full flex items-center px-2 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-sm cursor-pointer"
               >
                 {contextMenu.row?.is_favourite ? (
                   <>
@@ -2329,29 +2455,29 @@ export default function SavedStreamersTable({
                     <span>Add to favorites</span>
                   </>
                 )}
-              </DropdownMenuItem>
+              </button>
 
               {contextMenu.row &&
                 hasSocialLinks(contextMenu.row) &&
                 !revealedSocials[contextMenu.row.id] && (
-                  <DropdownMenuItem
+                  <button
                     onClick={() => {
                       if (contextMenu.row) {
                         handleRevealSocials(contextMenu.row.id);
                         setContextMenu((prev) => ({ ...prev, visible: false }));
                       }
                     }}
-                    className="cursor-pointer"
+                    className="w-full flex items-center px-2 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-sm cursor-pointer"
                   >
                     <Share2 className="mr-2 h-4 w-4" />
                     <span>Reveal Social Links</span>
-                  </DropdownMenuItem>
+                  </button>
                 )}
 
               {contextMenu.row &&
                 contextMenu.row.gmail &&
                 !revealedEmails[contextMenu.row.id] && (
-                  <DropdownMenuItem
+                  <button
                     onClick={() => {
                       if (!canAccessFeature("email", user?.subscription_plan)) {
                         showUpgradeToast("email");
@@ -2362,30 +2488,30 @@ export default function SavedStreamersTable({
                         setContextMenu((prev) => ({ ...prev, visible: false }));
                       }
                     }}
-                    className="cursor-pointer"
+                    className="w-full flex items-center px-2 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-sm cursor-pointer"
                   >
                     <Mail className="mr-2 h-4 w-4" />
                     <span>Reveal Email</span>
                     {!canAccessFeature("email", user?.subscription_plan) && (
-                      <Badge className="ml-auto bg-blue-100 text-blue-800">
+                      <Badge className="ml-auto bg-blue-100 text-blue-800 text-xs">
                         Basic+
                       </Badge>
                     )}
-                  </DropdownMenuItem>
+                  </button>
                 )}
 
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel className="flex justify-between items-center">
+              <div className="h-px bg-gray-200 my-1" />
+              <div className="px-2 py-1.5 text-sm font-semibold text-gray-900">
                 Move to folder
-              </DropdownMenuLabel>
-              <div className="max-h-[150px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+              </div>
+              <div className="max-h-[150px] overflow-y-auto">
                 {folders
                   .filter(
                     (folder) =>
                       folder.id !== "all" && folder.id !== "favourites"
                   )
                   .map((folder) => (
-                    <DropdownMenuItem
+                    <button
                       key={folder.id}
                       onClick={async () => {
                         if (contextMenu.row) {
@@ -2399,30 +2525,132 @@ export default function SavedStreamersTable({
                           }));
                         }
                       }}
-                      className="cursor-pointer"
+                      className="w-full flex items-center px-2 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-sm cursor-pointer"
                     >
                       <FolderClosed className="mr-2 h-4 w-4" />
                       <span>{folder.name}</span>
-                    </DropdownMenuItem>
+                    </button>
                   ))}
               </div>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
+              <div className="h-px bg-gray-200 my-1" />
+              <button
                 onClick={async () => {
                   if (contextMenu.row) {
                     await handleDeleteStreamer(contextMenu.row.id);
                     setContextMenu((prev) => ({ ...prev, visible: false }));
                   }
                 }}
-                className="cursor-pointer"
+                className="w-full flex items-center px-2 py-2 text-sm text-red-600 hover:bg-red-50 rounded-sm cursor-pointer"
               >
                 <Trash2 className="mr-2 h-4 w-4" />
                 <span>Delete</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
+              </button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Bulk Reveal Socials Confirmation Dialog */}
+      <AlertDialog
+        open={bulkSocialsConfirmOpen}
+        onOpenChange={setBulkSocialsConfirmOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Confirm Bulk Social Links Reveal
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              You are about to reveal social media links for{" "}
+              <strong>
+                {
+                  Object.entries(selectedStreamers)
+                    .filter(([_, selected]) => selected)
+                    .filter(([id]) => {
+                      const streamer = data.find((s) => s.id === id);
+                      return (
+                        streamer &&
+                        hasSocialLinks(streamer) &&
+                        !streamer.socials_revealed
+                      );
+                    }).length
+                }
+              </strong>{" "}
+              streamers. This action will consume{" "}
+              <strong>
+                {
+                  Object.entries(selectedStreamers)
+                    .filter(([_, selected]) => selected)
+                    .filter(([id]) => {
+                      const streamer = data.find((s) => s.id === id);
+                      return (
+                        streamer &&
+                        hasSocialLinks(streamer) &&
+                        !streamer.socials_revealed
+                      );
+                    }).length
+                }
+              </strong>{" "}
+              credits and cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmBulkRevealSocials}>
+              Confirm & Reveal
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Reveal Emails Confirmation Dialog */}
+      <AlertDialog
+        open={bulkEmailsConfirmOpen}
+        onOpenChange={setBulkEmailsConfirmOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Confirm Bulk Email Reveal
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              You are about to reveal email addresses for{" "}
+              <strong>
+                {
+                  Object.entries(selectedStreamers)
+                    .filter(([_, selected]) => selected)
+                    .filter(([id]) => {
+                      const streamer = data.find((s) => s.id === id);
+                      return (
+                        streamer && streamer.gmail && !streamer.email_revealed
+                      );
+                    }).length
+                }
+              </strong>{" "}
+              streamers. This action will consume{" "}
+              <strong>
+                {Object.entries(selectedStreamers)
+                  .filter(([_, selected]) => selected)
+                  .filter(([id]) => {
+                    const streamer = data.find((s) => s.id === id);
+                    return (
+                      streamer && streamer.gmail && !streamer.email_revealed
+                    );
+                  }).length * 2}
+              </strong>{" "}
+              credits (2 credits per email) and cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmBulkRevealEmails}>
+              Confirm & Reveal
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </TooltipProvider>
   );
 }

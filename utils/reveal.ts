@@ -72,7 +72,7 @@ export async function revealEmail(streamerId: string): Promise<boolean> {
 }
 // Helper function to check if user can access feature based on subscription
 export function canAccessFeature(
-  feature: "social_links" | "email",
+  feature: "social_links" | "email" | "favorite",
   subscriptionPlan: string | undefined
 ): boolean {
   if (!subscriptionPlan) return false;
@@ -82,6 +82,7 @@ export function canAccessFeature(
       // All plans can access social links
       return true;
     case "email":
+    case "favorite":
       return ["Basic", "Pro"].includes(subscriptionPlan);
     default:
       return false;
@@ -89,15 +90,31 @@ export function canAccessFeature(
 }
 
 // Helper function to show upgrade toast
-export function showUpgradeToast(feature: "social_links" | "email") {
-  const featureName =
-    feature === "social_links" ? "social media links" : "email addresses";
-  const requiredPlan = feature === "email" ? "Basic" : "Free";
+export function showUpgradeToast(feature: "social_links" | "email" | "favorite") {
+  let featureName: string;
+  let requiredPlan: string;
+
+  switch (feature) {
+    case "social_links":
+      featureName = "social media links";
+      requiredPlan = "Free";
+      break;
+    case "email":
+      featureName = "email addresses";
+      requiredPlan = "Basic";
+      break;
+    case "favorite":
+      featureName = "favorites";
+      requiredPlan = "Basic";
+      break;
+    default:
+      featureName = "this feature";
+      requiredPlan = "Basic";
+      break;
+  }
 
   toast.error(
-    `${
-      featureName.charAt(0).toUpperCase() + featureName.slice(1)
-    } are only available on ${requiredPlan} plans and above`,
+    `${featureName.charAt(0).toUpperCase() + featureName.slice(1)} are only available on ${requiredPlan} plans and above`,
     {
       description: "Upgrade your subscription to access this feature",
       action: {
