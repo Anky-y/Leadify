@@ -99,11 +99,13 @@ interface SavedStreamersTableProps {
   onDelete: (id: string) => Promise<void>; // Changed to async
   onMoveToFolder: (id: string, folder: string) => Promise<void>; // Changed to async
   refreshStreamers: () => void;
+  setFolders: (folders: Folder[]) => void;
 }
 
 export default function SavedStreamersTable({
   data,
   folders,
+  setFolders,
   onDelete,
   onMoveToFolder,
   refreshStreamers,
@@ -350,6 +352,17 @@ export default function SavedStreamersTable({
       )
     );
 
+    // Optimistic update - update folder count
+    const newFolders = folders.map((folder) =>
+      folder.id === "favourites"
+        ? {
+            ...folder,
+            streamer_count: (folder.streamer_count || 0) + (newStatus ? 1 : -1),
+          }
+        : folder
+    );
+
+    setFolders(newFolders);
     try {
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
@@ -377,7 +390,8 @@ export default function SavedStreamersTable({
 
       // Show success feedback
       toast.success(
-        newStatus ? "Added to favorites" : "Removed from favorites"
+        newStatus ? "Added to favorites" : "Removed from favorites",
+        { closeButton: true }
       );
 
       // Refresh user data for any quota updates
@@ -733,6 +747,58 @@ export default function SavedStreamersTable({
       setBulkRevealingEmails(false);
     }
   };
+  const handleBulkMoveToFolder = async (
+    streamerIds: string[],
+    targetFolderId: string
+  ) => {
+    // 1. Map of folderId -> number of streamers leaving that folder
+    const leavingCount: Record<string, number> = {};
+    // 2. Count how many are being added to the target folder
+    let addedCount = 0;
+
+    // Find original folders for each streamer
+    savedStreamers.forEach((s) => {
+      if (streamerIds.includes(s.id)) {
+        if (s.folder_id && s.folder_id !== targetFolderId) {
+          leavingCount[s.folder_id] = (leavingCount[s.folder_id] || 0) + 1;
+        }
+        if (targetFolderId && s.folder_id !== targetFolderId) {
+          addedCount += 1;
+        }
+      }
+    });
+
+    // 3. Optimistically update streamers
+    setSavedStreamers((prev) =>
+      prev.map((s) =>
+        streamerIds.includes(s.id) ? { ...s, folder_id: targetFolderId } : s
+      )
+    );
+
+    // 4. Optimistically update folder counts
+    const updatedFolders = folders.map((folder) => {
+      let count = folder.streamer_count || 0;
+
+      // Subtract for folders streamers are leaving
+      if (leavingCount[folder.id]) {
+        count = Math.max(count - leavingCount[folder.id], 0);
+      }
+
+      // Add for the target folder
+      if (folder.id === targetFolderId) {
+        count += addedCount;
+      }
+
+      return { ...folder, streamer_count: count };
+    });
+
+    setFolders(updatedFolders);
+
+    // 5. Call your API for each streamer (or batch if supported)
+    for (const id of streamerIds) {
+      await handleMoveToFolder(id, targetFolderId);
+    }
+  };
 
   const toggleExpandEmails = (streamerId: string) => {
     setExpandedEmails((prev) => ({
@@ -777,7 +843,6 @@ export default function SavedStreamersTable({
           : s
       )
     );
-
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
@@ -1329,10 +1394,10 @@ export default function SavedStreamersTable({
                                 .map(([id]) => id);
 
                               // Process moves sequentially
-                              for (const id of selectedIds) {
-                                await handleMoveToFolder(id, folder.id);
-                              }
-
+                              await handleBulkMoveToFolder(
+                                selectedIds,
+                                folder.id
+                              );
                               setSelectedStreamers({});
                             }}
                             className="cursor-pointer"

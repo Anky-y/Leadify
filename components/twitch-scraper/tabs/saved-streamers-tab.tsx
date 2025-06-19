@@ -550,6 +550,7 @@ export default function SavedStreamersTab({}: SavedStreamersTabProps) {
                 <SavedStreamersTable
                   data={savedStreamers}
                   folders={folders}
+                  setFolders={setFolders}
                   onDelete={handleDeleteStreamer}
                   onMoveToFolder={handleMoveToFolder}
                   refreshStreamers={() =>

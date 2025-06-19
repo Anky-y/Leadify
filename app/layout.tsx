@@ -26,7 +26,7 @@ export default function RootLayout({
           <SubscriptionProvider>
             <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
               {children}
-              <Toaster richColors position="top-right" /> {/* Sonner Toaster */}
+              <Toaster richColors position="bottom-right" />
             </ThemeProvider>
           </SubscriptionProvider>
         </UserProvider>
