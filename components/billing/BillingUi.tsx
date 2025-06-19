@@ -1,7 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Check, Zap, CreditCard, Calendar, TrendingUp } from "lucide-react";
+import {
+  Check,
+  Zap,
+  CreditCard,
+  Calendar,
+  TrendingUp,
+  XCircle,
+  CreditCardIcon,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -15,7 +23,6 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { useUser } from "@/app/context/UserContext";
-import { createClient } from "@/utils/supabase-browser";
 import { toast } from "sonner";
 import { useSubscription } from "@/app/context/SubscriptionContext";
 import { getPlanName } from "@/utils/qol_Functions";
@@ -179,74 +186,49 @@ export default function BillingPage() {
     checkout_url: string;
   }) => {
     if (!user) {
-      toast.error("You need to be logged in to buy credits.");
+      toast.error("Authentication Required", {
+        description: "Please log in to purchase credits.",
+        icon: <XCircle className="h-5 w-5" />,
+      });
       return;
     }
+
+    toast.info("Redirecting to Payment", {
+      description: `Processing your purchase of ${pack.credits.toLocaleString()} credits...`,
+      icon: <CreditCardIcon className="h-5 w-5" />,
+    });
 
     window.location.href = pack.checkout_url.toString();
   };
 
   const handleBuySubscription = async (plan: (typeof plans)[0]) => {
     if (!user) {
-      toast.error("You need to be logged in to buy credits.");
+      toast.error("Authentication Required", {
+        description: "Please log in to upgrade your subscription.",
+        icon: <XCircle className="h-5 w-5" />,
+      });
       return;
     }
     const baseUrl = isYearly
       ? plan.yearly_checkout_url
       : plan.monthly_checkout_url;
     if (!baseUrl) {
-      toast.error("Checkout not available for this plan.");
+      toast.error("Checkout Unavailable", {
+        description:
+          "This subscription plan is currently unavailable. Please try again later.",
+        icon: <XCircle className="h-5 w-5" />,
+      });
       return;
     }
-    // Optionally add email or other params
-    // redirectUrl.searchParams.set("checkout[email]", user?.email || "");
+
+    toast.info("Redirecting to Checkout", {
+      description: `Processing your ${plan.name} subscription upgrade...`,
+      icon: <CreditCardIcon className="h-5 w-5" />,
+    });
+
     window.location.href = baseUrl.toString();
   };
-  // const handleBuyCredits = async (credits: number) => {
-  //   const supabase = createClient();
 
-  //   if (!user) {
-  //     toast.error("You need to be logged in to buy credits.");
-  //     return;
-  //   }
-
-  //   try {
-  //     // Get the user's JWT
-  //     const {
-  //       data: { session },
-  //     } = await supabase.auth.getSession();
-
-  //     const token = session?.access_token;
-  //     if (!token) {
-  //       toast.error("Could not authenticate request.");
-  //       return;
-  //     }
-
-  //     const res = await fetch(
-  //       `${process.env.NEXT_PUBLIC_API_URL}/buy-credits`,
-  //       {
-  //         method: "POST",
-  //         headers: {
-  //           "Content-Type": "application/json",
-  //           Authorization: `Bearer ${token}`, // backend should verify this
-  //         },
-  //         body: JSON.stringify({ credits }),
-  //       }
-  //     );
-
-  //     const result = await res.json();
-
-  //     if (res.ok && result.success) {
-  //       toast.success(`Successfully added ${credits} credits!`);
-  //       // Optional: refresh UI or user state
-  //     } else {
-  //       toast.error(result.error || "Failed to add credits.");
-  //     }
-  //   } catch (err) {
-  //     console.error("Error buying credits:", err);
-  //     toast.error("Something went wrong.");
-  //   }
-  // };
   function formatDate(dateString: string): string {
     const date = new Date(dateString);
     return date.toLocaleDateString("en-US", {

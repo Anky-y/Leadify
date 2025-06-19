@@ -348,7 +348,13 @@ export default function TwitchDataTable({
       : data;
 
     if (data.length === 0) {
-      toast.error("Please perform a search first to get data for export.");
+      toast.error("Please perform a search first to get data for export", {
+        description:
+          "You need to have search results before you can export data",
+        icon: "⚠️",
+        closeButton: true,
+        duration: 4000,
+      });
       return;
     }
 
@@ -364,18 +370,34 @@ export default function TwitchDataTable({
     toast.success(
       `${exportData.length} records with ${
         Object.values(visibleColumns).filter(Boolean).length
-      } columns will be exported as ${exportFormat.toUpperCase()}.`
+      } columns will be exported as ${exportFormat.toUpperCase()}`,
+      {
+        description: "Your export file will be downloaded shortly",
+        icon: "📊",
+        closeButton: true,
+        duration: 4000,
+      }
     );
   };
 
   const handleSaveSearch = () => {
     if (!searchName.trim()) {
-      toast.error("Please enter a name for your saved search.");
+      toast.error("Please enter a name for your saved search", {
+        description: "A search name is required to save your current filters",
+        icon: "⚠️",
+        closeButton: true,
+        duration: 4000,
+      });
       return;
     }
 
     // Save search logic would go here
-    toast.success(`Your search "${searchName}" has been saved.`);
+    toast.success(`Your search "${searchName}" has been saved`, {
+      description: "You can now quickly access this search configuration later",
+      icon: "💾",
+      closeButton: true,
+      duration: 3000,
+    });
     setSaveSearchDialogOpen(false);
     setSearchName("");
   };
@@ -387,7 +409,12 @@ export default function TwitchDataTable({
       : data;
 
     if (streamersToSave.length === 0) {
-      toast.error("Please select at least one streamer to save.");
+      toast.error("Please select at least one streamer to save", {
+        description: "Use the checkboxes to select streamers you want to save",
+        icon: "⚠️",
+        closeButton: true,
+        duration: 4000,
+      });
       return;
     }
 
@@ -414,13 +441,27 @@ export default function TwitchDataTable({
         throw new Error("Failed to save streamers");
       }
 
-      toast.success("Selected streamers have been saved to your list.");
+      toast.success("Selected streamers have been saved to your list", {
+        description: `${streamersToSave.length} streamers added to your saved collection`,
+        icon: "✅",
+        closeButton: true,
+        duration: 4000,
+      });
 
       setSaveStreamersDialogOpen(false);
       setSearchName(""); // Optional depending on whether name is reused
     } catch (error) {
       console.error(error);
-      toast.error("Something went wrong while saving streamers.");
+      toast.error("Something went wrong while saving streamers", {
+        description:
+          "Please try again or contact support if the issue persists",
+        icon: "❌",
+        closeButton: true,
+        action: {
+          label: "Retry",
+          onClick: () => handleSaveStreamers(),
+        },
+      });
     }
   };
 
@@ -984,24 +1025,24 @@ export default function TwitchDataTable({
                       {visibleColumns.email && (
                         <TableCell className="py-2 sm:py-3">
                           {row.gmail ? (
-                          <div className="flex flex-col gap-1">
-                            {row.gmail
-                            .split(",")
-                            .map((email: string, idx: number) => (
-                              <div key={idx} className="flex items-center">
-                              <span className="text-gray-400 text-xs blur-sm select-none">
-                                {email.trim().replace(/./g, "•")}
-                              </span>
-                              <Badge className="ml-2 bg-blue-100 text-blue-800">
-                                Save to reveal
-                              </Badge>
-                              </div>
-                            ))}
-                          </div>
+                            <div className="flex flex-col gap-1">
+                              {row.gmail
+                                .split(",")
+                                .map((email: string, idx: number) => (
+                                  <div key={idx} className="flex items-center">
+                                    <span className="text-gray-400 text-xs blur-sm select-none">
+                                      {email.trim().replace(/./g, "•")}
+                                    </span>
+                                    <Badge className="ml-2 bg-blue-100 text-blue-800">
+                                      Save to reveal
+                                    </Badge>
+                                  </div>
+                                ))}
+                            </div>
                           ) : (
-                          <span className="text-gray-400 text-xs">
-                            No email available
-                          </span>
+                            <span className="text-gray-400 text-xs">
+                              No email available
+                            </span>
                           )}
                         </TableCell>
                       )}

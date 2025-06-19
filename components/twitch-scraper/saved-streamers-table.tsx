@@ -391,7 +391,14 @@ export default function SavedStreamersTable({
       // Show success feedback
       toast.success(
         newStatus ? "Added to favorites" : "Removed from favorites",
-        { closeButton: true }
+        {
+          description: newStatus
+            ? "This streamer is now in your favorites list"
+            : "This streamer has been removed from favorites",
+          icon: newStatus ? "⭐" : "☆",
+          closeButton: true,
+          duration: 3000,
+        }
       );
 
       // Refresh user data for any quota updates
@@ -406,7 +413,15 @@ export default function SavedStreamersTable({
         )
       );
 
-      toast.error("Failed to update favorite status");
+      toast.error("Failed to update favorite status", {
+        description: "Please try again or check your connection",
+        icon: "❌",
+        closeButton: true,
+        action: {
+          label: "Retry",
+          onClick: () => toggleFavorite(streamerId, !newStatus),
+        },
+      });
       console.error("Error updating favorite:", error);
     }
   };
@@ -427,6 +442,8 @@ export default function SavedStreamersTable({
     if (exportFormat === "json" && user?.subscription_plan === "Free") {
       toast.error("JSON export is only available on Basic and Pro plans", {
         description: "Upgrade your subscription to access this feature",
+        icon: "🔒",
+        closeButton: true,
         action: {
           label: "Upgrade",
           onClick: () => (window.location.href = "/dashboard/billing"),
@@ -482,13 +499,28 @@ export default function SavedStreamersTable({
     // 🚀 Export logic
     if (exportFormat === "csv") {
       exportToCSV(exportSafeData, "saved-streamers.csv", exportColumns);
-      toast.success(`Exported ${exportSafeData.length} records as CSV`);
+      toast.success(`Exported ${exportSafeData.length} records as CSV`, {
+        description: "Your file has been downloaded successfully",
+        icon: "📄",
+        closeButton: true,
+        duration: 4000,
+      });
     } else if (exportFormat === "json") {
       exportToJSON(exportSafeData, "saved-streamers.json", exportColumns);
-      toast.success(`Exported ${exportSafeData.length} records as JSON`);
+      toast.success(`Exported ${exportSafeData.length} records as JSON`, {
+        description: "Your file has been downloaded successfully",
+        icon: "📄",
+        closeButton: true,
+        duration: 4000,
+      });
     } else if (exportFormat === "excel") {
       exportToExcel(exportSafeData, "saved-streamers.xlsx", exportColumns);
-      toast.success(`Exported ${exportSafeData.length} records as Excel`);
+      toast.success(`Exported ${exportSafeData.length} records as Excel`, {
+        description: "Your file has been downloaded successfully",
+        icon: "📄",
+        closeButton: true,
+        duration: 4000,
+      });
     }
 
     setExportOptionsDialogOpen(false);
@@ -513,7 +545,12 @@ export default function SavedStreamersTable({
     try {
       const success = await revealSocialLinks(streamerId);
       if (success) {
-        toast.success("Social links revealed successfully");
+        toast.success("Social links revealed successfully", {
+          description: "You can now access all social media profiles",
+          icon: "🔗",
+          closeButton: true,
+          duration: 3000,
+        });
         // refreshUser();
       } else {
         throw new Error("Failed to reveal social links");
@@ -533,7 +570,16 @@ export default function SavedStreamersTable({
         [streamerId]: false,
       }));
 
-      toast.error("Failed to reveal social links");
+      toast.error("Failed to reveal social links", {
+        description:
+          "Please try again or contact support if the issue persists",
+        icon: "❌",
+        closeButton: true,
+        action: {
+          label: "Retry",
+          onClick: () => handleRevealSocials(streamerId),
+        },
+      });
       console.error("Error revealing socials:", error);
     }
   };
@@ -564,7 +610,12 @@ export default function SavedStreamersTable({
     try {
       const success = await revealEmail(streamerId);
       if (success) {
-        toast.success("Email address revealed successfully");
+        toast.success("Email address revealed successfully", {
+          description: "The email address is now visible and accessible",
+          icon: "📧",
+          closeButton: true,
+          duration: 3000,
+        });
         // refreshUser();
       } else {
         throw new Error("Failed to reveal email");
@@ -584,7 +635,16 @@ export default function SavedStreamersTable({
         [streamerId]: false,
       }));
 
-      toast.error("Failed to reveal email address");
+      toast.error("Failed to reveal email address", {
+        description:
+          "Please try again or contact support if the issue persists",
+        icon: "❌",
+        closeButton: true,
+        action: {
+          label: "Retry",
+          onClick: () => handleRevealEmail(streamerId),
+        },
+      });
       console.error("Error revealing email:", error);
     }
   };
@@ -596,7 +656,13 @@ export default function SavedStreamersTable({
       .map(([id]) => id);
 
     if (selectedStreamerIds.length === 0) {
-      toast.error("No streamers selected");
+      toast.error("No streamers selected", {
+        description:
+          "Please select at least one streamer to reveal social links",
+        icon: "⚠️",
+        closeButton: true,
+        duration: 4000,
+      });
       return;
     }
 
@@ -607,7 +673,14 @@ export default function SavedStreamersTable({
 
     if (streamersToReveal.length === 0) {
       toast.info(
-        "All selected streamers either have no social links or are already revealed"
+        "All selected streamers either have no social links or are already revealed",
+        {
+          description:
+            "Try selecting different streamers or check your selection",
+          icon: "ℹ️",
+          closeButton: true,
+          duration: 5000,
+        }
       );
       return;
     }
@@ -617,7 +690,13 @@ export default function SavedStreamersTable({
     let failCount = 0;
 
     toast.info(
-      `Revealing social links for ${streamersToReveal.length} streamers...`
+      `Revealing social links for ${streamersToReveal.length} streamers...`,
+      {
+        description: "This may take a few moments to complete",
+        icon: "⏳",
+        closeButton: true,
+        duration: 6000,
+      }
     );
 
     try {
@@ -652,12 +731,27 @@ export default function SavedStreamersTable({
 
       if (successCount > 0) {
         toast.success(
-          `Successfully revealed social links for ${successCount} streamers`
+          `Successfully revealed social links for ${successCount} streamers`,
+          {
+            description: `${successCount} streamers now have accessible social media links`,
+            icon: "✅",
+            closeButton: true,
+            duration: 4000,
+          }
         );
       }
 
       if (failCount > 0) {
-        toast.error(`Failed to reveal social links for ${failCount} streamers`);
+        toast.error(
+          `Failed to reveal social links for ${failCount} streamers`,
+          {
+            description:
+              "Some operations failed. Please try again for the remaining streamers",
+            icon: "⚠️",
+            closeButton: true,
+            duration: 5000,
+          }
+        );
       }
     } finally {
       setBulkRevealingSocials(false);
@@ -678,7 +772,13 @@ export default function SavedStreamersTable({
       .map(([id]) => id);
 
     if (selectedStreamerIds.length === 0) {
-      toast.error("No streamers selected");
+      toast.error("No streamers selected", {
+        description:
+          "Please select at least one streamer to reveal social links",
+        icon: "⚠️",
+        closeButton: true,
+        duration: 4000,
+      });
       return;
     }
 
@@ -689,7 +789,14 @@ export default function SavedStreamersTable({
 
     if (streamersToReveal.length === 0) {
       toast.info(
-        "All selected streamers either have no email addresses or are already revealed"
+        "All selected streamers either have no email addresses or are already revealed",
+        {
+          description:
+            "Try selecting different streamers or check your selection",
+          icon: "ℹ️",
+          closeButton: true,
+          duration: 5000,
+        }
       );
       return;
     }
@@ -699,7 +806,13 @@ export default function SavedStreamersTable({
     let failCount = 0;
 
     toast.info(
-      `Revealing email addresses for ${streamersToReveal.length} streamers...`
+      `Revealing email addresses for ${streamersToReveal.length} streamers...`,
+      {
+        description: "This may take a few moments to complete",
+        icon: "⏳",
+        closeButton: true,
+        duration: 6000,
+      }
     );
 
     try {
@@ -734,13 +847,26 @@ export default function SavedStreamersTable({
 
       if (successCount > 0) {
         toast.success(
-          `Successfully revealed email addresses for ${successCount} streamers`
+          `Successfully revealed email addresses for ${successCount} streamers`,
+          {
+            description: `${successCount} streamers now have accessible email addresses`,
+            icon: "✅",
+            closeButton: true,
+            duration: 4000,
+          }
         );
       }
 
       if (failCount > 0) {
         toast.error(
-          `Failed to reveal email addresses for ${failCount} streamers`
+          `Failed to reveal email addresses for ${failCount} streamers`,
+          {
+            description:
+              "Some operations failed. Please try again for the remaining streamers",
+            icon: "⚠️",
+            closeButton: true,
+            duration: 5000,
+          }
         );
       }
     } finally {
@@ -870,7 +996,13 @@ export default function SavedStreamersTable({
 
       const folderName =
         folders.find((f) => f.id === folderId)?.name || "Default";
-      toast.success(`Moved to ${folderName}`);
+      toast.success(`Moved to ${folderName}`, {
+        description:
+          "Streamer has been successfully moved to the selected folder",
+        icon: "📁",
+        closeButton: true,
+        duration: 3000,
+      });
     } catch (error) {
       // Revert optimistic update on error
       setSavedStreamers((prev) =>
@@ -879,7 +1011,15 @@ export default function SavedStreamersTable({
         )
       );
 
-      toast.error("Failed to move streamer");
+      toast.error("Failed to move streamer", {
+        description: "Please try again or check your connection",
+        icon: "❌",
+        closeButton: true,
+        action: {
+          label: "Retry",
+          onClick: () => handleMoveToFolder(streamerId, folderId),
+        },
+      });
       console.error("Error moving streamer:", error);
     }
   };
@@ -918,7 +1058,13 @@ export default function SavedStreamersTable({
         throw new Error("Failed to delete streamer");
       }
 
-      toast.success("Streamer removed from saved list");
+      toast.success("Streamer removed from saved list", {
+        description:
+          "The streamer has been permanently removed from your collection",
+        icon: "🗑️",
+        closeButton: true,
+        duration: 3000,
+      });
     } catch (error) {
       // Revert optimistic update on error
       if (streamerToDelete) {
@@ -931,7 +1077,15 @@ export default function SavedStreamersTable({
         );
       }
 
-      toast.error("Failed to delete streamer");
+      toast.error("Failed to delete streamer", {
+        description: "Please try again or check your connection",
+        icon: "❌",
+        closeButton: true,
+        action: {
+          label: "Retry",
+          onClick: () => handleDeleteStreamer(streamerId),
+        },
+      });
       console.error("Error deleting streamer:", error);
     }
   };

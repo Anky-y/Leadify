@@ -32,6 +32,9 @@ import {
   Trash2,
   Shield,
   Save,
+  CheckCircle,
+  XCircle,
+  HardDrive,
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
@@ -73,7 +76,12 @@ export default function SettingsPage() {
     setIsLoading(true);
     // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 1000));
-    toast.success("Settings saved successfully!");
+
+    toast.success("Settings Saved Successfully", {
+      description: "All your preferences have been updated and saved.",
+      icon: <CheckCircle className="h-5 w-5" />,
+    });
+
     setIsLoading(false);
   };
 
@@ -88,6 +96,11 @@ export default function SettingsPage() {
 
     if (userError || !user) {
       console.error("Failed to get user", userError);
+      toast.error("Authentication Error", {
+        description:
+          "Unable to verify your identity. Please try logging in again.",
+        icon: <XCircle className="h-5 w-5" />,
+      });
       setIsLoading(false);
       return;
     }
@@ -99,6 +112,15 @@ export default function SettingsPage() {
 
     if (!res.ok) {
       console.error("Failed to delete user data");
+      toast.error("Account Deletion Failed", {
+        description:
+          "Unable to delete your account data. Please contact support for assistance.",
+        icon: <XCircle className="h-5 w-5" />,
+        action: {
+          label: "Contact Support",
+          onClick: () => window.open("mailto:support@example.com", "_blank"),
+        },
+      });
       setIsLoading(false);
       return;
     }
@@ -107,9 +129,20 @@ export default function SettingsPage() {
 
     if (signOutError) {
       console.error("Failed to sign out", signOutError);
+      toast.error("Sign Out Error", {
+        description:
+          "Account deleted but failed to sign out. Please clear your browser data.",
+        icon: <XCircle className="h-5 w-5" />,
+      });
       setIsLoading(false);
       return;
     }
+
+    toast.success("Account Deleted Successfully", {
+      description:
+        "Your account and all associated data have been permanently removed.",
+      icon: <CheckCircle className="h-5 w-5" />,
+    });
 
     router.replace("/goodbye");
     refreshUser();
@@ -533,6 +566,13 @@ export default function SettingsPage() {
                     <Button
                       variant="destructive"
                       className="sm:ml-4 flex-shrink-0"
+                      onClick={() => {
+                        toast.success("Data Cleared Successfully", {
+                          description:
+                            "All your saved searches, history, and preferences have been removed.",
+                          icon: <HardDrive className="h-5 w-5" />,
+                        });
+                      }}
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
                       Clear Data

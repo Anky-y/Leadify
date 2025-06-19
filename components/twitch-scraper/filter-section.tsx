@@ -18,6 +18,9 @@ import {
   Save,
   Search,
   Settings,
+  CheckCircle,
+  XCircle,
+  FolderPlus,
 } from "lucide-react";
 import {
   Accordion,
@@ -192,17 +195,26 @@ export default function FilterSection({
 
   const handleSaveFilter = async () => {
     if (!filterName.trim()) {
-      toast.error("Please enter a name for your filter");
+      toast.error("Filter Name Required", {
+        description: "Please enter a name for your filter before saving.",
+        icon: <XCircle className="h-5 w-5" />,
+      });
       return;
     }
 
     if (!category || category === "any") {
-      toast.error("Please select a category before saving your filter");
+      toast.error("Category Required", {
+        description: "Please select a category before saving your filter.",
+        icon: <XCircle className="h-5 w-5" />,
+      });
       return;
     }
 
     if (!user?.id) {
-      toast.error("You must be logged in to save filters");
+      toast.error("Authentication Required", {
+        description: "Please log in to save filters.",
+        icon: <XCircle className="h-5 w-5" />,
+      });
       return;
     }
 
@@ -237,7 +249,11 @@ export default function FilterSection({
         throw new Error("Failed to save filter");
       }
 
-      toast.success(`Your filter "${filterName}" has been saved`);
+      toast.success("Filter Saved Successfully", {
+        description: `Your filter "${filterName}" has been saved and can be reused anytime.`,
+        icon: <CheckCircle className="h-5 w-5" />,
+      });
+
       setSaveFilterDialogOpen(false);
       setFilterName("");
 
@@ -246,7 +262,14 @@ export default function FilterSection({
       }
     } catch (error) {
       console.error("Error saving filter:", error);
-      toast.error("Failed to save filter. Please try again.");
+      toast.error("Failed to Save Filter", {
+        description: "Unable to save your filter. Please try again later.",
+        icon: <XCircle className="h-5 w-5" />,
+        action: {
+          label: "Retry",
+          onClick: () => handleSaveFilter(),
+        },
+      });
     }
   };
 
@@ -764,7 +787,7 @@ export default function FilterSection({
                 <DialogContent className="border-blue-100">
                   <DialogHeader>
                     <DialogTitle className="text-blue-800 flex items-center gap-2">
-                      <Save className="h-5 w-5" />
+                      <FolderPlus className="h-5 w-5" />
                       Save Filter
                     </DialogTitle>
                     <DialogDescription>
