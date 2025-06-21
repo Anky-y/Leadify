@@ -38,7 +38,7 @@ import { getPlanName } from "@/utils/qol_Functions";
 
 interface DashboardHeaderProps {
   user?: User | null,
-  subscription?: Subscription | null;,
+  subscription?: Subscription | null;
   onLogout?: () => void
 }
 
