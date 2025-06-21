@@ -34,6 +34,9 @@ import {
   RefreshCw,
   Sparkles,
   Zap,
+  CheckCircle,
+  XCircle,
+  Search,
 } from "lucide-react";
 
 interface SavedFilter {
@@ -117,6 +120,15 @@ export default function SavedFiltersTab({
     } catch (error) {
       console.error("Error fetching saved filters:", error);
       setError("Failed to load saved filters. Please try again.");
+      toast.error("Failed to Load Filters", {
+        description:
+          "Unable to fetch your saved filters. Please check your connection and try again.",
+        icon: <XCircle className="h-5 w-5" />,
+        action: {
+          label: "Retry",
+          onClick: () => fetchSavedFilters(),
+        },
+      });
     } finally {
       setIsLoading(false);
     }
@@ -132,11 +144,17 @@ export default function SavedFiltersTab({
 
     setActiveTab("search");
     setRunSearchOnTab(true);
-    toast.success(`Running search with "${filter.name}" filter`);
+
+    toast.success("Filter Applied Successfully", {
+      description: `Running search with "${filter.name}" filter settings.`,
+      icon: <Search className="h-5 w-5" />,
+    });
   };
 
   const deleteFilter = async () => {
     if (!deleteId) return;
+
+    const filterToDelete = savedFilters.find((f) => f.id === deleteId);
 
     try {
       const headers: Record<string, string> = {
@@ -159,10 +177,21 @@ export default function SavedFiltersTab({
       }
 
       setSavedFilters(savedFilters.filter((filter) => filter.id !== deleteId));
-      toast.success("Filter has been removed from your saved filters");
+
+      toast.success("Filter Deleted Successfully", {
+        description: `The filter "${filterToDelete?.name}" has been permanently removed from your saved filters.`,
+        icon: <CheckCircle className="h-5 w-5" />,
+      });
     } catch (error) {
       console.error("Error deleting filter:", error);
-      toast.error("Failed to delete filter. Please try again.");
+      toast.error("Failed to Delete Filter", {
+        description: "Unable to delete the filter. Please try again later.",
+        icon: <XCircle className="h-5 w-5" />,
+        action: {
+          label: "Retry",
+          onClick: () => deleteFilter(),
+        },
+      });
     } finally {
       setIsDeleting(false);
       setDeleteId(null);

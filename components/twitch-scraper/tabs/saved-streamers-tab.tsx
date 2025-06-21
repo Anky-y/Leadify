@@ -12,7 +12,11 @@ import {
   RefreshCw,
   FolderX,
   Plus,
-  Folder as FolderIcon,
+  FolderIcon,
+  CheckCircle,
+  XCircle,
+  FolderPlus,
+  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import SavedStreamersTable from "../saved-streamers-table";
@@ -57,7 +61,7 @@ export default function SavedStreamersTab({}: SavedStreamersTabProps) {
   useEffect(() => {
     if (!user) return;
     fetchData(user.id, "all");
-  }, [user]);
+  }, []);
 
   const fetchData = async (userId: string | undefined, folderId = "all") => {
     try {
@@ -120,7 +124,15 @@ export default function SavedStreamersTab({}: SavedStreamersTabProps) {
       console.log(savedStreamers);
     } catch (err) {
       console.error("Error fetching data:", err);
-      toast.error("Failed to fetch saved data");
+      toast.error("Failed to Load Data", {
+        description:
+          "Unable to fetch your saved streamers and folders. Please try refreshing the page.",
+        icon: <XCircle className="h-5 w-5" />,
+        action: {
+          label: "Retry",
+          onClick: () => fetchData(userId, folderId),
+        },
+      });
     } finally {
       setIsLoading(false);
     }
@@ -146,6 +158,11 @@ export default function SavedStreamersTab({}: SavedStreamersTabProps) {
   });
 
   const handleDeleteStreamer = async (id: string) => {
+    const streamerToDelete = savedStreamers.find((s) => s.id === id);
+
+    // Optimistic update - remove from UI immediately
+    setSavedStreamers((prev) => prev.filter((s) => s.id !== id));
+
     try {
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
@@ -154,18 +171,56 @@ export default function SavedStreamersTab({}: SavedStreamersTabProps) {
       if (user?.id) {
         headers["x-user-id"] = user.id;
       }
-      await fetch(
+
+      const response = await fetch(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}saved-streamers/${id}`,
         {
           method: "DELETE",
           headers,
         }
       );
-      setSavedStreamers((prev) => prev.filter((s) => s.id !== id));
-      toast.success("Streamer removed from saved list.");
-      fetchData(user?.id, "all");
-    } catch (err) {
-      toast.error("Failed to delete streamer");
+
+      if (!response.ok) {
+        throw new Error("Failed to delete streamer");
+      }
+
+      toast.success("Streamer Removed Successfully", {
+        description: "The streamer has been removed from your saved list.",
+        icon: <CheckCircle className="h-5 w-5" />,
+      });
+
+      // Update folder counts without full refresh
+      setFolders((prev) =>
+        prev.map((folder) => ({
+          ...folder,
+          streamer_count:
+            folder.id === "all"
+              ? (folder.streamer_count || 0) - 1
+              : folder.streamer_count,
+        }))
+      );
+    } catch (error) {
+      // Revert optimistic update on error
+      if (streamerToDelete) {
+        setSavedStreamers((prev) =>
+          [...prev, streamerToDelete].sort((a, b) => {
+            if (a.is_favourite && !b.is_favourite) return -1;
+            if (!a.is_favourite && b.is_favourite) return 1;
+            return 0;
+          })
+        );
+      }
+
+      toast.error("Failed to Remove Streamer", {
+        description:
+          "Unable to remove the streamer from your saved list. Please try again.",
+        icon: <XCircle className="h-5 w-5" />,
+        action: {
+          label: "Retry",
+          onClick: () => handleDeleteStreamer(id),
+        },
+      });
+      console.error("Error deleting streamer:", error);
     }
   };
 
@@ -173,6 +228,18 @@ export default function SavedStreamersTab({}: SavedStreamersTabProps) {
     streamerId: string,
     folderId: string | null
   ) => {
+    const originalStreamer = savedStreamers.find((s) => s.id === streamerId);
+    const originalFolderId = originalStreamer?.folder_id;
+
+    // Optimistic update
+    setSavedStreamers((prev) =>
+      prev.map((s) =>
+        s.id === streamerId
+          ? { ...s, folder_id: folderId === null ? undefined : folderId }
+          : s
+      )
+    );
+
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
@@ -180,30 +247,59 @@ export default function SavedStreamersTab({}: SavedStreamersTabProps) {
     if (user?.id) {
       headers["x-user-id"] = user.id;
     }
+
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}streamers/move`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          streamer_id: streamerId,
-          folder_id: folderId,
-        }),
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}streamers/move`,
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            streamer_id: streamerId,
+            folder_id: folderId,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to move streamer");
+      }
+
+      const folderName =
+        folders.find((f) => f.id === folderId)?.name || "Default";
+      toast.success("Streamer Moved Successfully", {
+        description: `The streamer has been moved to "${folderName}" folder.`,
+        icon: <CheckCircle className="h-5 w-5" />,
       });
+    } catch (error) {
+      // Revert optimistic update on error
       setSavedStreamers((prev) =>
         prev.map((s) =>
-          s.id === streamerId
-            ? { ...s, folder_id: folderId === null ? undefined : folderId }
-            : s
+          s.id === streamerId ? { ...s, folder_id: originalFolderId } : s
         )
       );
-      fetchData(user?.id, selectedFolder?.id);
-    } catch (err) {
-      toast.error("Failed to move streamer");
+
+      toast.error("Failed to Move Streamer", {
+        description:
+          "Unable to move the streamer to the selected folder. Please try again.",
+        icon: <XCircle className="h-5 w-5" />,
+        action: {
+          label: "Retry",
+          onClick: () => handleMoveToFolder(streamerId, folderId),
+        },
+      });
+      console.error("Error moving streamer:", error);
     }
   };
 
   const handleAddFolder = async () => {
-    if (!newFolderName.trim()) return;
+    if (!newFolderName.trim()) {
+      toast.error("Folder Name Required", {
+        description: "Please enter a name for your new folder.",
+        icon: <AlertCircle className="h-5 w-5" />,
+      });
+      return;
+    }
 
     try {
       const headers: Record<string, string> = {
@@ -221,17 +317,36 @@ export default function SavedStreamersTab({}: SavedStreamersTabProps) {
           body: JSON.stringify({ name: newFolderName }),
         }
       );
+
+      if (!res.ok) {
+        throw new Error("Failed to create folder");
+      }
+
       const newFolder = await res.json();
       setFolders((prev) => [...prev, newFolder]);
       setNewFolderName("");
       setIsAddFolderDialogOpen(false);
-      toast.success("Folder Created");
+
+      toast.success("Folder Created Successfully", {
+        description: `Your new folder "${newFolderName}" has been created and is ready to use.`,
+        icon: <FolderPlus className="h-5 w-5" />,
+      });
     } catch (err) {
-      toast.error("Failed to create folder");
+      toast.error("Failed to Create Folder", {
+        description:
+          "Unable to create the new folder. Please try again with a different name.",
+        icon: <XCircle className="h-5 w-5" />,
+        action: {
+          label: "Retry",
+          onClick: () => handleAddFolder(),
+        },
+      });
     }
   };
 
   const handleDeleteFolder = async (folderId: string) => {
+    const folderToDelete = folders.find((f) => f.id === folderId);
+
     try {
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
@@ -240,19 +355,39 @@ export default function SavedStreamersTab({}: SavedStreamersTabProps) {
       if (user?.id) {
         headers["x-user-id"] = user.id;
       }
-      await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}folders/${folderId}`, {
-        method: "DELETE",
-        headers,
-      });
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}folders/${folderId}`,
+        {
+          method: "DELETE",
+          headers,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to delete folder");
+      }
+
       setFolders((prev) => prev.filter((f) => f.id !== folderId));
       setSavedStreamers((prev) =>
         prev.map((s) =>
           s.folder_id === folderId ? { ...s, folder_id: undefined } : s
         )
       );
-      toast.success("Folder deleted");
+
+      toast.success("Folder Deleted Successfully", {
+        description: `The folder "${folderToDelete?.name}" has been deleted and streamers moved to default location.`,
+        icon: <CheckCircle className="h-5 w-5" />,
+      });
     } catch (err) {
-      toast.error("Failed to delete folder");
+      toast.error("Failed to Delete Folder", {
+        description: "Unable to delete the folder. Please try again later.",
+        icon: <XCircle className="h-5 w-5" />,
+        action: {
+          label: "Retry",
+          onClick: () => handleDeleteFolder(folderId),
+        },
+      });
     }
   };
 
@@ -494,6 +629,7 @@ export default function SavedStreamersTab({}: SavedStreamersTabProps) {
                 <SavedStreamersTable
                   data={savedStreamers}
                   folders={folders}
+                  setFolders={setFolders}
                   onDelete={handleDeleteStreamer}
                   onMoveToFolder={handleMoveToFolder}
                   refreshStreamers={() =>

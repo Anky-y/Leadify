@@ -5,5 +5,6 @@ export default interface User {
   email: string;
   credits: number;
   subscription_status: boolean;
+  subscription_plan: string;
   created_at: string;
 }

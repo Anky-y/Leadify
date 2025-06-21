@@ -38,6 +38,9 @@ import {
   Eye,
   EyeOff,
   AlertCircle,
+  CheckCircle,
+  XCircle,
+  Key,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 
@@ -84,9 +87,19 @@ export default function ProfilePage() {
     const { error } = await updateName({ firstName, lastName });
 
     if (error) {
-      toast.error("Failed to update profile");
+      toast.error("Profile Update Failed", {
+        description: "Unable to save your profile changes. Please try again.",
+        icon: <XCircle className="h-5 w-5" />,
+        action: {
+          label: "Retry",
+          onClick: () => handleProfileUpdate(e),
+        },
+      });
     } else {
-      toast.success("Your profile has been updated successfully.");
+      toast.success("Profile Updated Successfully", {
+        description: "Your profile information has been saved.",
+        icon: <CheckCircle className="h-5 w-5" />,
+      });
     }
     setLoading(false);
   };
@@ -96,7 +109,11 @@ export default function ProfilePage() {
     setIsLoading(true);
 
     if (newPassword !== confirmPassword) {
-      toast.error("New passwords do not match.");
+      toast.error("Password Mismatch", {
+        description:
+          "The new passwords you entered don't match. Please check and try again.",
+        icon: <XCircle className="h-5 w-5" />,
+      });
       setIsLoading(false);
       return;
     }
@@ -108,7 +125,11 @@ export default function ProfilePage() {
       });
 
       if (signInError) {
-        toast.error("Invalid current password");
+        toast.error("Authentication Failed", {
+          description:
+            "Your current password is incorrect. Please verify and try again.",
+          icon: <XCircle className="h-5 w-5" />,
+        });
         setIsLoading(false);
         return;
       }
@@ -118,15 +139,35 @@ export default function ProfilePage() {
       });
 
       if (updateError) {
-        toast.error("Could not update password.");
+        toast.error("Password Update Failed", {
+          description:
+            "Unable to update your password. Please try again later.",
+          icon: <XCircle className="h-5 w-5" />,
+          action: {
+            label: "Retry",
+            onClick: () => handlePasswordUpdate(e),
+          },
+        });
       } else {
-        toast.success("Your password has been updated.");
+        toast.success("Password Updated Successfully", {
+          description:
+            "Your password has been changed. Please use your new password for future logins.",
+          icon: <Key className="h-5 w-5" />,
+        });
         setCurrentPassword("");
         setNewPassword("");
         setConfirmPassword("");
       }
     } catch (error) {
-      toast.error("Something went wrong. Please try again.");
+      toast.error("Unexpected Error", {
+        description:
+          "Something went wrong while updating your password. Please try again.",
+        icon: <AlertCircle className="h-5 w-5" />,
+        action: {
+          label: "Retry",
+          onClick: () => handlePasswordUpdate(e),
+        },
+      });
     } finally {
       setIsLoading(false);
     }
@@ -717,7 +758,11 @@ export default function ProfilePage() {
                   >
                     <Button
                       onClick={() =>
-                        toast.success("Notification preferences saved!")
+                        toast.success("Notification Preferences Saved", {
+                          description:
+                            "Your notification settings have been updated successfully.",
+                          icon: <CheckCircle className="h-5 w-5" />,
+                        })
                       }
                       className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
                     >

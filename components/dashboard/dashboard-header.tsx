@@ -34,13 +34,16 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { usePathname } from "next/navigation"
 import type User from "../../app/types/user"
 import { createClient } from "@supabase/supabase-js"
+import { getPlanName } from "@/utils/qol_Functions";
 
 interface DashboardHeaderProps {
-  user?: User | null
+  user?: User | null,
+  subscription?: Subscription | null;,
   onLogout?: () => void
 }
 
-export function DashboardHeader({ user, onLogout }: DashboardHeaderProps) {
+export function DashboardHeader({ user,  subscription,
+ onLogout }: DashboardHeaderProps) {
   const pathname = usePathname()
   const [pageTitle, setPageTitle] = React.useState<string>("")
   const [expandedNotifications, setExpandedNotifications] = React.useState<Record<string | number, boolean>>({})
@@ -265,13 +268,6 @@ export function DashboardHeader({ user, onLogout }: DashboardHeaderProps) {
 
   const unreadCount = notifications.filter((n) => n.unread).length
 
-  const mockUser = user || {
-    id: "1",
-    first_name: "John",
-    email: "john@example.com",
-    subscription_status: true,
-    credits: 142,
-  }
 
   function getTitleFromUrl(url: string) {
     // Split the URL by slashes and take the last part
@@ -296,8 +292,6 @@ export function DashboardHeader({ user, onLogout }: DashboardHeaderProps) {
   const isTitleLong = (title: string) => {
     return title.length > 60
   }
-
-  console.log(user)
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-16 items-center gap-4 px-4">
@@ -535,7 +529,9 @@ export function DashboardHeader({ user, onLogout }: DashboardHeaderProps) {
                   <div className="hidden sm:flex flex-col items-start">
                     <span className="text-sm font-medium">{user?.first_name}</span>
                     <span className="text-xs text-muted-foreground">
-                      {user?.subscription_status ? "Pro Plan" : "Free Plan"}
+                      {user?.subscription_plan
+                        ? getPlanName(user?.subscription_plan) + " Plan"
+                        : "Free Plan"}
                     </span>
                   </div>
                   <ChevronDown className="h-4 w-4 text-muted-foreground" />
@@ -560,16 +556,20 @@ export function DashboardHeader({ user, onLogout }: DashboardHeaderProps) {
                   <div className="flex items-center justify-between">
                     {user?.subscription_status ? (
                       <Badge className="bg-gradient-to-r from-blue-600 to-blue-700 text-white border-0 hover:from-blue-700 hover:to-blue-800">
-                        Pro Plan
+                        {subscription?.plan_name
+                          ? getPlanName(subscription.plan_name) + " Plan"
+                          : "Free Plan"}
                       </Badge>
                     ) : (
                       <Badge variant="outline" className="border-gray-300">
-                        Free Plan
+                        {subscription?.plan_name
+                          ? getPlanName(subscription.plan_name) + " Plan"
+                          : "Free Plan"}
                       </Badge>
                     )}
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Zap className="h-3 w-3 text-amber-500" />
-                      <span>200</span>
+                      <span>{user?.credits || 0}</span>
                     </div>
                   </div>
                 </div>
