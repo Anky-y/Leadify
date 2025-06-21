@@ -114,6 +114,8 @@ export default function TwitchDataTable({
     visible: false,
   });
 
+  console.log(data);
+
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const isTablet = useMediaQuery("(min-width: 768px)");
   const isMobile = useMediaQuery("(max-width: 640px)");

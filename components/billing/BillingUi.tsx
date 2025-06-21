@@ -264,14 +264,14 @@ export default function BillingPage() {
                   </span>
                 </div>
                 <p className="text-2xl font-bold">
-                  {subscription?.plan_name
-                    ? `${getPlanName(subscription.plan_name)}`
+                  {user?.subscription_plan
+                    ? `${getPlanName(user?.subscription_plan)}`
                     : "Free Plan"}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {subscription?.plan_name?.toLowerCase().startsWith("pro")
+                  {user?.subscription_plan?.toLowerCase().startsWith("pro")
                     ? "$49/month"
-                    : subscription?.plan_name?.toLowerCase().startsWith("basic")
+                    : user?.subscription_plan?.toLowerCase().startsWith("basic")
                     ? "$19/month"
                     : ""}
                 </p>
@@ -438,7 +438,7 @@ export default function BillingPage() {
                   >
                     {user?.subscription_status &&
                     getPlanProductId(plan, isYearly) &&
-                    getPlanName(subscription?.plan_name ?? "").toLowerCase() ===
+                    getPlanName(user?.subscription_plan ?? "").toLowerCase() ===
                       plan.name.toLowerCase()
                       ? "Current Plan"
                       : user?.subscription_plan?.toLowerCase() === "free" &&

@@ -334,7 +334,7 @@ export default function SavedStreamersTable({
         return sortDirection === "asc" ? valueA - valueB : valueB - valueA;
       }
 
-      // Email sorting (Basic+ only)
+      // Email sorting (Basic only)
       if (sortColumn === "email") {
         const valueA = (a.gmail || "").toString().toLowerCase();
         const valueB = (b.gmail || "").toString().toLowerCase();
@@ -1198,6 +1198,8 @@ export default function SavedStreamersTable({
     visible: { opacity: 1, transition: { duration: 0.3 } },
   };
 
+  console.log(savedStreamers);
+
   return (
     <TooltipProvider>
       <motion.div
@@ -1349,7 +1351,7 @@ export default function SavedStreamersTable({
                       <Check className="h-4 w-4 ml-auto" />
                     )}
                   <Badge className="ml-auto bg-blue-100 text-blue-800 hover:bg-blue-100">
-                    Basic+
+                    Basic
                   </Badge>
                 </DropdownMenuItem>
                 <DropdownMenuItem
@@ -1599,7 +1601,7 @@ export default function SavedStreamersTable({
                           user?.subscription_plan
                         ) && (
                           <Badge className="ml-1 bg-amber-100 text-amber-800 hover:bg-amber-100 text-xs px-1">
-                            Basic+
+                            Basic
                           </Badge>
                         )}
                       </Button>
@@ -1607,7 +1609,7 @@ export default function SavedStreamersTable({
                     <TooltipContent>
                       {canAccessFeature("email", user?.subscription_plan)
                         ? `Reveal email addresses for ${selectedWithEmails} selected streamers`
-                        : "Upgrade to Basic+ to reveal email addresses"}
+                        : "Upgrade to Basic to reveal email addresses"}
                     </TooltipContent>
                   </Tooltip>
                 )}
@@ -1790,7 +1792,7 @@ export default function SavedStreamersTable({
                       Email
                       {!canAccessFeature("email", user?.subscription_plan) && (
                         <Badge className="ml-1 bg-amber-100 text-amber-800 hover:bg-amber-100 text-xs px-1">
-                          Basic+
+                          Basic
                         </Badge>
                       )}
                       <div className="ml-1">
@@ -2194,12 +2196,12 @@ export default function SavedStreamersTable({
                                         <Unlock className="h-3 w-3 mr-1.5" />
                                         <span className="mr-1">Reveal</span>
                                         <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 text-xs px-1">
-                                          Basic+
+                                          Basic
                                         </Badge>
                                       </Button>
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                      Upgrade to Basic+ to reveal emails
+                                      Upgrade to Basic to reveal emails
                                     </TooltipContent>
                                   </Tooltip>
                                 )}
@@ -2305,7 +2307,7 @@ export default function SavedStreamersTable({
                                   user?.subscription_plan
                                 ) && (
                                   <Badge className="ml-auto bg-blue-100 text-blue-800">
-                                    Basic+
+                                    Basic
                                   </Badge>
                                 )}
                               </DropdownMenuItem>
@@ -2494,7 +2496,7 @@ export default function SavedStreamersTable({
                     <span>Reveal Email</span>
                     {!canAccessFeature("email", user?.subscription_plan) && (
                       <Badge className="ml-auto bg-blue-100 text-blue-800 text-xs">
-                        Basic+
+                        Basic
                       </Badge>
                     )}
                   </button>

@@ -221,8 +221,8 @@ export function DashboardHeader({
                       {user?.first_name}
                     </span>
                     <span className="text-xs text-muted-foreground">
-                      {subscription?.plan_name
-                        ? getPlanName(subscription.plan_name) + " Plan"
+                      {user?.subscription_plan
+                        ? getPlanName(user?.subscription_plan) + " Plan"
                         : "Free Plan"}
                     </span>
                   </div>
