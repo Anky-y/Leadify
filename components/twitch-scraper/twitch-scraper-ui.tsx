@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SearchTab from "./tabs/search-tab";
 import SavedStreamersTab from "./tabs/saved-streamers-tab";
 import SavedFiltersTab from "./tabs/saved-filters-tab";
+import io from "socket.io-client";
 
 // Import types and mock data
 import type { ScrapingProgress, TwitchData } from "./types";
@@ -12,6 +13,7 @@ import type User from "@/app/types/user";
 import { useUser } from "@/app/context/UserContext";
 import Papa from "papaparse";
 import { motion, AnimatePresence } from "framer-motion";
+import { json } from "stream/consumers";
 
 // Define the scraping stages
 type ScrapingStage = {
@@ -225,7 +227,21 @@ export default function TwitchScraperUI({
     hidden: { opacity: 0, y: 10 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
   };
+  
 
+
+
+// async function fetchTwitchAboutClient() {
+//   const res = await fetch("/api/twitch-about");
+//   if (!res.ok) throw new Error("Failed to fetch Twitch about");
+//   const data = await res.json();
+//   console.log(data);
+//   return data;
+// }
+
+
+
+//   console.log(fetchTwitchAboutClient())
   return (
     <motion.div
       className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100"
