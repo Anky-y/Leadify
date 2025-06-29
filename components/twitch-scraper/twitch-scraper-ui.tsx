@@ -124,6 +124,7 @@ export default function TwitchScraperUI({
           setProgressData(data);
 
           if (data?.Done) {
+            console.log(data)
             clearInterval(pollingInterval);
             setLoadingStreamers(true);
             setIsLoading(false);

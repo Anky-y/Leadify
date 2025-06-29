@@ -1,10 +1,32 @@
 "use server";
 
+import { strict } from "assert";
 import { NextRequest } from "next/server";
+
+function extractUrls(text: string): string[] {
+    const urlPattern = /https?:\/\/[^\s<>"]+|www\.[^\s<>"]+/g;
+    return text.match(urlPattern) || [];
+}
+
+function extractEmails(text: string): string[] {
+    if (!text) return [];
+
+    const emailPattern = /\b[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}\b/g;
+    const rawEmails = text.match(emailPattern) || [];
+
+    return rawEmails
+        .map(email => email.toLowerCase())
+        .filter(email => 
+            !email.endsWith('.jpg') &&
+            !email.endsWith('.jpeg') &&
+            !email.endsWith('.png') &&
+            !email.endsWith('.gif')
+        );
+}
 
 export async function POST(req: NextRequest) {
   try {
-    const { channelName, channelID, userID} = await req.json();
+      const { channelName, channelID} = await req.json();
     
 
     if (!channelName || !channelID) {
@@ -78,10 +100,100 @@ export async function POST(req: NextRequest) {
       return new Response(JSON.stringify({ error: "Twitch error" }), { status: twitchRes.status });
     }
 
+    
+      const return_data =  {socials:{
+          youtube: [] as string[],
+          tiktok: [] as string[],
+          twitter: [] as string[],
+          discord: [] as string[],
+          instagram: [] as string[],
+          facebook: [] as string[],
+          linkedin: [] as string[],
+
+        },
+        emails: [] as string[]
+        }
     const data = await twitchRes.json();
-    return new Response(JSON.stringify(data), { status: 200 });
+    const socialMedias = data[1]?.data?.user?.channel?.socialMedias;
+    if (Array.isArray(socialMedias)) {
+        socialMedias.forEach(link => {
+            console.log(link.url);
+            if (String(link.url).toLowerCase().includes("youtube")) {
+              return_data.socials.youtube.push(link?.url as string)
+            }
+            else if(String(link.url).toLowerCase().includes("twitter") || String(link.url).toLowerCase().includes("x.com")){
+              return_data.socials.twitter.push(link.url as string)
+            }
+            else if(String(link.url).toLowerCase().includes("facebook")){
+              return_data.socials.facebook.push(link.url as string)
+            }
+            else if(String(link.url).toLowerCase().includes("tiktok")){
+              return_data.socials.tiktok.push(link.url as string)
+            }
+            else if(String(link.url).toLowerCase().includes("linkedin")){
+              return_data.socials.linkedin.push(link.url as string)
+            }
+            else if(String(link.url).toLowerCase().includes("instagram")){
+              return_data.socials.instagram.push(link.url as string)
+            }            
+            else if(String(link.url).toLowerCase().includes("discord")){
+              return_data.socials.discord.push(link.url as string)
+            }
+
+            });
+    } else {
+        throw new TypeError("socialMedias is not an array");
+    }
+    try {
+    const panels = data[2]?.data?.user?.panels;
+    let url = [] as string[];
+    let emails = [] as string[]
+
+    emails.push(...extractEmails(JSON.stringify(data)));
+    if (Array.isArray(panels)) {
+        panels.forEach(panel => {
+            const description = panel?.description;
+            if (description) {
+                url.push(...extractUrls(description));
+            }
+            const link = panel?.linkURL;
+            if (link) url.push(link)
+        });
+    if (emails) return_data.emails.push(...emails)
+    url.forEach(link=>{
+      if (String(link).toLowerCase().includes("youtube")) {
+              return_data.socials.youtube.push(link as string)
+            }
+            else if(String(link).toLowerCase().includes("twitter") || String(link).toLowerCase().includes("x.com")){
+              return_data.socials.twitter.push(link as string)
+            }
+            else if(String(link).toLowerCase().includes("facebook")){
+              return_data.socials.facebook.push(link as string)
+            }
+            else if(String(link).toLowerCase().includes("tiktok")){
+              return_data.socials.tiktok.push(link as string)
+            }
+            else if(String(link).toLowerCase().includes("linkedin")){
+              return_data.socials.linkedin.push(link as string)
+            }
+            else if(String(link).toLowerCase().includes("instagram")){
+              return_data.socials.instagram.push(link as string)
+            }            
+            else if(String(link).toLowerCase().includes("discord")){
+              return_data.socials.discord.push(link as string)
+            }
+    })
+      
+    }
+} catch (e) {
+    console.log(`Error processing panels: ${e} (status ${twitchRes.status})`);
+}
+
+
+    return new Response(JSON.stringify(return_data), { status: 200 });
   } catch (err) {
     return new Response(JSON.stringify({ error: "Internal server error" }), { status: 500 });
   }
+  
 }
 
