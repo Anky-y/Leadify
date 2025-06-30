@@ -155,6 +155,8 @@ export default function TwitchDataTable({
     }
   }, [isDesktop, isTablet, isMobile]);
 
+  console.log(data);
+
   // Close context menu when clicking outside
   useEffect(() => {
     const handleClickOutside = () => {
@@ -999,48 +1001,154 @@ export default function TwitchDataTable({
                       )}
                       {visibleColumns.social && (
                         <TableCell className="py-2 sm:py-3">
-                          {hasSocialLinks(row) ? (
-                            <div className="flex space-x-1 opacity-50">
-                              {row.discord && (
-                                <DiscordLogo className="h-4 w-4 text-gray-400" />
-                              )}
-                              {row.youtube && (
-                                <YoutubeLogo className="h-4 w-4 text-gray-400" />
-                              )}
-                              {row.twitter && (
-                                <TwitterLogo className="h-4 w-4 text-gray-400" />
-                              )}
-                              {row.facebook && (
-                                <FacebookLogo className="h-4 w-4 text-gray-400" />
-                              )}
-                              {row.instagram && (
-                                <InstagramLogo className="h-4 w-4 text-gray-400" />
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-gray-400 text-xs">
-                              No socials found
-                            </span>
-                          )}
+                          <div className="flex space-x-1">
+                            {Array.isArray(row.discord) &&
+                              row.discord.length > 0 &&
+                              row.discord.map((link, i) => (
+                                <a
+                                  key={link + i}
+                                  href={subscribed ? link : "#"}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className={`${
+                                    subscribed
+                                      ? "text-gray-500 hover:text-indigo-600"
+                                      : "text-gray-300 cursor-not-allowed"
+                                  } transition-colors duration-200 p-1 rounded-full hover:bg-gray-100`}
+                                  title={
+                                    subscribed ? "Discord" : "Upgrade to view"
+                                  }
+                                  onClick={(e) =>
+                                    !subscribed && e.preventDefault()
+                                  }
+                                >
+                                  <DiscordLogo className="h-4 w-4" />
+                                </a>
+                              ))}
+                            {Array.isArray(row.youtube) &&
+                              row.youtube.length > 0 &&
+                              row.youtube.map((link, i) => (
+                                <a
+                                  key={link + i}
+                                  href={link}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-gray-500 hover:text-red-600 transition-colors duration-200 p-1 rounded-full hover:bg-gray-100"
+                                  title="YouTube"
+                                >
+                                  <YoutubeLogo className="h-4 w-4" />
+                                </a>
+                              ))}
+                            {Array.isArray(row.twitter) &&
+                              row.twitter.length > 0 &&
+                              row.twitter.map((link, i) => (
+                                <a
+                                  key={link + i}
+                                  href={link}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-gray-500 hover:text-blue-400 transition-colors duration-200 p-1 rounded-full hover:bg-gray-100"
+                                  title="Twitter"
+                                >
+                                  <TwitterLogo className="h-4 w-4" />
+                                </a>
+                              ))}
+                            {Array.isArray(row.facebook) &&
+                              row.facebook.length > 0 &&
+                              row.facebook.map((link, i) => (
+                                <a
+                                  key={link + i}
+                                  href={subscribed ? link : "#"}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className={`${
+                                    subscribed
+                                      ? "text-gray-500 hover:text-blue-600"
+                                      : "text-gray-300 cursor-not-allowed"
+                                  } transition-colors duration-200 p-1 rounded-full hover:bg-gray-100`}
+                                  title={
+                                    subscribed ? "Facebook" : "Upgrade to view"
+                                  }
+                                  onClick={(e) =>
+                                    !subscribed && e.preventDefault()
+                                  }
+                                >
+                                  <FacebookLogo className="h-4 w-4" />
+                                </a>
+                              ))}
+                            {Array.isArray(row.instagram) &&
+                              row.instagram.length > 0 &&
+                              row.instagram.map((link, i) => (
+                                <a
+                                  key={link + i}
+                                  href={subscribed ? link : "#"}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className={`${
+                                    subscribed
+                                      ? "text-gray-500 hover:text-pink-600"
+                                      : "text-gray-300 cursor-not-allowed"
+                                  } transition-colors duration-200 p-1 rounded-full hover:bg-gray-100`}
+                                  title={
+                                    subscribed ? "Instagram" : "Upgrade to view"
+                                  }
+                                  onClick={(e) =>
+                                    !subscribed && e.preventDefault()
+                                  }
+                                >
+                                  <InstagramLogo className="h-4 w-4" />
+                                </a>
+                              ))}
+                          </div>
                         </TableCell>
                       )}
                       {visibleColumns.email && (
                         <TableCell className="py-2 sm:py-3">
-                          {row.gmail ? (
-                            <div className="flex flex-col gap-1">
-                              {row.gmail
-                                .split(",")
-                                .map((email: string, idx: number) => (
-                                  <div key={idx} className="flex items-center">
-                                    <span className="text-gray-400 text-xs blur-sm select-none">
-                                      {email.trim().replace(/./g, "•")}
+                          {Array.isArray(row.gmail) && row.gmail.length > 0 ? (
+                            subscribed || revealedEmails[row.id] ? (
+                              <div className="flex flex-col gap-1">
+                                {row.gmail.map((email, idx) => (
+                                  <a
+                                    key={email + idx}
+                                    href={`mailto:${email}`}
+                                    className="text-blue-600 hover:underline flex items-center group"
+                                  >
+                                    <EnvelopeSimple className="h-4 w-4 mr-1 group-hover:text-blue-700" />
+                                    <span className="text-xs truncate max-w-[120px] sm:max-w-[180px]">
+                                      {email}
                                     </span>
-                                    <Badge className="ml-2 bg-blue-100 text-blue-800">
-                                      Save to reveal
-                                    </Badge>
-                                  </div>
+                                  </a>
                                 ))}
-                            </div>
+                                {!subscribed && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6 ml-1 hover:bg-gray-100"
+                                    onClick={() =>
+                                      toggleEmailVisibility(row.id)
+                                    }
+                                    title="Hide email"
+                                  >
+                                    <EyeOff className="h-3 w-3" />
+                                  </Button>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="flex items-center">
+                                <span className="text-gray-400 text-xs blur-sm select-none">
+                                  {row.gmail.join(", ")}
+                                </span>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 ml-1 hover:bg-gray-100"
+                                  onClick={() => toggleEmailVisibility(row.id)}
+                                  title="Reveal email (free users get 3 reveals per day)"
+                                >
+                                  <Eye className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            )
                           ) : (
                             <span className="text-gray-400 text-xs">
                               No email available

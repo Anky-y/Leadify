@@ -41,6 +41,8 @@ interface SearchTabProps {
   progressData: ScrapingProgress | null | undefined;
   streamers: TwitchData[];
   loadingStreamers: boolean;
+  isFrontendSocialScraping: boolean;
+  frontendSocialProgress: number;
 }
 
 export default function SearchTab({
@@ -67,6 +69,8 @@ export default function SearchTab({
   progressData,
   streamers,
   loadingStreamers,
+  isFrontendSocialScraping,
+  frontendSocialProgress,
 }: SearchTabProps) {
   const [isFilterCollapsed, setIsFilterCollapsed] = useState(false);
   const [activeFiltersCount, setActiveFiltersCount] = useState(0);
@@ -146,7 +150,7 @@ export default function SearchTab({
     },
     {
       name: "Finalizing",
-      description: "Uploading and saving the results.",
+      description: "finsihing up",
       showRate: false,
       showETA: false,
       showStreamers: true,
@@ -161,23 +165,72 @@ export default function SearchTab({
   const getStatusMessage = () => {
     if (!isLoading || !progressData) return "Ready to search";
 
-    const currentStage = stageConfig[progressData.Stage];
-    if (!currentStage) return "Processing...";
+    const stage = progressData.Stage;
 
-    if (currentStage.name === "1") {
-      return currentStage.name;
-    } else if (currentStage.name === "2") {
-      return `Collecting all live streamers in your category...`;
-    } else if (currentStage.name === "3") {
-      return `Filtering streamers based on your criteria...`;
-    } else if (currentStage.name === "4") {
-      return `Retrieving social media links for ${progressData.Streamers} streamers...`;
-    } else if (currentStage.name === "5") {
-      return `Uploading and saving the results...`;
+    switch (stage) {
+      case 0:
+        return "Setting up the scraping process...";
+      case 1:
+        return "Collecting all live streamers in your category...";
+      case 2:
+        return "Filtering streamers based on your criteria...";
+      case 3:
+        return `Retrieving social media links for ${progressData.Streamers} streamers...`;
+      case 4:
+        return "Uploading and saving the results...";
+      default:
+        return "Processing...";
     }
   };
 
   const renderProgressDetails = () => {
+    if (isFrontendSocialScraping) {
+      return (
+        <div className="space-y-6">
+          <div className="flex justify-center items-center">
+            <div className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Getting Socials
+            </div>
+          </div>
+          <div className="relative pt-2">
+            <div className="overflow-hidden h-4 mb-3 text-xs flex rounded-full bg-gradient-to-r from-slate-50 to-gray-50 border border-blue-100">
+              <motion.div
+                initial={{ width: "0%" }}
+                animate={{ width: `${frontendSocialProgress}%` }}
+                transition={{ duration: 0.8, ease: "easeInOut" }}
+                className="shadow-sm flex flex-col text-center whitespace-nowrap text-white justify-center bg-gradient-to-r from-blue-500 via-blue-600 to-purple-600 relative overflow-hidden"
+              >
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                  animate={{ x: ["-100%", "100%"] }}
+                  transition={{
+                    duration: 2,
+                    repeat: Number.POSITIVE_INFINITY,
+                    ease: "linear",
+                  }}
+                />
+              </motion.div>
+            </div>
+            <div className="flex justify-between items-center text-sm text-gray-600">
+              <div className="flex items-center">
+                <motion.span
+                  className="inline-block mr-2 w-2 h-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-500"
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{
+                    duration: 1.5,
+                    repeat: Number.POSITIVE_INFINITY,
+                  }}
+                />
+                Scraping socials & emails...
+              </div>
+              <div className="font-bold text-blue-700">
+                {frontendSocialProgress}%
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
     if (!isLoading || !progressData) return null;
     const currentStage = stageConfig[progressData.Stage];
 
@@ -251,8 +304,9 @@ export default function SearchTab({
                 <Loader2 className="w-5 h-5 text-white animate-spin" />
               </div>
               <div>
-
-                <div className="text-xs text-blue-600 font-medium">Processing Rate</div>
+                <div className="text-xs text-blue-600 font-medium">
+                  Processing Rate
+                </div>
                 <div className="text-sm font-bold text-gray-800">
                   {Number(progressData.Rate).toFixed(0)
                     ? Number(progressData.Rate).toFixed(0)
@@ -273,12 +327,12 @@ export default function SearchTab({
                 <AlertCircle className="w-5 h-5 text-white" />
               </div>
               <div>
-                <div className="text-xs text-blue-600 font-medium">Estimated Time</div>
+                <div className="text-xs text-blue-600 font-medium">
+                  Estimated Time
+                </div>
                 <div className="text-sm font-bold text-gray-800">
-                  {progressData.ETA
-                    ? progressData.ETA
-                    : "N/A"}
-                   remaining
+                  {progressData.ETA ? progressData.ETA : "N/A"}
+                  remaining
                 </div>
               </div>
             </motion.div>
@@ -409,7 +463,7 @@ export default function SearchTab({
           )}
 
           <AnimatePresence mode="wait">
-            {isLoading ? (
+            {isLoading || isFrontendSocialScraping ? (
               <motion.div
                 key="loading"
                 initial="hidden"
@@ -443,7 +497,9 @@ export default function SearchTab({
                         />
                       </motion.div>
                       <h3 className="text-xl font-bold mt-6 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                        {getStatusMessage()}
+                        {isFrontendSocialScraping
+                          ? "Retrieving social media links for streamers..."
+                          : getStatusMessage()}
                       </h3>
                     </div>
                     <div className="w-full mx-auto">

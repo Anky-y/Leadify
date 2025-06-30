@@ -5,13 +5,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SearchTab from "./tabs/search-tab";
 import SavedStreamersTab from "./tabs/saved-streamers-tab";
 import SavedFiltersTab from "./tabs/saved-filters-tab";
-
 // Import types and mock data
 import type { ScrapingProgress, TwitchData } from "./types";
 import type User from "@/app/types/user";
 import { useUser } from "@/app/context/UserContext";
 import Papa from "papaparse";
 import { motion, AnimatePresence } from "framer-motion";
+import { json } from "stream/consumers";
 
 // Define the scraping stages
 type ScrapingStage = {
@@ -51,6 +51,10 @@ export default function TwitchScraperUI({
   const [loadingStreamers, setLoadingStreamers] = useState(false);
   const [runSearchOnTab, setRunSearchOnTab] = useState(false);
 
+  const [isFrontendSocialScraping, setIsFrontendSocialScraping] =
+    useState(false);
+  const [frontendSocialProgress, setFrontendSocialProgress] = useState(0);
+
   // Load user after component is mounted
   useEffect(() => {
     if (!loading) {
@@ -66,6 +70,7 @@ export default function TwitchScraperUI({
 
   // Function to handle search with detailed progress updates
   const handleSearch = async () => {
+    fetchStreamerData("baycon_", "30227236");
     setIsLoading(true);
     setLoadingProgress(0);
 
@@ -89,7 +94,7 @@ export default function TwitchScraperUI({
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            category: "Fortnite",
+            category: "VALORANT",
             minimum_followers: 10,
             maximum_followers: 100000,
             viewer_count: 20,
@@ -98,7 +103,6 @@ export default function TwitchScraperUI({
           }),
         }
       );
-      console.log(user?.id);
 
       if (!triggerRes.ok) {
         triggerRes.json().then((data) => console.log(data));
@@ -113,44 +117,67 @@ export default function TwitchScraperUI({
             `${process.env.NEXT_PUBLIC_BACKEND_URL}Twitch_scraper/get_progress?user_id=${user?.id}`,
             {
               method: "GET",
-              headers: {
-                accept: "application/json",
-              },
+              headers: { accept: "application/json" },
             }
           );
 
-          if (!progressRes.ok) {
+          if (!progressRes.ok)
             throw new Error("Failed to fetch scrape progress");
-          }
 
-          const data = await progressRes.json();
+          const progress = await progressRes.json();
+          setProgressData(progress);
 
-          console.log(data);
-
-          setProgressData(data);
-
-          if (data?.Done) {
+          // If backend is done, start frontend socials scraping
+          if (progress?.Done) {
             clearInterval(pollingInterval);
-            setLoadingStreamers(true);
-            setIsLoading(false);
-            fetch(data.download_url)
-              .then((res) => res.text())
-              .then((csvText) => {
-                Papa.parse<TwitchData>(csvText, {
-                  header: true,
-                  skipEmptyLines: true,
-                  complete: (result) => {
-                    console.log(result);
-                    setStreamers(result.data);
-                    console.log(streamers);
-                    setLoadingStreamers(false);
-                  },
-                  error: (err: any) => {
-                    console.error("CSV parsing error:", err);
-                    setLoadingStreamers(true);
-                  },
-                });
+            setIsFrontendSocialScraping(true);
+            setFrontendSocialProgress(0);
+
+            let streamerList: TwitchData[] = progress.data || [];
+
+            updateProgressData({
+              ...progress,
+              Stage: 3, // ← matches index of "Getting Socials" in stageConfig
+              Percentage: 0,
+              Completed: 0,
+              Streamers: streamerList.length,
+            });
+            // Social scraping (frontend stage)
+            const updatedStreamers: TwitchData[] = [];
+            for (let i = 0; i < streamerList.length; i++) {
+              const s = streamerList[i];
+              try {
+                const aboutTwitch = await fetchStreamerData(
+                  s?.username,
+                  s?.channel_id
+                );
+                updatedStreamers.push(mergeAboutTwitchData(s, aboutTwitch));
+              } catch (err) {
+                updatedStreamers.push(s); // fallback
+              }
+              const percent = Math.round(((i + 1) / streamerList.length) * 100);
+              updateProgressData({
+                ...progressDataRef.current!,
+                Stage: 3,
+                Percentage: percent,
+                Completed: i + 1,
+                Streamers: streamerList.length,
               });
+
+              setFrontendSocialProgress(percent);
+            }
+
+            updateProgressData({
+              ...progressDataRef.current!,
+              Stage: 4,
+              Completed: streamerList.length,
+            });
+
+            setStreamers(updatedStreamers);
+            setIsLoading(false);
+            setIsFrontendSocialScraping(false); // Now show the data!
+            setFrontendSocialProgress(100);
+            return;
           }
         } catch (error) {
           console.error("Error polling scrape progress:", error);
@@ -158,7 +185,6 @@ export default function TwitchScraperUI({
           setIsLoading(false);
         }
       }, pollInterval);
-
       // Start first poll immediately
       setTimeout(() => {
         // Small delay to give backend a head start
@@ -234,6 +260,46 @@ export default function TwitchScraperUI({
     visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
   };
 
+  // async function fetchTwitchAboutClient() {
+  //   const res = await fetch("/api/twitch-about");
+  //   if (!res.ok) throw new Error("Failed to fetch Twitch about");
+  //   const data = await res.json();
+  //   console.log(data);
+  //   return data;
+  // }
+
+  //   console.log(fetchTwitchAboutClient())
+
+  const fetchStreamerData = async (channelName: string, channelID: string) => {
+    const response = await fetch("/api/twitch-about", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        channelName: channelName,
+        channelID: channelID,
+      }),
+    });
+
+    const data = await response.json();
+    console.log(data); // handle response
+    return data;
+  };
+
+  function mergeAboutTwitchData(streamer: any, aboutTwitch: any) {
+    return {
+      ...streamer,
+      youtube: aboutTwitch.socials?.youtube ?? [],
+      tiktok: aboutTwitch.socials?.tiktok ?? [],
+      twitter: aboutTwitch.socials?.twitter ?? [],
+      discord: aboutTwitch.socials?.discord ?? [],
+      instagram: aboutTwitch.socials?.instagram ?? [],
+      facebook: aboutTwitch.socials?.facebook ?? [],
+      linkedin: aboutTwitch.socials?.linkedin ?? [],
+      gmail: aboutTwitch.emails ?? [],
+    };
+  }
   return (
     <motion.div
       className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100"
@@ -313,6 +379,8 @@ export default function TwitchScraperUI({
                       progressData={progressData}
                       streamers={streamers}
                       loadingStreamers={loadingStreamers}
+                      isFrontendSocialScraping={isFrontendSocialScraping}
+                      frontendSocialProgress={frontendSocialProgress}
                     />
                   </TabsContent>
                 </motion.div>
