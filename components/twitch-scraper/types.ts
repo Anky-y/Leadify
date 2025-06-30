@@ -17,6 +17,8 @@ export interface TwitchData {
   folder_id?: string; // Better to reference folder by ID
   saved_at?: string; // Timestamp when the streamer was saved
   is_favourite?: boolean;
+  email_revealed: boolean;
+  socials_revealed: boolean;
 }
 
 export interface FilterValues {

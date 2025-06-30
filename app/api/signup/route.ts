@@ -28,6 +28,7 @@ export async function POST(req: Request) {
     }
 
     const userId = data.user?.id;
+    console.log(userId);
 
     if (!userId) {
       return NextResponse.json(
@@ -42,6 +43,8 @@ export async function POST(req: Request) {
         email,
         first_name: firstName,
         last_name: lastName,
+        credits: 25,
+        subscription_plan: "Free",
         subscription_status: false,
       },
     ]);
@@ -58,6 +61,22 @@ export async function POST(req: Request) {
         is_mandatory: true,
       },
     ]);
+
+    const initRes = await fetch(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}initialize-user?user_id=${userId}`,
+      {
+        method: "POST",
+        headers: {
+          accept: "application/json",
+        },
+      }
+    );
+
+    console.log(initRes);
+
+    if (!initRes.ok) {
+      throw new Error("Failed to fetch scrape progress");
+    }
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

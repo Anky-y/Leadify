@@ -1,5 +1,7 @@
 "use client";
 
+import { DialogTrigger } from "@/components/ui/dialog";
+
 import type React from "react";
 
 import {
@@ -16,12 +18,9 @@ import {
   InstagramLogo,
   TwitterLogo,
   YoutubeLogo,
-  EnvelopeSimple,
 } from "./social-icons";
 import {
   ExternalLink,
-  Eye,
-  EyeOff,
   ArrowDownAZ,
   ArrowUpAZ,
   ArrowDown01,
@@ -29,17 +28,9 @@ import {
   ArrowDownUp,
   SortAsc,
   SortDesc,
-  SearchCheck,
-  Download,
-  ChevronDown,
-  FileText,
-  Check,
-  FileSpreadsheet,
-  FileJson,
   UserPlus,
   MoreHorizontal,
   Filter,
-  Settings,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -71,10 +62,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { exportToCSV, exportToExcel, exportToJSON } from "@/utils/export";
 import { useUser } from "@/app/context/UserContext";
 import { motion, AnimatePresence } from "framer-motion";
@@ -93,10 +82,6 @@ export default function TwitchDataTable({
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const [menuMeasured, setMenuMeasured] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
-  // State to track which emails are revealed
-  const [revealedEmails, setRevealedEmails] = useState<Record<string, boolean>>(
-    {}
-  );
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedUsernames, setSelectedUsernames] = useState<
     Record<string, boolean>
@@ -128,6 +113,8 @@ export default function TwitchDataTable({
     row: null,
     visible: false,
   });
+
+  console.log(data);
 
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const isTablet = useMediaQuery("(min-width: 768px)");
@@ -257,13 +244,6 @@ export default function TwitchDataTable({
   const itemsPerPage = isDesktop ? 10 : isTablet ? 7 : 5;
 
   const { user } = useUser();
-  // Toggle email visibility for a specific row
-  const toggleEmailVisibility = (id: string) => {
-    setRevealedEmails((prev) => ({
-      ...prev,
-      [id]: !prev[id],
-    }));
-  };
 
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<
@@ -372,7 +352,13 @@ export default function TwitchDataTable({
       : data;
 
     if (data.length === 0) {
-      toast.error("Please perform a search first to get data for export.");
+      toast.error("Please perform a search first to get data for export", {
+        description:
+          "You need to have search results before you can export data",
+        icon: "⚠️",
+        closeButton: true,
+        duration: 4000,
+      });
       return;
     }
 
@@ -388,18 +374,34 @@ export default function TwitchDataTable({
     toast.success(
       `${exportData.length} records with ${
         Object.values(visibleColumns).filter(Boolean).length
-      } columns will be exported as ${exportFormat.toUpperCase()}.`
+      } columns will be exported as ${exportFormat.toUpperCase()}`,
+      {
+        description: "Your export file will be downloaded shortly",
+        icon: "📊",
+        closeButton: true,
+        duration: 4000,
+      }
     );
   };
 
   const handleSaveSearch = () => {
     if (!searchName.trim()) {
-      toast.error("Please enter a name for your saved search.");
+      toast.error("Please enter a name for your saved search", {
+        description: "A search name is required to save your current filters",
+        icon: "⚠️",
+        closeButton: true,
+        duration: 4000,
+      });
       return;
     }
 
     // Save search logic would go here
-    toast.success(`Your search "${searchName}" has been saved.`);
+    toast.success(`Your search "${searchName}" has been saved`, {
+      description: "You can now quickly access this search configuration later",
+      icon: "💾",
+      closeButton: true,
+      duration: 3000,
+    });
     setSaveSearchDialogOpen(false);
     setSearchName("");
   };
@@ -411,7 +413,12 @@ export default function TwitchDataTable({
       : data;
 
     if (streamersToSave.length === 0) {
-      toast.error("Please select at least one streamer to save.");
+      toast.error("Please select at least one streamer to save", {
+        description: "Use the checkboxes to select streamers you want to save",
+        icon: "⚠️",
+        closeButton: true,
+        duration: 4000,
+      });
       return;
     }
 
@@ -438,13 +445,27 @@ export default function TwitchDataTable({
         throw new Error("Failed to save streamers");
       }
 
-      toast.success("Selected streamers have been saved to your list.");
+      toast.success("Selected streamers have been saved to your list", {
+        description: `${streamersToSave.length} streamers added to your saved collection`,
+        icon: "✅",
+        closeButton: true,
+        duration: 4000,
+      });
 
       setSaveStreamersDialogOpen(false);
       setSearchName(""); // Optional depending on whether name is reused
     } catch (error) {
       console.error(error);
-      toast.error("Something went wrong while saving streamers.");
+      toast.error("Something went wrong while saving streamers", {
+        description:
+          "Please try again or contact support if the issue persists",
+        icon: "❌",
+        closeButton: true,
+        action: {
+          label: "Retry",
+          onClick: () => handleSaveStreamers(),
+        },
+      });
     }
   };
 
@@ -486,6 +507,17 @@ export default function TwitchDataTable({
   const fadeIn = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { duration: 0.3 } },
+  };
+
+  // Check if a streamer has any social media links
+  const hasSocialLinks = (streamer: TwitchData) => {
+    return Boolean(
+      streamer.discord ||
+        streamer.youtube ||
+        streamer.twitter ||
+        streamer.facebook ||
+        streamer.instagram
+    );
   };
 
   return (
@@ -1119,7 +1151,7 @@ export default function TwitchDataTable({
                             )
                           ) : (
                             <span className="text-gray-400 text-xs">
-                              Couldn't find a valid mail
+                              No email available
                             </span>
                           )}
                         </TableCell>
@@ -1170,17 +1202,6 @@ export default function TwitchDataTable({
                                 <ExternalLink className="mr-2 h-4 w-4" />
                                 <span>View Channel</span>
                               </DropdownMenuItem>
-                              {row.gmail && (
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    window.open(`mailto:${row.gmail}`, "_blank")
-                                  }
-                                  className="cursor-pointer"
-                                >
-                                  <EnvelopeSimple className="mr-2 h-4 w-4" />
-                                  <span>Send Email</span>
-                                </DropdownMenuItem>
-                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
@@ -1242,19 +1263,6 @@ export default function TwitchDataTable({
               <ExternalLink className="h-4 w-4" />
               <span>View Channel</span>
             </button>
-
-            {contextMenu.row.gmail && (
-              <button
-                className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 transition-colors"
-                onClick={() => {
-                  window.open(`mailto:${contextMenu.row!.gmail}`, "_blank");
-                  setContextMenu((prev) => ({ ...prev, visible: false }));
-                }}
-              >
-                <EnvelopeSimple className="h-4 w-4" />
-                <span>Send Email</span>
-              </button>
-            )}
 
             <button
               className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 transition-colors"

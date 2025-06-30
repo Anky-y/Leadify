@@ -1,7 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Check, Zap, CreditCard, Calendar, TrendingUp } from "lucide-react";
+import {
+  Check,
+  Zap,
+  CreditCard,
+  Calendar,
+  TrendingUp,
+  XCircle,
+  CreditCardIcon,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -14,7 +22,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
+import { useUser } from "@/app/context/UserContext";
+import { toast } from "sonner";
+import { useSubscription } from "@/app/context/SubscriptionContext";
+import { getPlanName } from "@/utils/qol_Functions";
 
+// Calculate savings}
 // Animated counter component
 function AnimatedCounter({
   value,
@@ -50,17 +63,16 @@ function AnimatedCounter({
 export default function BillingPage() {
   const [isYearly, setIsYearly] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState("pro");
-  const [currentCredits] = useState(142);
+  const [currentCredits, setCurrentCredits] = useState(0);
+  const { user } = useUser();
+  const { subscription } = useSubscription();
 
-  // Current subscription data
-  const currentPlan = {
-    name: "Pro Plan",
-    credits: currentCredits,
-    renewalDate: "May 15, 2025",
-    price: isYearly ? 490 : 49,
-  };
+  useEffect(() => {
+    const credits = user?.credits || 0;
+    setCurrentCredits(credits);
+  });
 
-  // Subscription plans
+  // Subscription plans with Lemon Squeezy product IDs for both monthly and yearly
   const plans = [
     {
       id: "free",
@@ -75,6 +87,10 @@ export default function BillingPage() {
         "Standard exports",
       ],
       popular: false,
+      monthly_checkout_url: "",
+      yearly_checkout_url: "",
+      monthly_product_id: "",
+      yearly_product_id: "",
     },
     {
       id: "basic",
@@ -90,6 +106,10 @@ export default function BillingPage() {
         "Basic analytics",
       ],
       popular: false,
+      monthly_checkout_url: `https://leadifysolutions.lemonsqueezy.com/buy/81a494e3-c10f-45c1-b768-3089d750219f?checkout[custom][user_id]=${user?.id}&checkout[custom][product_type]=subscription`,
+      yearly_checkout_url: `https://leadifysolutions.lemonsqueezy.com/buy/67939b0a-52be-45fd-9306-94d29241d78a?checkout[custom][user_id]=${user?.id}&checkout[custom][product_type]=subscription`,
+      monthly_product_id: "783425",
+      yearly_product_id: "783451",
     },
     {
       id: "pro",
@@ -107,8 +127,16 @@ export default function BillingPage() {
         "Team collaboration",
       ],
       popular: true,
+      monthly_checkout_url: `https://leadifysolutions.lemonsqueezy.com/buy/67939b0a-52be-45fd-9306-94d29241d78a?checkout[custom][user_id]=${user?.id}&checkout[custom][product_type]=subscription`,
+      yearly_checkout_url: `https://leadifysolutions.lemonsqueezy.com/buy/7aee438c-cd9a-4691-b71c-81407b0d273f?checkout[custom][user_id]=${user?.id}&checkout[custom][product_type]=subscription`,
+      monthly_product_id: "783455",
+      yearly_product_id: "783457",
     },
   ];
+
+  // Helper to get the correct product id for a plan based on billing period
+  const getPlanProductId = (plan: (typeof plans)[0], yearly: boolean) =>
+    yearly ? plan.yearly_product_id : plan.monthly_product_id;
 
   // Credit top-up packs
   const creditPacks = [
@@ -118,6 +146,7 @@ export default function BillingPage() {
       credits: 100,
       price: 5,
       description: "Perfect for small projects",
+      checkout_url: `https://leadifysolutions.lemonsqueezy.com/buy/d82a2214-2b2b-436a-be26-6105a7fcdf65?checkout[custom][user_id]=${user?.id}&checkout[custom][product_type]=topup`,
     },
     {
       id: "growth",
@@ -126,6 +155,7 @@ export default function BillingPage() {
       price: 20,
       description: "Great for growing businesses",
       popular: true,
+      checkout_url: `https://leadifysolutions.lemonsqueezy.com/buy/7658cebc-9507-4278-aa94-e09ee20cd766?checkout[custom][user_id]=${user?.id}&checkout[custom][product_type]=topup`,
     },
     {
       id: "scale",
@@ -133,6 +163,7 @@ export default function BillingPage() {
       credits: 1000,
       price: 35,
       description: "For scaling operations",
+      checkout_url: `https://leadifysolutions.lemonsqueezy.com/buy/c69f17b9-a809-4aef-abb1-47989c0e5c2a?checkout[custom][user_id]=${user?.id}&checkout[custom][product_type]=topup`,
     },
     {
       id: "power",
@@ -140,6 +171,7 @@ export default function BillingPage() {
       credits: 5000,
       price: 150,
       description: "Maximum value pack",
+      checkout_url: `https://leadifysolutions.lemonsqueezy.com/buy/c69f17b9-a809-4aef-abb1-47989c0e5c2a?checkout[custom][user_id]=${user?.id}&checkout[custom][product_type]=topup`,
     },
   ];
 
@@ -148,6 +180,63 @@ export default function BillingPage() {
     return Math.round(((monthly * 12 - yearly) / (monthly * 12)) * 100);
   };
 
+  const handleBuyCredits = async (pack: {
+    id: string;
+    credits: number;
+    checkout_url: string;
+  }) => {
+    if (!user) {
+      toast.error("Authentication Required", {
+        description: "Please log in to purchase credits.",
+        icon: <XCircle className="h-5 w-5" />,
+      });
+      return;
+    }
+
+    toast.info("Redirecting to Payment", {
+      description: `Processing your purchase of ${pack.credits.toLocaleString()} credits...`,
+      icon: <CreditCardIcon className="h-5 w-5" />,
+    });
+
+    window.location.href = pack.checkout_url.toString();
+  };
+
+  const handleBuySubscription = async (plan: (typeof plans)[0]) => {
+    if (!user) {
+      toast.error("Authentication Required", {
+        description: "Please log in to upgrade your subscription.",
+        icon: <XCircle className="h-5 w-5" />,
+      });
+      return;
+    }
+    const baseUrl = isYearly
+      ? plan.yearly_checkout_url
+      : plan.monthly_checkout_url;
+    if (!baseUrl) {
+      toast.error("Checkout Unavailable", {
+        description:
+          "This subscription plan is currently unavailable. Please try again later.",
+        icon: <XCircle className="h-5 w-5" />,
+      });
+      return;
+    }
+
+    toast.info("Redirecting to Checkout", {
+      description: `Processing your ${plan.name} subscription upgrade...`,
+      icon: <CreditCardIcon className="h-5 w-5" />,
+    });
+
+    window.location.href = baseUrl.toString();
+  };
+
+  function formatDate(dateString: string): string {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  }
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-4 md:p-8">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -174,9 +263,17 @@ export default function BillingPage() {
                     Current Plan
                   </span>
                 </div>
-                <p className="text-2xl font-bold">{currentPlan.name}</p>
+                <p className="text-2xl font-bold">
+                  {user?.subscription_plan
+                    ? `${getPlanName(user?.subscription_plan)}`
+                    : "Free Plan"}
+                </p>
                 <p className="text-sm text-muted-foreground">
-                  ${currentPlan.price}/{isYearly ? "year" : "month"}
+                  {user?.subscription_plan?.toLowerCase().startsWith("pro")
+                    ? "$49/month"
+                    : user?.subscription_plan?.toLowerCase().startsWith("basic")
+                    ? "$19/month"
+                    : ""}
                 </p>
               </div>
 
@@ -205,7 +302,10 @@ export default function BillingPage() {
                   </span>
                 </div>
                 <p className="text-lg font-semibold">
-                  {currentPlan.renewalDate}
+                  {typeof subscription?.renews_at === "string" &&
+                  subscription.renews_at
+                    ? formatDate(subscription.renews_at)
+                    : "N/A"}
                 </p>
               </div>
 
@@ -279,7 +379,7 @@ export default function BillingPage() {
                     "border-blue-500 shadow-lg shadow-blue-500/25",
                   selectedPlan === plan.id && "ring-2 ring-blue-500"
                 )}
-                onClick={() => setSelectedPlan(plan.id)}
+                onClick={() => handleBuySubscription}
               >
                 {plan.popular && (
                   <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-center py-2 text-sm font-medium">
@@ -334,8 +434,17 @@ export default function BillingPage() {
                         : "hover:bg-blue-50 dark:hover:bg-blue-950"
                     )}
                     variant={plan.popular ? "default" : "outline"}
+                    onClick={() => handleBuySubscription(plan)}
                   >
-                    {selectedPlan === plan.id ? "Current Plan" : "Choose Plan"}
+                    {user?.subscription_status &&
+                    getPlanProductId(plan, isYearly) &&
+                    getPlanName(user?.subscription_plan ?? "").toLowerCase() ===
+                      plan.name.toLowerCase()
+                      ? "Current Plan"
+                      : user?.subscription_plan?.toLowerCase() === "free" &&
+                        plan.id.toLowerCase() === "free"
+                      ? "Current Plan"
+                      : "Choose Plan"}
                   </Button>
                 </CardFooter>
               </Card>
@@ -403,6 +512,7 @@ export default function BillingPage() {
                         : "hover:bg-green-50 dark:hover:bg-green-950"
                     )}
                     variant={pack.popular ? "default" : "outline"}
+                    onClick={() => handleBuyCredits(pack)}
                   >
                     <CreditCard className="mr-2 h-4 w-4" />
                     Buy Credits

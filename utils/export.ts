@@ -22,8 +22,8 @@ export function filterObjectByColumns(
   // Create a new object with only the visible columns
   const filteredObj: any = {};
 
-  // Always include id for reference
-  if (obj.id) filteredObj.id = obj.id;
+  // // Always include id for reference
+  // if (obj.id) filteredObj.id = obj.id;
 
   // Add visible columns
   Object.entries(columnVisibility).forEach(([column, isVisible]) => {
