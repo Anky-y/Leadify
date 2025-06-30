@@ -168,6 +168,8 @@ export default function TwitchDataTable({
     }
   }, [isDesktop, isTablet, isMobile]);
 
+  console.log(data);
+
   // Close context menu when clicking outside
   useEffect(() => {
     const handleClickOutside = () => {
@@ -968,105 +970,123 @@ export default function TwitchDataTable({
                       {visibleColumns.social && (
                         <TableCell className="py-2 sm:py-3">
                           <div className="flex space-x-1">
-                            {row.discord && (
-                              <a
-                                href={subscribed ? row.discord : "#"}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className={`${
-                                  subscribed
-                                    ? "text-gray-500 hover:text-indigo-600"
-                                    : "text-gray-300 cursor-not-allowed"
-                                } transition-colors duration-200 p-1 rounded-full hover:bg-gray-100`}
-                                title={
-                                  subscribed ? "Discord" : "Upgrade to view"
-                                }
-                                onClick={(e) =>
-                                  !subscribed && e.preventDefault()
-                                }
-                              >
-                                <DiscordLogo className="h-4 w-4" />
-                              </a>
-                            )}
-                            {row.youtube && (
-                              <a
-                                href={row.youtube}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-gray-500 hover:text-red-600 transition-colors duration-200 p-1 rounded-full hover:bg-gray-100"
-                                title="YouTube"
-                              >
-                                <YoutubeLogo className="h-4 w-4" />
-                              </a>
-                            )}
-                            {row.twitter && (
-                              <a
-                                href={row.twitter}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-gray-500 hover:text-blue-400 transition-colors duration-200 p-1 rounded-full hover:bg-gray-100"
-                                title="Twitter"
-                              >
-                                <TwitterLogo className="h-4 w-4" />
-                              </a>
-                            )}
-                            {row.facebook && (
-                              <a
-                                href={subscribed ? row.facebook : "#"}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className={`${
-                                  subscribed
-                                    ? "text-gray-500 hover:text-blue-600"
-                                    : "text-gray-300 cursor-not-allowed"
-                                } transition-colors duration-200 p-1 rounded-full hover:bg-gray-100`}
-                                title={
-                                  subscribed ? "Facebook" : "Upgrade to view"
-                                }
-                                onClick={(e) =>
-                                  !subscribed && e.preventDefault()
-                                }
-                              >
-                                <FacebookLogo className="h-4 w-4" />
-                              </a>
-                            )}
-                            {row.instagram && (
-                              <a
-                                href={subscribed ? row.instagram : "#"}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className={`${
-                                  subscribed
-                                    ? "text-gray-500 hover:text-pink-600"
-                                    : "text-gray-300 cursor-not-allowed"
-                                } transition-colors duration-200 p-1 rounded-full hover:bg-gray-100`}
-                                title={
-                                  subscribed ? "Instagram" : "Upgrade to view"
-                                }
-                                onClick={(e) =>
-                                  !subscribed && e.preventDefault()
-                                }
-                              >
-                                <InstagramLogo className="h-4 w-4" />
-                              </a>
-                            )}
+                            {Array.isArray(row.discord) &&
+                              row.discord.length > 0 &&
+                              row.discord.map((link, i) => (
+                                <a
+                                  key={link + i}
+                                  href={subscribed ? link : "#"}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className={`${
+                                    subscribed
+                                      ? "text-gray-500 hover:text-indigo-600"
+                                      : "text-gray-300 cursor-not-allowed"
+                                  } transition-colors duration-200 p-1 rounded-full hover:bg-gray-100`}
+                                  title={
+                                    subscribed ? "Discord" : "Upgrade to view"
+                                  }
+                                  onClick={(e) =>
+                                    !subscribed && e.preventDefault()
+                                  }
+                                >
+                                  <DiscordLogo className="h-4 w-4" />
+                                </a>
+                              ))}
+                            {Array.isArray(row.youtube) &&
+                              row.youtube.length > 0 &&
+                              row.youtube.map((link, i) => (
+                                <a
+                                  key={link + i}
+                                  href={link}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-gray-500 hover:text-red-600 transition-colors duration-200 p-1 rounded-full hover:bg-gray-100"
+                                  title="YouTube"
+                                >
+                                  <YoutubeLogo className="h-4 w-4" />
+                                </a>
+                              ))}
+                            {Array.isArray(row.twitter) &&
+                              row.twitter.length > 0 &&
+                              row.twitter.map((link, i) => (
+                                <a
+                                  key={link + i}
+                                  href={link}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-gray-500 hover:text-blue-400 transition-colors duration-200 p-1 rounded-full hover:bg-gray-100"
+                                  title="Twitter"
+                                >
+                                  <TwitterLogo className="h-4 w-4" />
+                                </a>
+                              ))}
+                            {Array.isArray(row.facebook) &&
+                              row.facebook.length > 0 &&
+                              row.facebook.map((link, i) => (
+                                <a
+                                  key={link + i}
+                                  href={subscribed ? link : "#"}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className={`${
+                                    subscribed
+                                      ? "text-gray-500 hover:text-blue-600"
+                                      : "text-gray-300 cursor-not-allowed"
+                                  } transition-colors duration-200 p-1 rounded-full hover:bg-gray-100`}
+                                  title={
+                                    subscribed ? "Facebook" : "Upgrade to view"
+                                  }
+                                  onClick={(e) =>
+                                    !subscribed && e.preventDefault()
+                                  }
+                                >
+                                  <FacebookLogo className="h-4 w-4" />
+                                </a>
+                              ))}
+                            {Array.isArray(row.instagram) &&
+                              row.instagram.length > 0 &&
+                              row.instagram.map((link, i) => (
+                                <a
+                                  key={link + i}
+                                  href={subscribed ? link : "#"}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className={`${
+                                    subscribed
+                                      ? "text-gray-500 hover:text-pink-600"
+                                      : "text-gray-300 cursor-not-allowed"
+                                  } transition-colors duration-200 p-1 rounded-full hover:bg-gray-100`}
+                                  title={
+                                    subscribed ? "Instagram" : "Upgrade to view"
+                                  }
+                                  onClick={(e) =>
+                                    !subscribed && e.preventDefault()
+                                  }
+                                >
+                                  <InstagramLogo className="h-4 w-4" />
+                                </a>
+                              ))}
                           </div>
                         </TableCell>
                       )}
                       {visibleColumns.email && (
                         <TableCell className="py-2 sm:py-3">
-                          {row.gmail ? (
+                          {Array.isArray(row.gmail) && row.gmail.length > 0 ? (
                             subscribed || revealedEmails[row.id] ? (
-                              <div className="flex items-center">
-                                <a
-                                  href={`mailto:${row.gmail}`}
-                                  className="text-blue-600 hover:underline flex items-center group"
-                                >
-                                  <EnvelopeSimple className="h-4 w-4 mr-1 group-hover:text-blue-700" />
-                                  <span className="text-xs truncate max-w-[120px] sm:max-w-[180px]">
-                                    {row.gmail}
-                                  </span>
-                                </a>
+                              <div className="flex flex-col gap-1">
+                                {row.gmail.map((email, idx) => (
+                                  <a
+                                    key={email + idx}
+                                    href={`mailto:${email}`}
+                                    className="text-blue-600 hover:underline flex items-center group"
+                                  >
+                                    <EnvelopeSimple className="h-4 w-4 mr-1 group-hover:text-blue-700" />
+                                    <span className="text-xs truncate max-w-[120px] sm:max-w-[180px]">
+                                      {email}
+                                    </span>
+                                  </a>
+                                ))}
                                 {!subscribed && (
                                   <Button
                                     variant="ghost"
@@ -1084,7 +1104,7 @@ export default function TwitchDataTable({
                             ) : (
                               <div className="flex items-center">
                                 <span className="text-gray-400 text-xs blur-sm select-none">
-                                  {row.gmail.replace(/./g, "•")}
+                                  {row.gmail.join(", ")}
                                 </span>
                                 <Button
                                   variant="ghost"

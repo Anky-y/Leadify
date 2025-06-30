@@ -5,6 +5,7 @@ export interface TwitchData {
   viewer_count: number;
   language: string;
   game_name: string;
+  channel_id: string;
   channel_url: string;
   subscriber_count?: string;
   gmail?: string;
