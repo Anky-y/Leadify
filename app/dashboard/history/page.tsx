@@ -1,15 +1,9 @@
-"use client";
+"use client"
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Badge } from "@/components/ui/badge"
 import {
   Download,
   Search,
@@ -17,15 +11,19 @@ import {
   Clock,
   FileText,
   BarChart3,
-  Filter,
   TrendingUp,
   Users,
   Archive,
   History,
-} from "lucide-react";
-import { motion } from "framer-motion";
+} from "lucide-react"
+import { motion } from "framer-motion"
+import { useEffect } from "react"
+import { useState } from "react"
+import { useUser } from "@/app/context/UserContext"
 
 export default function SearchHistoryPage() {
+  const { user } = useUser()
+  console.log(user?.id)
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -35,7 +33,7 @@ export default function SearchHistoryPage() {
         duration: 0.6,
       },
     },
-  };
+  }
 
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -44,7 +42,7 @@ export default function SearchHistoryPage() {
       y: 0,
       transition: { duration: 0.5, ease: "easeOut" },
     },
-  };
+  }
 
   const cardHoverVariants = {
     hover: {
@@ -52,82 +50,129 @@ export default function SearchHistoryPage() {
       y: -2,
       transition: { duration: 0.2 },
     },
-  };
+  }
 
-  const searchHistory = [
-    {
-      id: 1,
-      date: "April 11, 2025",
-      time: "2:30 PM",
-      results: 42,
-      category: "Gaming",
-      status: "completed",
-      filters: ["English", "Fortnite", "1k+ followers"],
-    },
-    {
-      id: 2,
-      date: "April 10, 2025",
-      time: "4:15 PM",
-      results: 28,
-      category: "Gaming",
-      status: "completed",
-      filters: ["Spanish", "Gaming", "500+ viewers"],
-    },
-    {
-      id: 3,
-      date: "April 8, 2025",
-      time: "11:20 AM",
-      results: 15,
-      category: "Technology",
-      status: "completed",
-      filters: ["Tech", "Reviews", "10k+ followers"],
-    },
-    {
-      id: 4,
-      date: "April 6, 2025",
-      time: "3:45 PM",
-      results: 37,
-      category: "Beauty",
-      status: "completed",
-      filters: ["Beauty", "Makeup", "5k+ followers"],
-    },
-    {
-      id: 5,
-      date: "April 5, 2025",
-      time: "1:20 PM",
-      results: 89,
-      category: "Entertainment",
-      status: "completed",
-      filters: ["Just Chatting", "English", "2k+ followers"],
-    },
-    {
-      id: 6,
-      date: "April 3, 2025",
-      time: "6:45 PM",
-      results: 23,
-      category: "Music",
-      status: "completed",
-      filters: ["Music", "Production", "Creative"],
-    },
-    {
-      id: 7,
-      date: "April 2, 2025",
-      time: "3:15 PM",
-      results: 56,
-      category: "Gaming",
-      status: "completed",
-      filters: ["Valorant", "Competitive", "English"],
-    },
-    {
-      id: 8,
-      date: "April 1, 2025",
-      time: "10:30 AM",
-      results: 34,
-      category: "Technology",
-      status: "completed",
-      filters: ["AI", "Programming", "Tutorials"],
-    },
-  ];
+  type SearchHistoryItem = {
+    id: number
+    date: string
+    time: string
+    results: number
+    category: string
+    status: string
+    filters: string[]
+    title?: string
+  }
+
+  const [searchHistory, setSearchHistory] = useState<SearchHistoryItem[]>([])
+  const [error, setError] = useState<string | null>(null)
+  useEffect(() => {
+    async function fetchHistory() {
+      if (!user?.id) {
+        setError("User not logged in or user ID missing.")
+        setSearchHistory([])
+        return
+      }
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}search_history?user_id=${user.id}`, {
+          method: "GET",
+          headers: { accept: "application/json" },
+        })
+        if (!res.ok) {
+          setError("Failed to fetch search history.")
+          setSearchHistory([])
+          return
+        }
+        const json = await res.json()
+        if (json.status === "success" && Array.isArray(json.data)) {
+          console.log(json.data)
+          setSearchHistory(json.data)
+          setError(null)
+        } else {
+          setError("Invalid data format received.")
+          setSearchHistory([])
+        }
+      } catch (err) {
+        setError("Failed to fetch search history.")
+        setSearchHistory([])
+      }
+    }
+    fetchHistory()
+  }, [user])
+
+  // const searchHistory = [
+  //   {
+  //     id: 1,
+  //     date: "April 11, 2025",
+  //     time: "2:30 PM",
+  //     results: 42,
+  //     category: "Gaming",
+  //     status: "completed",
+  //     filters: ["English", "Fortnite", "1k+ followers"],
+  //   },
+  //   {
+  //     id: 2,
+  //     date: "April 10, 2025",
+  //     time: "4:15 PM",
+  //     results: 28,
+  //     category: "Gaming",
+  //     status: "completed",
+  //     filters: ["Spanish", "Gaming", "500+ viewers"],
+  //   },
+  //   {
+  //     id: 3,
+  //     date: "April 8, 2025",
+  //     time: "11:20 AM",
+  //     results: 15,
+  //     category: "Technology",
+  //     status: "completed",
+  //     filters: ["Tech", "Reviews", "10k+ followers"],
+  //   },
+  //   {
+  //     id: 4,
+  //     date: "April 6, 2025",
+  //     time: "3:45 PM",
+  //     results: 37,
+  //     category: "Beauty",
+  //     status: "completed",
+  //     filters: ["Beauty", "Makeup", "5k+ followers"],
+  //   },
+  //   {
+  //     id: 5,
+  //     date: "April 5, 2025",
+  //     time: "1:20 PM",
+  //     results: 89,
+  //     category: "Entertainment",
+  //     status: "completed",
+  //     filters: ["Just Chatting", "English", "2k+ followers"],
+  //   },
+  //   {
+  //     id: 6,
+  //     date: "April 3, 2025",
+  //     time: "6:45 PM",
+  //     results: 23,
+  //     category: "Music",
+  //     status: "completed",
+  //     filters: ["Music", "Production", "Creative"],
+  //   },
+  //   {
+  //     id: 7,
+  //     date: "April 2, 2025",
+  //     time: "3:15 PM",
+  //     results: 56,
+  //     category: "Gaming",
+  //     status: "completed",
+  //     filters: ["Valorant", "Competitive", "English"],
+  //   },
+  //   {
+  //     id: 8,
+  //     date: "April 1, 2025",
+  //     time: "10:30 AM",
+  //     results: 34,
+  //     category: "Technology",
+  //     status: "completed",
+  //     filters: ["AI", "Programming", "Tutorials"],
+  //   },
+  // ];
 
   const exportHistory = [
     {
@@ -184,33 +229,33 @@ export default function SearchHistoryPage() {
       size: "15KB",
       format: "JSON",
     },
-  ];
+  ]
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case "completed":
-        return "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800";
+        return "bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
       case "processing":
-        return "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800";
+        return "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800"
       case "failed":
-        return "bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800";
+        return "bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800"
       default:
-        return "bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-800";
+        return "bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-800"
     }
-  };
+  }
 
   const getFormatIcon = (format: string) => {
     switch (format.toLowerCase()) {
       case "csv":
-        return "📊";
+        return "📊"
       case "excel":
-        return "📈";
+        return "📈"
       case "json":
-        return "🔧";
+        return "🔧"
       default:
-        return "📄";
+        return "📄"
     }
-  };
+  }
 
   return (
     <motion.div
@@ -221,30 +266,22 @@ export default function SearchHistoryPage() {
     >
       <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 py-6 space-y-8">
         {/* Header */}
-        <motion.div
-          variants={itemVariants}
-          className="text-center space-y-4 max-w-4xl mx-auto"
-        >
+        <motion.div variants={itemVariants} className="text-center space-y-4 max-w-4xl mx-auto">
           <div className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-100 to-red-100 dark:from-orange-900 dark:to-red-900 px-4 py-2 rounded-full border border-orange-200 dark:border-orange-800">
             <Archive className="h-4 w-4 text-orange-600 dark:text-orange-400" />
-            <span className="text-sm font-medium text-orange-700 dark:text-orange-300">
-              Search Archive
-            </span>
+            <span className="text-sm font-medium text-orange-700 dark:text-orange-300">Search Archive</span>
           </div>
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 dark:from-slate-100 dark:to-slate-300 bg-clip-text text-transparent">
             Search History
           </h1>
           <p className="text-base sm:text-lg text-slate-600 dark:text-slate-400">
-            View and manage your past searches and exported data. Track your
-            discovery journey and analyze search patterns.
+            View and manage your past searches and exported data. Track your discovery journey and analyze search
+            patterns.
           </p>
         </motion.div>
 
         {/* Stats Cards */}
-        <motion.div
-          variants={itemVariants}
-          className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
-        >
+        <motion.div variants={itemVariants} className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {[
             {
               title: "Total Searches",
@@ -268,20 +305,15 @@ export default function SearchHistoryPage() {
               change: "+234 this week",
             },
           ].map((stat, index) => (
-            <motion.div
-              key={stat.title}
-              variants={cardHoverVariants}
-              whileHover="hover"
-              className="group"
-            >
+            <motion.div key={stat.title} variants={cardHoverVariants} whileHover="hover" className="group">
               <Card className="relative overflow-hidden border-2 border-slate-200 dark:border-slate-700 shadow-lg hover:shadow-xl transition-all duration-300 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm h-full">
                 <div
                   className={`absolute inset-0 bg-gradient-to-br opacity-5 group-hover:opacity-10 transition-opacity duration-300 ${
                     stat.color === "blue"
                       ? "from-blue-500 to-blue-600"
                       : stat.color === "green"
-                      ? "from-green-500 to-green-600"
-                      : "from-purple-500 to-purple-600"
+                        ? "from-green-500 to-green-600"
+                        : "from-purple-500 to-purple-600"
                   }`}
                 />
                 <CardContent className="p-4 sm:p-6 relative">
@@ -291,8 +323,8 @@ export default function SearchHistoryPage() {
                         stat.color === "blue"
                           ? "bg-blue-100 dark:bg-blue-900"
                           : stat.color === "green"
-                          ? "bg-green-100 dark:bg-green-900"
-                          : "bg-purple-100 dark:bg-purple-900"
+                            ? "bg-green-100 dark:bg-green-900"
+                            : "bg-purple-100 dark:bg-purple-900"
                       }`}
                     >
                       <stat.icon
@@ -300,23 +332,17 @@ export default function SearchHistoryPage() {
                           stat.color === "blue"
                             ? "text-blue-600 dark:text-blue-400"
                             : stat.color === "green"
-                            ? "text-green-600 dark:text-green-400"
-                            : "text-purple-600 dark:text-purple-400"
+                              ? "text-green-600 dark:text-green-400"
+                              : "text-purple-600 dark:text-purple-400"
                         }`}
                       />
                     </div>
                     <TrendingUp className="h-4 w-4 text-green-500" />
                   </div>
                   <div className="space-y-2">
-                    <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-300">
-                      {stat.title}
-                    </h3>
-                    <p className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100">
-                      {stat.value}
-                    </p>
-                    <p className="text-xs text-green-600 dark:text-green-400 font-medium">
-                      {stat.change}
-                    </p>
+                    <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-300">{stat.title}</h3>
+                    <p className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100">{stat.value}</p>
+                    <p className="text-xs text-green-600 dark:text-green-400 font-medium">{stat.change}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -358,12 +384,8 @@ export default function SearchHistoryPage() {
                       <History className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                     </div>
                     <div>
-                      <CardTitle className="text-slate-800 dark:text-slate-100">
-                        Search Records
-                      </CardTitle>
-                      <CardDescription>
-                        Chronological view of your search activity and results
-                      </CardDescription>
+                      <CardTitle className="text-slate-800 dark:text-slate-100">Search Records</CardTitle>
+                      <CardDescription>Chronological view of your search activity and results</CardDescription>
                     </div>
                   </div>
                 </CardHeader>
@@ -397,23 +419,28 @@ export default function SearchHistoryPage() {
                                 <span>{search.time}</span>
                               </div>
                             </div>
+                            {search.title && (
+                              <div className="mb-2">
+                                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded-lg">
+                                  <Search className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                                  <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                                    {search.title}
+                                  </span>
+                                </div>
+                              </div>
+                            )}
 
                             <div className="flex flex-wrap items-center gap-2 mb-3">
                               <Badge className={getStatusColor(search.status)}>
-                                ✓ {search.status}
+                                {search.status === "completed" && <span className="text-xs mr-1">✅</span>}
+                                {search.status === "processing" && <span className="text-xs mr-1">⏳</span>}
+                                {search.status === "failed" && <span className="text-xs mr-1">❌</span>}
+                                <span className="capitalize">{search.status}</span>
                               </Badge>
-                              <Badge
-                                variant="outline"
-                                className="bg-slate-100 dark:bg-slate-800"
-                              >
-                                <BarChart3 className="h-3 w-3 mr-1" />
+                              <Badge variant="outline" className="bg-slate-100 dark:bg-slate-800">
                                 {search.results} results
                               </Badge>
-                              <Badge
-                                variant="outline"
-                                className="bg-slate-100 dark:bg-slate-800"
-                              >
-                                <Filter className="h-3 w-3 mr-1" />
+                              <Badge variant="outline" className="bg-slate-100 dark:bg-slate-800">
                                 {search.category}
                               </Badge>
                             </div>
@@ -437,13 +464,10 @@ export default function SearchHistoryPage() {
               </Card>
 
               <div className="flex justify-center">
-                <motion.div
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
+                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                   <Button
                     variant="outline"
-                    className="border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700"
+                    className="border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 bg-transparent"
                   >
                     Load More Searches
                   </Button>
@@ -461,12 +485,8 @@ export default function SearchHistoryPage() {
                       <Download className="h-5 w-5 text-green-600 dark:text-green-400" />
                     </div>
                     <div>
-                      <CardTitle className="text-slate-800 dark:text-slate-100">
-                        Recent Exports
-                      </CardTitle>
-                      <CardDescription>
-                        Your most recent data exports and downloads
-                      </CardDescription>
+                      <CardTitle className="text-slate-800 dark:text-slate-100">Recent Exports</CardTitle>
+                      <CardDescription>Your most recent data exports and downloads</CardDescription>
                     </div>
                   </div>
                 </CardHeader>
@@ -485,9 +505,7 @@ export default function SearchHistoryPage() {
                         <div className="space-y-4">
                           <div className="flex items-start gap-3">
                             <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900 flex-shrink-0">
-                              <span className="text-lg">
-                                {getFormatIcon(export_.format)}
-                              </span>
+                              <span className="text-lg">{getFormatIcon(export_.format)}</span>
                             </div>
                             <div className="min-w-0 flex-1">
                               <h3 className="font-semibold text-slate-800 dark:text-slate-100 line-clamp-2">
@@ -514,26 +532,17 @@ export default function SearchHistoryPage() {
                               <FileText className="h-3 w-3 mr-1" />
                               {export_.format}
                             </Badge>
-                            <Badge
-                              variant="outline"
-                              className="bg-slate-100 dark:bg-slate-800"
-                            >
+                            <Badge variant="outline" className="bg-slate-100 dark:bg-slate-800">
                               <BarChart3 className="h-3 w-3 mr-1" />
                               {export_.records} records
                             </Badge>
-                            <Badge
-                              variant="outline"
-                              className="bg-slate-100 dark:bg-slate-800"
-                            >
+                            <Badge variant="outline" className="bg-slate-100 dark:bg-slate-800">
                               📦 {export_.size}
                             </Badge>
                           </div>
 
                           <div className="pt-2">
-                            <motion.div
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                            >
+                            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                               <Button
                                 size="sm"
                                 className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
@@ -551,13 +560,10 @@ export default function SearchHistoryPage() {
               </Card>
 
               <div className="flex justify-center">
-                <motion.div
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
+                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                   <Button
                     variant="outline"
-                    className="border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700"
+                    className="border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 bg-transparent"
                   >
                     Load More Exports
                   </Button>
@@ -568,5 +574,5 @@ export default function SearchHistoryPage() {
         </motion.div>
       </div>
     </motion.div>
-  );
+  )
 }
