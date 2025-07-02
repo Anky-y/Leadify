@@ -421,22 +421,14 @@ export default function SearchHistoryPage() {
                             </div>
                             {search.title && (
                               <div className="mb-2">
-                                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded-lg">
-                                  <Search className="h-3 w-3 text-blue-600 dark:text-blue-400" />
-                                  <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                                    {search.title}
-                                  </span>
-                                </div>
+                                <h4 className="font-semibold text-base text-slate-800 dark:text-slate-200 leading-tight">
+                                  {search.title}
+                                </h4>
                               </div>
                             )}
 
                             <div className="flex flex-wrap items-center gap-2 mb-3">
-                              <Badge className={getStatusColor(search.status)}>
-                                {search.status === "completed" && <span className="text-xs mr-1">✅</span>}
-                                {search.status === "processing" && <span className="text-xs mr-1">⏳</span>}
-                                {search.status === "failed" && <span className="text-xs mr-1">❌</span>}
-                                <span className="capitalize">{search.status}</span>
-                              </Badge>
+                              {/* <Badge className={getStatusColor(search.status)}>{search.status}</Badge> */}
                               <Badge variant="outline" className="bg-slate-100 dark:bg-slate-800">
                                 {search.results} results
                               </Badge>
