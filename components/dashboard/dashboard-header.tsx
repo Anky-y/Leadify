@@ -62,48 +62,44 @@ export function DashboardHeader({ user,  subscription,
   const [isLoadingNotifications, setIsLoadingNotifications] = React.useState(true)
 
   // Add useEffect to fetch notifications
-  React.useEffect(() => {
-    const fetchNotifications = async () => {
-      if (!user?.id) {
-        setIsLoadingNotifications(false)
+React.useEffect(() => {
+  const fetchNotifications = async () => {
+    console.log("Before the if statement line n67")
+    if (!user?.id) {
+      console.log("Inside if statemnet line 69 nice")
+      setIsLoadingNotifications(false)
+      return
+    }
+
+    try {
+      console.log("Inside the try block line 75")
+      setIsLoadingNotifications(true)
+
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}notifications`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ user_id: user.id }),
+      })
+
+      const result = await res.json()
+
+      if (!result.success) {
+        console.error("Backend error fetching notifications")
         return
       }
 
-      try {
-        setIsLoadingNotifications(true)
-        const { data, error } = await supabase
-          .from("notifications")
-          .select("*")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false })
-
-        if (error) {
-          console.error("Error fetching notifications:", error)
-          return
-        }
-
-        // Format the data to match the existing structure
-        const formattedNotifications =
-          data?.map((notification: any) => ({
-            id: notification.id,
-            title: notification.title,
-            description: notification.description,
-            time: formatTimeAgo(notification.created_at),
-            unread: !notification.read,
-            type: notification.type || null,
-            created_at: notification.created_at,
-          })) || []
-
-        setNotifications(formattedNotifications)
-      } catch (error) {
-        console.error("Error fetching notifications:", error)
-      } finally {
-        setIsLoadingNotifications(false)
-      }
+      setNotifications(result.notifications)
+    } catch (error) {
+      console.error("Frontend error fetching notifications:", error)
+    } finally {
+      setIsLoadingNotifications(false)
     }
+  }
 
-    fetchNotifications()
-  }, [user?.id])
+  fetchNotifications()
+}, [user?.id])
 
   React.useEffect(() => {
     if (!user?.id) return
