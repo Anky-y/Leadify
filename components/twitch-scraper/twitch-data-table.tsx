@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/table";
 import {
   DiscordLogo,
+  EnvelopeSimple,
   FacebookLogo,
   InstagramLogo,
   TwitterLogo,
@@ -1105,7 +1106,7 @@ export default function TwitchDataTable({
                       {visibleColumns.email && (
                         <TableCell className="py-2 sm:py-3">
                           {Array.isArray(row.gmail) && row.gmail.length > 0 ? (
-                            subscribed || revealedEmails[row.id] ? (
+                            subscribed? (
                               <div className="flex flex-col gap-1">
                                 {row.gmail.map((email, idx) => (
                                   <a
@@ -1119,34 +1120,14 @@ export default function TwitchDataTable({
                                     </span>
                                   </a>
                                 ))}
-                                {!subscribed && (
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-6 w-6 ml-1 hover:bg-gray-100"
-                                    onClick={() =>
-                                      toggleEmailVisibility(row.id)
-                                    }
-                                    title="Hide email"
-                                  >
-                                    <EyeOff className="h-3 w-3" />
-                                  </Button>
-                                )}
+                                
                               </div>
                             ) : (
                               <div className="flex items-center">
                                 <span className="text-gray-400 text-xs blur-sm select-none">
                                   {row.gmail.join(", ")}
                                 </span>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-6 w-6 ml-1 hover:bg-gray-100"
-                                  onClick={() => toggleEmailVisibility(row.id)}
-                                  title="Reveal email (free users get 3 reveals per day)"
-                                >
-                                  <Eye className="h-3 w-3" />
-                                </Button>
+                                
                               </div>
                             )
                           ) : (

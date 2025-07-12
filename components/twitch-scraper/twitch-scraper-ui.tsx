@@ -12,6 +12,19 @@ import { useUser } from "@/app/context/UserContext";
 import Papa from "papaparse";
 import { motion, AnimatePresence } from "framer-motion";
 import { json } from "stream/consumers";
+import { createClient } from "@/utils/supabase-browser";
+
+const supabase = createClient()
+
+async function addNotification(user_id: string | undefined, title: string, message: string) {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}add_notifications`, {
+      method: "POST",
+      body: JSON.stringify({ user_id, title, message}),
+      headers: { "Content-Type": "application/json" },
+    })
+ 
+}
+
 
 // Define the scraping stages
 type ScrapingStage = {
@@ -70,7 +83,6 @@ export default function TwitchScraperUI({
 
   // Function to handle search with detailed progress updates
   const handleSearch = async () => {
-    fetchStreamerData("baycon_", "30227236");
     setIsLoading(true);
     setLoadingProgress(0);
 
@@ -82,7 +94,6 @@ export default function TwitchScraperUI({
     console.log(category);
 
     try {
-      //const old_request = `${process.env.NEXT_PUBLIC_BACKEND_URL}Twitch_scraper?category=${category}&minimum_followers=10&viewer_count=10&user_id=${user?.id}&language=en&maximum_followers=100005`
       console.log(process.env.NEXT_PUBLIC_BACKEND_URL);
       console.log(user?.id);
       const triggerRes = await fetch(
@@ -155,6 +166,7 @@ export default function TwitchScraperUI({
               } catch (err) {
                 updatedStreamers.push(s); // fallback
               }
+              
               const percent = Math.round(((i + 1) / streamerList.length) * 100);
               updateProgressData({
                 ...progressDataRef.current!,
@@ -177,6 +189,7 @@ export default function TwitchScraperUI({
             setIsLoading(false);
             setIsFrontendSocialScraping(false); // Now show the data!
             setFrontendSocialProgress(100);
+            addNotification(user?.id, "Search Complete", `Found ${streamerList.length} streamers`)
             return;
           }
         } catch (error) {
