@@ -54,8 +54,7 @@ export default function SearchHistoryPage() {
 
   type SearchHistoryItem = {
     id: number
-    date: string
-    time: string
+    created_at: string
     results: number
     category: string
     status: string
@@ -391,7 +390,12 @@ export default function SearchHistoryPage() {
                 </CardHeader>
                 <CardContent className="relative">
                   <div className="space-y-3">
-                    {searchHistory.map((search, index) => (
+                    {searchHistory.map((search, index) => {
+                    const localDate = new Date(search.created_at);
+                    const dateStr = localDate.toLocaleDateString();
+                    const timeStr = localDate.toLocaleTimeString();
+
+                    return (
                       <motion.div
                         key={search.id}
                         initial={{ opacity: 0, x: -20 }}
@@ -406,17 +410,18 @@ export default function SearchHistoryPage() {
                           <div className="p-2 rounded-lg bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900 dark:to-purple-900 flex-shrink-0">
                             <History className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                           </div>
+                          
 
                           {/* Search Information */}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400 mb-2">
                               <div className="flex items-center gap-1">
                                 <Calendar className="h-3 w-3" />
-                                <span>{search.date}</span>
+                                <span>{dateStr}</span>
                               </div>
                               <div className="flex items-center gap-1">
                                 <Clock className="h-3 w-3" />
-                                <span>{search.time}</span>
+                                <span>{timeStr}</span>
                               </div>
                             </div>
                             {search.title && (
@@ -450,7 +455,8 @@ export default function SearchHistoryPage() {
                           </div>
                         </div>
                       </motion.div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </CardContent>
               </Card>
