@@ -190,6 +190,7 @@ export default function TwitchScraperUI({
             setIsFrontendSocialScraping(false); // Now show the data!
             setFrontendSocialProgress(100);
             addNotification(user?.id, "Search Complete", `Found ${streamerList.length} streamers`)
+            addSearchHistory(user?.id, "Test search history", streamerList.length, category, language, minFollowers, maxFollowers, minViewers)
             return;
           }
         } catch (error) {
@@ -299,6 +300,34 @@ export default function TwitchScraperUI({
     console.log(data); // handle response
     return data;
   };
+
+  async function addSearchHistory(
+    user_id: string | undefined,
+    title: string,
+    result_count: number,
+    category: string,
+    language: string,
+    min_followers: number,
+    max_followers: number,
+    min_viewers: number
+  ) {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}search_history`, {
+      method: "POST", 
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        user_id,
+        title,
+        result_count,
+        category, 
+        language,
+        min_followers,
+        max_followers,  
+        min_viewers                                      
+      })
+    })
+  }
 
   function mergeAboutTwitchData(streamer: any, aboutTwitch: any) {
     return {
