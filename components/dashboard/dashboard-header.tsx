@@ -86,7 +86,7 @@ React.useEffect(() => {
       const result = await res.json()
 
       if (!result.success) {
-        console.error("Backend error fetching notifications")
+        console.error(`Backend error fetching notifications${result.message}`)
         return
       }
 
@@ -161,13 +161,18 @@ React.useEffect(() => {
     if (!user?.id) return
 
     try {
-      const { error } = await supabase.from("notifications").delete().eq("id", notificationId).eq("user_id", user.id)
+      console.log("Hi")
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}notifications/delete`, {
+        method: "POST", headers:{
+          "Content-Type": "application/json"
+        }, 
+        body: JSON.stringify({user_id: user.id, notification_id: notificationId})
+      })
 
-      if (error) {
-        console.error("Error deleting notification:", error)
+      if (!res.ok) {
+        console.error("Error marking notification as read:",await res.json())
         return
       }
-
       // Update local state
       setNotifications((prev) => prev.filter((n) => n.id !== notificationId))
     } catch (error) {
@@ -179,14 +184,16 @@ React.useEffect(() => {
     if (!user?.id) return
 
     try {
-      const { error } = await supabase
-        .from("notifications")
-        .update({ read: true })
-        .eq("id", notificationId)
-        .eq("user_id", user.id)
+      console.log("Hi")
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}notifications/mark-read`, {
+        method: "POST", headers:{
+          "Content-Type": "application/json"
+        }, 
+        body: JSON.stringify({user_id: user.id, notification_id: notificationId})
+      })
 
-      if (error) {
-        console.error("Error marking notification as read:", error)
+      if (!res.ok) {
+        console.error("Error marking notification as read:",await res.json())
         return
       }
 
@@ -200,11 +207,16 @@ React.useEffect(() => {
   const deleteAllNotifications = async () => {
     if (!user?.id) return
 
-    try {
-      const { error } = await supabase.from("notifications").delete().eq("user_id", user.id)
+    try {console.log("Hi")
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}notifications/delete`, {
+        method: "POST", headers:{
+          "Content-Type": "application/json"
+        }, 
+        body: JSON.stringify({user_id: user.id})
+      })
 
-      if (error) {
-        console.error("Error deleting all notifications:", error)
+      if (!res.ok) {
+        console.error("Error deleting all notifications:",await res.json())
         return
       }
 
@@ -469,12 +481,18 @@ React.useEffect(() => {
                   onClick={async () => {
                     if (!user?.id) return
 
-                    try {
-                      await supabase
-                        .from("notifications")
-                        .update({ read: true })
-                        .eq("user_id", user.id)
-                        .eq("read", false)
+                    try {console.log("Hi")
+                          const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}notifications/mark-read`, {
+                            method: "POST", headers:{
+                              "Content-Type": "application/json"
+                            }, 
+                            body: JSON.stringify({user_id: user.id})
+                          })
+
+                          if (!res.ok) {
+                            console.error("Error marking all notifications as read:",await res.json())
+                            return
+                          }
 
                       // Update local state
                       setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })))
