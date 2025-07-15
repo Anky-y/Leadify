@@ -9,6 +9,8 @@ import {
 } from "react";
 import type User from "@/app/types/user";
 import { getUserData } from "@/utils/auth";
+import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
+import { createClient } from "@/utils/supabase-browser";
 
 interface UserContextValue {
   user: User | null;
@@ -29,7 +31,7 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
     setLoading(false);
   };
 
-  // ✅ Optimistic credit update
+  // Remove or fallback: Optimistic credit update
   const updateCredits = (delta: number) => {
     setUser((prev) =>
       prev ? { ...prev, credits: prev.credits + delta } : prev
@@ -39,6 +41,40 @@ export const UserProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     refreshUser(); // Fetch user data on mount
   }, []);
+
+  // --- SUPABASE REALTIME SUBSCRIPTION ---
+  useEffect(() => {
+    if (!user?.id) return;
+    const supabase = createClient();
+
+    const channel = supabase
+      .channel("user-credits-realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "users",
+          filter: `id=eq.${user.id}`,
+        },
+        (payload: RealtimePostgresChangesPayload<User>) => {
+          if (
+            payload.new &&
+            typeof (payload.new as User).credits === "number"
+          ) {
+            setUser((prev) =>
+              prev ? { ...prev, credits: (payload.new as User).credits } : prev
+            );
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
+
   return (
     <UserContext.Provider value={{ user, loading, refreshUser, updateCredits }}>
       {children}

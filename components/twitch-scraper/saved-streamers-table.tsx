@@ -1,5 +1,7 @@
 "use client";
 
+import type React from "react";
+
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
 import { useState, useEffect, useRef } from "react";
@@ -72,15 +74,6 @@ import { useUser } from "@/app/context/UserContext";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { exportToCSV, exportToExcel, exportToJSON } from "@/utils/export";
 import { toast } from "sonner";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 import {
   canAccessFeature,
   revealSocialLinks,
@@ -522,8 +515,12 @@ export default function SavedStreamersTable({
 
     // Remove User ID column from export data
     const exportSafeData = exportData.map((row) => {
-      const { user_id, ...rowWithoutUserId } = row as any;
+      const { user_id, folder_id, is_favourite, ...rowWithoutUnwanted } =
+        row as any;
 
+      const localSavedAt = row.saved_at
+        ? new Date(row.saved_at).toLocaleString()
+        : "";
       const censoredEmail = row.email_revealed
         ? row.gmail
         : row.gmail
@@ -549,7 +546,8 @@ export default function SavedStreamersTable({
           };
 
       return {
-        ...rowWithoutUserId,
+        ...rowWithoutUnwanted,
+        saved_at: localSavedAt,
         gmail: censoredEmail,
         ...censoredSocials,
       };
@@ -587,20 +585,20 @@ export default function SavedStreamersTable({
 
   const handleRevealSocials = async (streamerId: string) => {
     // Optimistic update - mark as revealed immediately
-    setSavedStreamers((prev) =>
-      prev.map((streamer) =>
-        streamer.id === streamerId
-          ? { ...streamer, socials_revealed: true }
-          : streamer
-      )
-    );
+    // setSavedStreamers((prev) =>
+    //   prev.map((streamer) =>
+    //     streamer.id === streamerId
+    //       ? { ...streamer, socials_revealed: true }
+    //       : streamer
+    //   )
+    // );
 
-    setRevealedSocials((prev) => ({
-      ...prev,
-      [streamerId]: true,
-    }));
+    // setRevealedSocials((prev) => ({
+    //   ...prev,
+    //   [streamerId]: true,
+    // }));
 
-    updateCredits(-1);
+    // updateCredits(-1);
     try {
       const success = await revealSocialLinks(streamerId);
       if (success) {
@@ -610,6 +608,18 @@ export default function SavedStreamersTable({
           closeButton: true,
           duration: 3000,
         });
+        setSavedStreamers((prev) =>
+          prev.map((streamer) =>
+            streamer.id === streamerId
+              ? { ...streamer, socials_revealed: true }
+              : streamer
+          )
+        );
+
+        setRevealedSocials((prev) => ({
+          ...prev,
+          [streamerId]: true,
+        }));
       } else {
         throw new Error("Failed to reveal social links");
       }
@@ -650,21 +660,6 @@ export default function SavedStreamersTable({
       return;
     }
 
-    // Optimistic update - mark as revealed immediately
-    setSavedStreamers((prev) =>
-      prev.map((streamer) =>
-        streamer.id === streamerId
-          ? { ...streamer, email_revealed: true }
-          : streamer
-      )
-    );
-
-    setRevealedEmails((prev) => ({
-      ...prev,
-      [streamerId]: true,
-    }));
-    updateCredits(-2);
-
     try {
       const success = await revealEmail(streamerId);
       if (success) {
@@ -674,6 +669,18 @@ export default function SavedStreamersTable({
           closeButton: true,
           duration: 3000,
         });
+        setSavedStreamers((prev) =>
+          prev.map((streamer) =>
+            streamer.id === streamerId
+              ? { ...streamer, email_revealed: true }
+              : streamer
+          )
+        );
+
+        setRevealedEmails((prev) => ({
+          ...prev,
+          [streamerId]: true,
+        }));
       } else {
         throw new Error("Failed to reveal email");
       }
@@ -790,7 +797,7 @@ export default function SavedStreamersTable({
                   : streamer
               )
             );
-            updateCredits(-1);
+            // updateCredits(-1);
           } else {
             failCount++;
           }
@@ -854,7 +861,7 @@ export default function SavedStreamersTable({
 
     const streamersToReveal = selectedStreamerIds.filter((id) => {
       const streamer = data.find((s) => s.id === id);
-      return streamer && streamer.gmail && !streamer.email_revealed;
+      return streamer && hasEmails(streamer) && !streamer.email_revealed;
     });
 
     if (streamersToReveal.length === 0) {
@@ -883,7 +890,7 @@ export default function SavedStreamersTable({
 
     const streamersToReveal = selectedStreamerIds.filter((id) => {
       const streamer = data.find((s) => s.id === id);
-      return streamer && streamer.gmail && !streamer.email_revealed;
+      return streamer && hasEmails(streamer) && !streamer.email_revealed;
     });
 
     setBulkRevealingEmails(true);
@@ -919,7 +926,7 @@ export default function SavedStreamersTable({
                   : streamer
               )
             );
-            updateCredits(-2);
+            // updateCredits(-2);
           } else {
             failCount++;
           }
@@ -1009,23 +1016,87 @@ export default function SavedStreamersTable({
     }));
   };
 
-  function normalizeEmails(gmail: string | string[] | undefined): string[] {
+  function normalizeEmails(gmail: any): string[] {
     if (!gmail) return [];
     if (Array.isArray(gmail)) return gmail.filter(Boolean);
-    return gmail
-      .split(",")
-      .map((e) => e.trim())
-      .filter(Boolean);
+    if (typeof gmail === "string") {
+      // Handle stringified array: '["email@x.com"]'
+      try {
+        const parsed = JSON.parse(gmail);
+        if (Array.isArray(parsed)) return parsed.filter(Boolean);
+      } catch {
+        // Not a JSON array, treat as CSV
+        if (gmail.trim() === "") return [];
+        return gmail
+          .split(",")
+          .map((e) => e.trim())
+          .filter(Boolean);
+      }
+    }
+    return [];
   }
 
-  const hasSocialLinks = (streamer: TwitchData) => {
-    return Boolean(
-      streamer.discord ||
-        streamer.youtube ||
-        streamer.twitter ||
-        streamer.facebook ||
-        streamer.instagram
-    );
+  function hasEmails(streamer: TwitchData): boolean {
+    const emails = normalizeEmails(streamer.gmail);
+    return emails.length > 0;
+  }
+
+  function hasSocialLinks(streamer: TwitchData): boolean {
+    return getSocialLinksArray(streamer).length > 0;
+  }
+
+  function normalizeSocialLinks(data: string | string[] | undefined): string[] {
+    if (!data) return [];
+    if (Array.isArray(data)) return data.filter(Boolean);
+    if (typeof data === "string") {
+      // Handle stringified array: '["url"]'
+      try {
+        const parsed = JSON.parse(data);
+        if (Array.isArray(parsed)) return parsed.filter(Boolean);
+      } catch {
+        // Not a JSON array, treat as CSV or single URL
+        if (data.trim() === "") return [];
+        // If it's a CSV
+        if (data.includes(",")) {
+          return data
+            .split(",")
+            .map((e) => e.trim())
+            .filter(Boolean);
+        }
+        // Otherwise, treat as single URL
+        return [data.trim()];
+      }
+    }
+    return [];
+  }
+  const getSocialLinksArray = (streamer: TwitchData) => {
+    const links: {
+      type: string;
+      url: string;
+      icon: React.ComponentType<any>;
+    }[] = [];
+
+    const addLinks = (
+      type: string,
+      data: string | string[] | undefined,
+      Icon: React.ComponentType<any>
+    ) => {
+      const urls = normalizeSocialLinks(data);
+      urls.forEach((url) => {
+        // Only add if it's a valid http(s) link
+        if (url && /^https?:\/\//.test(url)) {
+          links.push({ type, url, icon: Icon });
+        }
+      });
+    };
+
+    addLinks("discord", streamer.discord, DiscordLogo);
+    addLinks("youtube", streamer.youtube, YoutubeLogo);
+    addLinks("twitter", streamer.twitter, TwitterLogo);
+    addLinks("facebook", streamer.facebook, FacebookLogo);
+    addLinks("instagram", streamer.instagram, InstagramLogo);
+
+    return links;
   };
 
   const handleMoveToFolder = async (
@@ -1175,7 +1246,7 @@ export default function SavedStreamersTable({
     (s) => hasSocialLinks(s) && !s.socials_revealed
   ).length;
   const selectedWithEmails = selectedStreamerData.filter(
-    (s) => s.gmail && !s.email_revealed
+    (s) => hasEmails(s) && !s.email_revealed
   ).length;
 
   // Animation variants
@@ -1240,7 +1311,7 @@ export default function SavedStreamersTable({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-8 px-2 text-xs sm:text-sm sm:h-9 sm:px-3"
+                  className="h-8 px-2 text-xs sm:text-sm sm:h-9 sm:px-3 bg-transparent"
                 >
                   <Filter className="h-3.5 w-3.5 mr-1 sm:mr-2" />
                   <span className="hidden sm:inline">Columns</span>
@@ -1438,98 +1509,6 @@ export default function SavedStreamersTable({
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Export Options Dialog */}
-            <Dialog
-              open={exportOptionsDialogOpen}
-              onOpenChange={setExportOptionsDialogOpen}
-            >
-              <DialogContent className="max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Export Options</DialogTitle>
-                  <DialogDescription>
-                    Select which columns to include in your export.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="py-4 max-h-[60vh] overflow-y-auto">
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <Label>Columns to Export</Label>
-                      <div className="space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            setExportColumns(
-                              Object.fromEntries(
-                                Object.keys(exportColumns).map((key) => [
-                                  key,
-                                  true,
-                                ])
-                              ) as typeof exportColumns
-                            )
-                          }
-                        >
-                          Select All
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            setExportColumns(
-                              Object.fromEntries(
-                                Object.keys(exportColumns).map((key) => [
-                                  key,
-                                  false,
-                                ])
-                              ) as typeof exportColumns
-                            )
-                          }
-                        >
-                          Clear All
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      {Object.entries(exportColumns).map(
-                        ([column, isChecked]) => (
-                          <div
-                            key={column}
-                            className="flex items-center space-x-2"
-                          >
-                            <Checkbox
-                              id={`export-${column}`}
-                              checked={isChecked}
-                              onCheckedChange={(checked) =>
-                                setExportColumns((prev) => ({
-                                  ...prev,
-                                  [column]: !!checked,
-                                }))
-                              }
-                            />
-                            <Label
-                              htmlFor={`export-${column}`}
-                              className="capitalize"
-                            >
-                              {column === "viewers" ? "Viewers" : column}
-                            </Label>
-                          </div>
-                        )
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button
-                    variant="outline"
-                    onClick={() => setExportOptionsDialogOpen(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button onClick={handleExport}>Export Now</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-
             {/* Bulk Action Buttons with Confirmation Dialogs */}
             {selectedCount > 0 && (
               <>
@@ -1539,7 +1518,7 @@ export default function SavedStreamersTable({
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-8 px-2 text-xs sm:text-sm sm:h-9 sm:px-3 border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-300 transition-all duration-200"
+                        className="h-8 px-2 text-xs sm:text-sm sm:h-9 sm:px-3 border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-300 transition-all duration-200 bg-transparent"
                         onClick={handleBulkRevealSocials}
                         disabled={bulkRevealingSocials}
                       >
@@ -1619,7 +1598,7 @@ export default function SavedStreamersTable({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-8 px-2 text-xs sm:text-sm sm:h-9 sm:px-3"
+                      className="h-8 px-2 text-xs sm:text-sm sm:h-9 sm:px-3 bg-transparent"
                     >
                       <FolderClosed className="h-3.5 w-3.5 mr-1 sm:mr-2" />
                       <span className="hidden sm:inline">Move to folder</span>
@@ -1665,7 +1644,7 @@ export default function SavedStreamersTable({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-8 px-2 text-xs sm:text-sm sm:h-9 sm:px-3 text-red-600 border-red-200 hover:bg-red-50"
+                  className="h-8 px-2 text-xs sm:text-sm sm:h-9 sm:px-3 text-red-600 border-red-200 hover:bg-red-50 bg-transparent"
                   onClick={async () => {
                     const selectedIds = Object.entries(selectedStreamers)
                       .filter(([_, selected]) => selected)
@@ -1815,7 +1794,7 @@ export default function SavedStreamersTable({
                 {visibleColumns.date && (
                   <TableHead
                     className="cursor-pointer"
-                    onClick={() => handleSort("savedAt")}
+                    onClick={() => handleSort("saved")}
                   >
                     <div className="flex items-center">
                       Saved Date
@@ -1960,218 +1939,46 @@ export default function SavedStreamersTable({
                       )}
                       {visibleColumns.social && (
                         <TableCell className="py-2 sm:py-3">
-                          {hasSocialLinks(row) ? (
-                            row.socials_revealed ? (
-                              <div className="flex flex-wrap gap-1">
-                                {row.discord && (
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <a
-                                        href={row.discord}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-gray-500 hover:text-indigo-600 transition-colors duration-200 p-1.5 rounded-full hover:bg-indigo-50 border border-transparent hover:border-indigo-200"
-                                      >
-                                        <DiscordLogo className="h-4 w-4" />
-                                      </a>
-                                    </TooltipTrigger>
-                                    <TooltipContent>Discord</TooltipContent>
-                                  </Tooltip>
-                                )}
-                                {row.youtube && (
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <a
-                                        href={row.youtube}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-gray-500 hover:text-red-600 transition-colors duration-200 p-1.5 rounded-full hover:bg-red-50 border border-transparent hover:border-red-200"
-                                      >
-                                        <YoutubeLogo className="h-4 w-4" />
-                                      </a>
-                                    </TooltipTrigger>
-                                    <TooltipContent>YouTube</TooltipContent>
-                                  </Tooltip>
-                                )}
-                                {row.twitter && (
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <a
-                                        href={row.twitter}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-gray-500 hover:text-blue-400 transition-colors duration-200 p-1.5 rounded-full hover:bg-blue-50 border border-transparent hover:border-blue-200"
-                                      >
-                                        <TwitterLogo className="h-4 w-4" />
-                                      </a>
-                                    </TooltipTrigger>
-                                    <TooltipContent>Twitter</TooltipContent>
-                                  </Tooltip>
-                                )}
-                                {row.facebook && (
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <a
-                                        href={row.facebook}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-gray-500 hover:text-blue-600 transition-colors duration-200 p-1.5 rounded-full hover:bg-blue-50 border border-transparent hover:border-blue-200"
-                                      >
-                                        <FacebookLogo className="h-4 w-4" />
-                                      </a>
-                                    </TooltipTrigger>
-                                    <TooltipContent>Facebook</TooltipContent>
-                                  </Tooltip>
-                                )}
-                                {row.instagram && (
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <a
-                                        href={row.instagram}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-gray-500 hover:text-pink-600 transition-colors duration-200 p-1.5 rounded-full hover:bg-pink-50 border border-transparent hover:border-pink-200"
-                                      >
-                                        <InstagramLogo className="h-4 w-4" />
-                                      </a>
-                                    </TooltipTrigger>
-                                    <TooltipContent>Instagram</TooltipContent>
-                                  </Tooltip>
-                                )}
-                              </div>
-                            ) : (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-8 px-3 py-0 text-xs rounded-full border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 hover:border-emerald-300 transition-all duration-200 shadow-sm"
-                                    onClick={() => handleRevealSocials(row.id)}
-                                  >
-                                    <Unlock className="h-3 w-3 mr-1.5" />
-                                    Reveal
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  Reveal social media links
-                                </TooltipContent>
-                              </Tooltip>
-                            )
-                          ) : (
-                            <span className="text-gray-400 text-xs">
-                              No socials found
-                            </span>
-                          )}
-                        </TableCell>
-                      )}
-                      {visibleColumns.email && (
-                        <TableCell className="py-2 sm:py-3 max-w-[200px]">
-                          {normalizeEmails(row.gmail).length > 0 ? (
-                            row.email_revealed ? (
-                              <div className="flex flex-col">
-                                {normalizeEmails(row.gmail).length > 1 ? (
-                                  <>
-                                    <div className="flex items-center">
-                                      <a
-                                        href={`mailto:${
-                                          normalizeEmails(row.gmail)[0]
-                                        }`}
-                                        className="text-blue-600 hover:underline flex items-center truncate group"
-                                      >
-                                        <EnvelopeSimple className="h-4 w-4 mr-1 flex-shrink-0 group-hover:text-blue-700" />
-                                        <span className="text-xs truncate">
-                                          {normalizeEmails(row.gmail)[0]}
-                                        </span>
-                                      </a>
-                                    </div>
-                                    {normalizeEmails(row.gmail).length > 1 && (
-                                      <div className="mt-1">
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className="h-6 px-2 py-0 text-xs text-gray-500 hover:text-gray-700 flex items-center"
-                                          onClick={() =>
-                                            toggleExpandEmails(row.id)
-                                          }
+                          {(() => {
+                            const allSocialLinks = getSocialLinksArray(row);
+                            if (allSocialLinks.length === 0) {
+                              return (
+                                <span className="text-gray-400 text-xs">
+                                  No socials found
+                                </span>
+                              );
+                            }
+
+                            // Check if socials need to be revealed
+                            if (!row.socials_revealed) {
+                              return (
+                                <div className="flex items-center">
+                                  <div className="flex gap-1">
+                                    {/* Show blurred placeholder icons */}
+                                    {allSocialLinks
+                                      .slice(0, 3)
+                                      .map((social, idx) => (
+                                        <div
+                                          key={`placeholder-${idx}`}
+                                          className="flex items-center justify-center h-8 w-8 rounded-full bg-gray-100 text-gray-400 blur-sm"
                                         >
-                                          {expandedEmails[row.id] ? (
-                                            <>
-                                              <ChevronUp className="h-3 w-3 mr-1" />
-                                              Hide{" "}
-                                              {normalizeEmails(row.gmail)
-                                                .length - 1}{" "}
-                                              more
-                                            </>
-                                          ) : (
-                                            <>
-                                              <ChevronDown className="h-3 w-3 mr-1" />
-                                              Show{" "}
-                                              {normalizeEmails(row.gmail)
-                                                .length - 1}{" "}
-                                              more
-                                            </>
-                                          )}
-                                        </Button>
-                                        {expandedEmails[row.id] && (
-                                          <div className="mt-1 space-y-1 pl-1 border-l-2 border-gray-100">
-                                            {normalizeEmails(row.gmail)
-                                              .slice(1)
-                                              .map((email, idx) => (
-                                                <a
-                                                  key={idx}
-                                                  href={`mailto:${email}`}
-                                                  className="text-blue-600 hover:underline flex items-center truncate group text-xs"
-                                                >
-                                                  <EnvelopeSimple className="h-3 w-3 mr-1 flex-shrink-0 group-hover:text-blue-700" />
-                                                  <span className="truncate">
-                                                    {email}
-                                                  </span>
-                                                </a>
-                                              ))}
-                                          </div>
-                                        )}
+                                          <social.icon className="h-4 w-4" />
+                                        </div>
+                                      ))}
+                                    {allSocialLinks.length > 3 && (
+                                      <div className="flex items-center justify-center h-8 w-8 rounded-full bg-gray-100 text-gray-400 text-xs blur-sm">
+                                        +{allSocialLinks.length - 3}
                                       </div>
                                     )}
-                                  </>
-                                ) : (
-                                  <div className="flex items-center">
-                                    <a
-                                      href={`mailto:${
-                                        normalizeEmails(row.gmail)[0]
-                                      }`}
-                                      className="text-blue-600 hover:underline flex items-center truncate group"
-                                    >
-                                      <EnvelopeSimple className="h-4 w-4 mr-1 flex-shrink-0 group-hover:text-blue-700" />
-                                      <span className="text-xs truncate">
-                                        {normalizeEmails(row.gmail)[0]}
-                                      </span>
-                                    </a>
                                   </div>
-                                )}
-                              </div>
-                            ) : (
-                              <div className="flex items-center">
-                                <span className="text-gray-400 text-xs blur-sm select-none truncate max-w-[120px]">
-                                  {normalizeEmails(row.gmail).length > 0
-                                    ? normalizeEmails(row.gmail)[0].replace(
-                                        /./g,
-                                        "•"
-                                      )
-                                    : ""}
-                                </span>
-
-                                {canAccessFeature(
-                                  "email",
-                                  user?.subscription_plan
-                                ) ? (
                                   <Tooltip>
                                     <TooltipTrigger asChild>
                                       <Button
                                         variant="outline"
                                         size="sm"
-                                        className="h-8 rounded-full text-xs px-3 py-0 ml-2 border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800 hover:border-blue-300 transition-all duration-200 shadow-sm"
+                                        className="h-8 rounded-full text-xs px-3 py-0 ml-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 hover:border-emerald-300 transition-all duration-200 shadow-sm bg-transparent"
                                         onClick={() =>
-                                          handleRevealEmail(row.id)
+                                          handleRevealSocials(row.id)
                                         }
                                       >
                                         <Unlock className="h-3 w-3 mr-1.5" />
@@ -2179,39 +1986,246 @@ export default function SavedStreamersTable({
                                       </Button>
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                      Reveal email address
+                                      Reveal social media links
                                     </TooltipContent>
                                   </Tooltip>
-                                ) : (
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="h-8 rounded-full text-xs px-3 py-0 ml-2 border-amber-200 text-amber-700 hover:bg-amber-50 hover:text-amber-800 hover:border-amber-300 transition-all duration-200 shadow-sm"
-                                        onClick={() =>
-                                          showUpgradeToast("email")
-                                        }
-                                      >
-                                        <Unlock className="h-3 w-3 mr-1.5" />
-                                        <span className="mr-1">Reveal</span>
-                                        <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 text-xs px-1">
-                                          Basic
-                                        </Badge>
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      Upgrade to Basic to reveal emails
-                                    </TooltipContent>
-                                  </Tooltip>
+                                </div>
+                              );
+                            }
+
+                            // Group links by platform type
+                            const groupedLinks = allSocialLinks.reduce(
+                              (acc, link) => {
+                                if (!acc[link.type]) {
+                                  acc[link.type] = [];
+                                }
+                                acc[link.type].push(link);
+                                return acc;
+                              },
+                              {} as Record<string, typeof allSocialLinks>
+                            );
+
+                            return (
+                              <div className="flex flex-wrap gap-2">
+                                {Object.entries(groupedLinks).map(
+                                  ([platform, links]) => {
+                                    const IconComponent = links[0].icon;
+                                    const hasMultiple = links.length > 1;
+
+                                    return (
+                                      <Tooltip key={platform}>
+                                        <TooltipTrigger asChild>
+                                          <div className="relative">
+                                            <motion.div
+                                              className="flex items-center justify-center h-8 w-8 rounded-full bg-gray-100 text-gray-600 hover:bg-indigo-100 hover:text-indigo-700 transition-colors duration-200 cursor-pointer"
+                                              whileHover={{ scale: 1.1 }}
+                                              whileTap={{ scale: 0.9 }}
+                                              onClick={() => {
+                                                if (links.length === 1) {
+                                                  window.open(
+                                                    links[0].url,
+                                                    "_blank",
+                                                    "noopener,noreferrer"
+                                                  );
+                                                }
+                                              }}
+                                            >
+                                              <IconComponent className="h-4 w-4" />
+                                            </motion.div>
+                                            {hasMultiple && (
+                                              <motion.div
+                                                className="absolute -top-1 -right-1 h-4 w-4 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center font-medium shadow-sm"
+                                                initial={{ scale: 0 }}
+                                                animate={{ scale: 1 }}
+                                                transition={{
+                                                  delay: 0.1,
+                                                  type: "spring",
+                                                  stiffness: 500,
+                                                }}
+                                              >
+                                                {links.length}
+                                              </motion.div>
+                                            )}
+                                          </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent
+                                          side="top"
+                                          className="max-w-xs"
+                                        >
+                                          <div className="space-y-1">
+                                            <div className="font-medium text-sm capitalize mb-2">
+                                              {platform}{" "}
+                                              {hasMultiple
+                                                ? `(${links.length} links)`
+                                                : ""}
+                                            </div>
+                                            {links.map((link, idx) => (
+                                              <motion.a
+                                                key={`${platform}-${idx}`}
+                                                href={link.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center gap-2 px-2 py-1 text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors duration-150 block"
+                                                whileHover={{ x: 2 }}
+                                                onClick={(e) =>
+                                                  e.stopPropagation()
+                                                }
+                                              >
+                                                <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                                                <span className="truncate max-w-[200px]">
+                                                  {link.url}
+                                                  {/* {hasMultiple
+                                                    ? `Link ${idx + 1}`
+                                                    : "Open link"} */}
+                                                </span>
+                                              </motion.a>
+                                            ))}
+                                          </div>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    );
+                                  }
                                 )}
                               </div>
-                            )
-                          ) : (
-                            <span className="text-gray-400 text-xs">
-                              No email available
-                            </span>
-                          )}
+                            );
+                          })()}
+                        </TableCell>
+                      )}
+                      {visibleColumns.email && (
+                        <TableCell className="py-2 sm:py-3 max-w-[200px]">
+                          {(() => {
+                            const emails = normalizeEmails(row.gmail);
+                            console.log(emails);
+                            if (emails.length === 0) {
+                              return (
+                                <span className="text-gray-400 text-xs">
+                                  No email available
+                                </span>
+                              );
+                            }
+                            if (!row.email_revealed) {
+                              return (
+                                <div className="flex items-center">
+                                  <span className="text-gray-400 text-xs blur-sm select-none truncate max-w-[120px]">
+                                    {"••••••••"}
+                                  </span>
+                                  {canAccessFeature(
+                                    "email",
+                                    user?.subscription_plan
+                                  ) ? (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          className="h-8 rounded-full text-xs px-3 py-0 ml-2 border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800 hover:border-blue-300 transition-all duration-200 shadow-sm bg-transparent"
+                                          onClick={() =>
+                                            handleRevealEmail(row.id)
+                                          }
+                                        >
+                                          <Unlock className="h-3 w-3 mr-1.5" />
+                                          Reveal
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        Reveal email address
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  ) : (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          className="h-8 rounded-full text-xs px-3 py-0 ml-2 border-amber-200 text-amber-700 hover:bg-amber-50 hover:text-amber-800 hover:border-amber-300 transition-all duration-200 shadow-sm bg-transparent"
+                                          onClick={() =>
+                                            showUpgradeToast("email")
+                                          }
+                                        >
+                                          <Unlock className="h-3 w-3 mr-1.5" />
+                                          <span className="mr-1">Reveal</span>
+                                          <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 text-xs px-1">
+                                            Basic
+                                          </Badge>
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        Upgrade to Basic to reveal emails
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  )}
+                                </div>
+                              );
+                            }
+                            // If revealed
+                            if (emails.length === 1) {
+                              return (
+                                <div className="flex items-center">
+                                  <a
+                                    href={`mailto:${emails[0]}`}
+                                    className="text-blue-600 hover:underline flex items-center truncate group"
+                                  >
+                                    <EnvelopeSimple className="h-4 w-4 mr-1 flex-shrink-0 group-hover:text-blue-700" />
+                                    <span className="text-xs truncate">
+                                      {emails[0]}
+                                    </span>
+                                  </a>
+                                </div>
+                              );
+                            }
+                            // If multiple emails
+                            return (
+                              <div className="flex flex-col">
+                                <div className="flex items-center">
+                                  <a
+                                    href={`mailto:${emails[0]}`}
+                                    className="text-blue-600 hover:underline flex items-center truncate group"
+                                  >
+                                    <EnvelopeSimple className="h-4 w-4 mr-1 flex-shrink-0 group-hover:text-blue-700" />
+                                    <span className="text-xs truncate">
+                                      {emails[0]}
+                                    </span>
+                                  </a>
+                                </div>
+                                <div className="mt-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 px-2 py-0 text-xs text-gray-500 hover:text-gray-700 flex items-center"
+                                    onClick={() => toggleExpandEmails(row.id)}
+                                  >
+                                    {expandedEmails[row.id] ? (
+                                      <>
+                                        <ChevronUp className="h-3 w-3 mr-1" />
+                                        Hide {emails.length - 1} more
+                                      </>
+                                    ) : (
+                                      <>
+                                        <ChevronDown className="h-3 w-3 mr-1" />
+                                        Show {emails.length - 1} more
+                                      </>
+                                    )}
+                                  </Button>
+                                  {expandedEmails[row.id] && (
+                                    <div className="mt-1 space-y-1 pl-1 border-l-2 border-gray-100">
+                                      {emails.slice(1).map((email, idx) => (
+                                        <a
+                                          key={idx}
+                                          href={`mailto:${email}`}
+                                          className="text-blue-600 hover:underline flex items-center truncate group text-xs"
+                                        >
+                                          <EnvelopeSimple className="h-3 w-3 mr-1 flex-shrink-0 group-hover:text-blue-700" />
+                                          <span className="truncate">
+                                            {email}
+                                          </span>
+                                        </a>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })()}
                         </TableCell>
                       )}
                       {visibleColumns.folder && (
@@ -2284,7 +2298,7 @@ export default function SavedStreamersTable({
                                 </DropdownMenuItem>
                               )}
 
-                            {row.gmail && !revealedEmails[row.id] && (
+                            {hasEmails(row) && !revealedEmails[row.id] && (
                               <DropdownMenuItem
                                 onClick={() => {
                                   if (
@@ -2605,8 +2619,8 @@ export default function SavedStreamersTable({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
       {/* Bulk Reveal Emails Confirmation Dialog */}
+
       <AlertDialog
         open={bulkEmailsConfirmOpen}
         onOpenChange={setBulkEmailsConfirmOpen}
@@ -2626,7 +2640,9 @@ export default function SavedStreamersTable({
                     .filter(([id]) => {
                       const streamer = data.find((s) => s.id === id);
                       return (
-                        streamer && streamer.gmail && !streamer.email_revealed
+                        streamer &&
+                        hasEmails(streamer) &&
+                        !streamer.email_revealed
                       );
                     }).length
                 }
@@ -2638,7 +2654,9 @@ export default function SavedStreamersTable({
                   .filter(([id]) => {
                     const streamer = data.find((s) => s.id === id);
                     return (
-                      streamer && streamer.gmail && !streamer.email_revealed
+                      streamer &&
+                      hasEmails(streamer) &&
+                      !streamer.email_revealed
                     );
                   }).length * 2}
               </strong>{" "}
