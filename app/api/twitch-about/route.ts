@@ -2,7 +2,8 @@
 
 import { strict } from "assert";
 import { NextRequest } from "next/server";
-
+import axios from "axios";
+import { HttpsProxyAgent } from "https-proxy-agent";
 function extractUrls(text: string): string[] {
   if (!text) return [];
 
@@ -33,6 +34,7 @@ function extractEmails(text: string): string[] {
         !email.endsWith(".gif")
     );
 }
+
 
 export async function POST(req: NextRequest) {
   console.log("sdas");
@@ -106,25 +108,36 @@ export async function POST(req: NextRequest) {
         },
       },
     ];
+
     console.log("recoeved request :D");
-    const twitchRes = await fetch("https://gql.twitch.tv/gql", {
-      method: "POST",
+
+    // ✅ Set up proxy agent
+    const proxy = "http://190.104.146.244:999"; // Replace with your proxy
+    const agent = new HttpsProxyAgent(proxy);
+
+    // ✅ Make request through proxy using axios
+    const twitchRes = await axios.post("https://gql.twitch.tv/gql", payload, {
       headers,
-      body: JSON.stringify(payload),
+      httpsAgent: agent,
+      timeout: 10000,
     });
 
-    console.log("interception sent")
-    console.log(twitchRes)
+    console.log("interception sent");
+    console.log(twitchRes.status);
 
-    if (!twitchRes.ok) {
-      console.log("failed req")
+    // ✅ Convert axios response to mimic fetch-like object
+    if (!twitchRes || twitchRes.status !== 200) {
+      console.log("failed req");
       return new Response(JSON.stringify({ error: "Twitch error" }), {
         status: twitchRes.status,
       });
     }
 
-    console.log("After twitch res check")
+    console.log("After twitch res check");
 
+    const data = twitchRes.data;
+
+    // Continue with your logic unchanged from here...
     const return_data = {
       socials: {
         youtube: [] as string[],
@@ -137,7 +150,7 @@ export async function POST(req: NextRequest) {
       },
       emails: [] as string[],
     };
-    const data = await twitchRes.json();
+
     const socialMedias = data[1]?.data?.user?.channel?.socialMedias;
     if (Array.isArray(socialMedias)) {
       socialMedias.forEach((link) => {
@@ -164,6 +177,7 @@ export async function POST(req: NextRequest) {
     } else {
       throw new TypeError("socialMedias is not an array");
     }
+
     try {
       const panels = data[2]?.data?.user?.panels;
       let url = [] as string[];
@@ -205,7 +219,6 @@ export async function POST(req: NextRequest) {
       console.log(`Error processing panels: ${e} (status ${twitchRes.status})`);
     }
 
-    // Deduplicate all socials and emails before returning
     Object.keys(return_data.socials).forEach((key) => {
       // @ts-ignore
       return_data.socials[key] = Array.from(new Set(return_data.socials[key]));
@@ -215,8 +228,9 @@ export async function POST(req: NextRequest) {
     return new Response(JSON.stringify(return_data), { status: 200 });
   } catch (err) {
     console.log(err);
-    return new Response(JSON.stringify({ error: `Internal server error: ${err}`}), { status: 500 });
+    return new Response(
+      JSON.stringify({ error: `Internal server error: ${err}` }),
+      { status: 500 }
+    );
   }
-
 }
-
