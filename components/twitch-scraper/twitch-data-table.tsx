@@ -512,13 +512,19 @@ export default function TwitchDataTable({
 
   // Check if a streamer has any social media links
   const hasSocialLinks = (streamer: TwitchData) => {
-    return Boolean(
-      streamer.discord ||
-        streamer.youtube ||
-        streamer.twitter ||
-        streamer.facebook ||
-        streamer.instagram
-    );
+    const socialFields = [
+      streamer.discord,
+      streamer.youtube,
+      streamer.twitter,
+      streamer.facebook,
+      streamer.instagram,
+    ];
+    return socialFields.some((field) => {
+      if (Array.isArray(field)) {
+        return field.length > 0;
+      }
+      return Boolean(field);
+    });
   };
 
   return (
@@ -1002,111 +1008,121 @@ export default function TwitchDataTable({
                       )}
                       {visibleColumns.social && (
                         <TableCell className="py-2 sm:py-3">
-                          <div className="flex space-x-1">
-                            {Array.isArray(row.discord) &&
-                              row.discord.length > 0 &&
-                              row.discord.map((link, i) => (
-                                <a
-                                  key={link + i}
-                                  href={subscribed ? link : "#"}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className={`${
-                                    subscribed
-                                      ? "text-gray-500 hover:text-indigo-600"
-                                      : "text-gray-300 cursor-not-allowed"
-                                  } transition-colors duration-200 p-1 rounded-full hover:bg-gray-100`}
-                                  title={
-                                    subscribed ? "Discord" : "Upgrade to view"
-                                  }
-                                  onClick={(e) =>
-                                    !subscribed && e.preventDefault()
-                                  }
-                                >
-                                  <DiscordLogo className="h-4 w-4" />
-                                </a>
-                              ))}
-                            {Array.isArray(row.youtube) &&
-                              row.youtube.length > 0 &&
-                              row.youtube.map((link, i) => (
-                                <a
-                                  key={link + i}
-                                  href={link}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-gray-500 hover:text-red-600 transition-colors duration-200 p-1 rounded-full hover:bg-gray-100"
-                                  title="YouTube"
-                                >
-                                  <YoutubeLogo className="h-4 w-4" />
-                                </a>
-                              ))}
-                            {Array.isArray(row.twitter) &&
-                              row.twitter.length > 0 &&
-                              row.twitter.map((link, i) => (
-                                <a
-                                  key={link + i}
-                                  href={link}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-gray-500 hover:text-blue-400 transition-colors duration-200 p-1 rounded-full hover:bg-gray-100"
-                                  title="Twitter"
-                                >
-                                  <TwitterLogo className="h-4 w-4" />
-                                </a>
-                              ))}
-                            {Array.isArray(row.facebook) &&
-                              row.facebook.length > 0 &&
-                              row.facebook.map((link, i) => (
-                                <a
-                                  key={link + i}
-                                  href={subscribed ? link : "#"}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className={`${
-                                    subscribed
-                                      ? "text-gray-500 hover:text-blue-600"
-                                      : "text-gray-300 cursor-not-allowed"
-                                  } transition-colors duration-200 p-1 rounded-full hover:bg-gray-100`}
-                                  title={
-                                    subscribed ? "Facebook" : "Upgrade to view"
-                                  }
-                                  onClick={(e) =>
-                                    !subscribed && e.preventDefault()
-                                  }
-                                >
-                                  <FacebookLogo className="h-4 w-4" />
-                                </a>
-                              ))}
-                            {Array.isArray(row.instagram) &&
-                              row.instagram.length > 0 &&
-                              row.instagram.map((link, i) => (
-                                <a
-                                  key={link + i}
-                                  href={subscribed ? link : "#"}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className={`${
-                                    subscribed
-                                      ? "text-gray-500 hover:text-pink-600"
-                                      : "text-gray-300 cursor-not-allowed"
-                                  } transition-colors duration-200 p-1 rounded-full hover:bg-gray-100`}
-                                  title={
-                                    subscribed ? "Instagram" : "Upgrade to view"
-                                  }
-                                  onClick={(e) =>
-                                    !subscribed && e.preventDefault()
-                                  }
-                                >
-                                  <InstagramLogo className="h-4 w-4" />
-                                </a>
-                              ))}
-                          </div>
+                          {hasSocialLinks(row) ? (
+                            <div className="flex space-x-1">
+                              {Array.isArray(row.discord) &&
+                                row.discord.length > 0 &&
+                                row.discord.map((link, i) => (
+                                  <a
+                                    key={link + i}
+                                    href={subscribed ? link : "#"}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={`${
+                                      subscribed
+                                        ? "text-gray-500 hover:text-indigo-600"
+                                        : "text-gray-300 cursor-not-allowed"
+                                    } transition-colors duration-200 p-1 rounded-full hover:bg-gray-100`}
+                                    title={
+                                      subscribed ? "Discord" : "Upgrade to view"
+                                    }
+                                    onClick={(e) =>
+                                      !subscribed && e.preventDefault()
+                                    }
+                                  >
+                                    <DiscordLogo className="h-4 w-4" />
+                                  </a>
+                                ))}
+                              {Array.isArray(row.youtube) &&
+                                row.youtube.length > 0 &&
+                                row.youtube.map((link, i) => (
+                                  <a
+                                    key={link + i}
+                                    href={link}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-gray-500 hover:text-red-600 transition-colors duration-200 p-1 rounded-full hover:bg-gray-100"
+                                    title="YouTube"
+                                  >
+                                    <YoutubeLogo className="h-4 w-4" />
+                                  </a>
+                                ))}
+                              {Array.isArray(row.twitter) &&
+                                row.twitter.length > 0 &&
+                                row.twitter.map((link, i) => (
+                                  <a
+                                    key={link + i}
+                                    href={link}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-gray-500 hover:text-blue-400 transition-colors duration-200 p-1 rounded-full hover:bg-gray-100"
+                                    title="Twitter"
+                                  >
+                                    <TwitterLogo className="h-4 w-4" />
+                                  </a>
+                                ))}
+                              {Array.isArray(row.facebook) &&
+                                row.facebook.length > 0 &&
+                                row.facebook.map((link, i) => (
+                                  <a
+                                    key={link + i}
+                                    href={subscribed ? link : "#"}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={`${
+                                      subscribed
+                                        ? "text-gray-500 hover:text-blue-600"
+                                        : "text-gray-300 cursor-not-allowed"
+                                    } transition-colors duration-200 p-1 rounded-full hover:bg-gray-100`}
+                                    title={
+                                      subscribed
+                                        ? "Facebook"
+                                        : "Upgrade to view"
+                                    }
+                                    onClick={(e) =>
+                                      !subscribed && e.preventDefault()
+                                    }
+                                  >
+                                    <FacebookLogo className="h-4 w-4" />
+                                  </a>
+                                ))}
+                              {Array.isArray(row.instagram) &&
+                                row.instagram.length > 0 &&
+                                row.instagram.map((link, i) => (
+                                  <a
+                                    key={link + i}
+                                    href={subscribed ? link : "#"}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={`${
+                                      subscribed
+                                        ? "text-gray-500 hover:text-pink-600"
+                                        : "text-gray-300 cursor-not-allowed"
+                                    } transition-colors duration-200 p-1 rounded-full hover:bg-gray-100`}
+                                    title={
+                                      subscribed
+                                        ? "Instagram"
+                                        : "Upgrade to view"
+                                    }
+                                    onClick={(e) =>
+                                      !subscribed && e.preventDefault()
+                                    }
+                                  >
+                                    <InstagramLogo className="h-4 w-4" />
+                                  </a>
+                                ))}
+                            </div>
+                          ) : (
+                            <span className="text-gray-400 text-xs">
+                              No socials found
+                            </span>
+                          )}
                         </TableCell>
                       )}
                       {visibleColumns.email && (
                         <TableCell className="py-2 sm:py-3">
                           {Array.isArray(row.gmail) && row.gmail.length > 0 ? (
-                            subscribed? (
+                            subscribed ? (
                               <div className="flex flex-col gap-1">
                                 {row.gmail.map((email, idx) => (
                                   <a
@@ -1120,14 +1136,12 @@ export default function TwitchDataTable({
                                     </span>
                                   </a>
                                 ))}
-                                
                               </div>
                             ) : (
                               <div className="flex items-center">
                                 <span className="text-gray-400 text-xs blur-sm select-none">
                                   {row.gmail.join(", ")}
                                 </span>
-                                
                               </div>
                             )
                           ) : (
