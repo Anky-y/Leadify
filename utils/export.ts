@@ -1,8 +1,5 @@
 import { useUser } from "@/app/context/UserContext";
 import * as XLSX from "xlsx";
-
-const { user } = useUser();
-
 // Helper function to filter object properties based on column visibility
 export function filterObjectByColumns(
   obj: any,
@@ -47,6 +44,7 @@ export function filterObjectByColumns(
 
 export function exportToCSV(
   data: any[],
+  userId: string | undefined,
   filename: string,
   columnVisibility?: Record<string, boolean>
 ) {
@@ -56,7 +54,7 @@ export function exportToCSV(
     ? data.map((item) => filterObjectByColumns(item, columnVisibility))
     : data;
 
-  uploadExportData(exportData, user?.id, filename, "csv");
+  uploadExportData(exportData, userId, filename, "csv");
   const csvContent = convertToCSV(exportData);
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
@@ -71,6 +69,7 @@ export function exportToCSV(
 
 export function exportToJSON(
   data: any[],
+  userId: string | undefined,
   filename: string,
   columnVisibility?: Record<string, boolean>
 ) {
@@ -79,7 +78,7 @@ export function exportToJSON(
     ? data.map((item) => filterObjectByColumns(item, columnVisibility))
     : data;
 
-  uploadExportData(exportData, user?.id, filename, "json");
+  uploadExportData(exportData, userId, filename, "json");
   const jsonContent = JSON.stringify(exportData, null, 2);
   const blob = new Blob([jsonContent], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -94,6 +93,7 @@ export function exportToJSON(
 
 export function exportToExcel(
   data: any[],
+  userId: string | undefined,
   filename: string,
   columnVisibility?: Record<string, boolean>
 ) {
@@ -102,7 +102,7 @@ export function exportToExcel(
     ? data.map((item) => filterObjectByColumns(item, columnVisibility))
     : data;
 
-  uploadExportData(exportData, user?.id, filename, "xlsx");
+  uploadExportData(exportData, userId, filename, "xlsx");
   const worksheet = XLSX.utils.json_to_sheet(exportData);
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, "Data");
