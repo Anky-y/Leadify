@@ -365,11 +365,11 @@ export default function TwitchDataTable({
 
     // Pass column visibility to export functions
     if (exportFormat === "csv") {
-      exportToCSV(exportData, "twitch-data.csv", visibleColumns);
+      exportToCSV(exportData, user?.id, "twitch-data.csv", visibleColumns);
     } else if (exportFormat === "json") {
-      exportToJSON(exportData, "twitch-data.json", visibleColumns);
+      exportToJSON(exportData, user?.id, "twitch-data.json", visibleColumns);
     } else if (exportFormat === "excel") {
-      exportToExcel(exportData, "twitch-data.xlsx", visibleColumns);
+      exportToExcel(exportData, user?.id, "twitch-data.xlsx", visibleColumns);
     }
 
     toast.success(

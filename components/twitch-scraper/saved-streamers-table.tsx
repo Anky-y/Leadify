@@ -555,7 +555,12 @@ export default function SavedStreamersTable({
 
     // Export logic
     if (exportFormat === "csv") {
-      exportToCSV(exportSafeData, "saved-streamers.csv", exportColumns);
+      exportToCSV(
+        exportSafeData,
+        user?.id,
+        "saved-streamers.csv",
+        exportColumns
+      );
       toast.success(`Exported ${exportSafeData.length} records as CSV`, {
         description: "Your file has been downloaded successfully",
         icon: "📄",
@@ -563,7 +568,12 @@ export default function SavedStreamersTable({
         duration: 4000,
       });
     } else if (exportFormat === "json") {
-      exportToJSON(exportSafeData, "saved-streamers.json", exportColumns);
+      exportToJSON(
+        exportSafeData,
+        user?.id,
+        "saved-streamers.json",
+        exportColumns
+      );
       toast.success(`Exported ${exportSafeData.length} records as JSON`, {
         description: "Your file has been downloaded successfully",
         icon: "📄",
@@ -571,7 +581,12 @@ export default function SavedStreamersTable({
         duration: 4000,
       });
     } else if (exportFormat === "excel") {
-      exportToExcel(exportSafeData, "saved-streamers.xlsx", exportColumns);
+      exportToExcel(
+        exportSafeData,
+        user?.id,
+        "saved-streamers.xlsx",
+        exportColumns
+      );
       toast.success(`Exported ${exportSafeData.length} records as Excel`, {
         description: "Your file has been downloaded successfully",
         icon: "📄",
