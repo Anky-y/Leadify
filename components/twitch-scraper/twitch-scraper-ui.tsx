@@ -190,7 +190,7 @@ export default function TwitchScraperUI({
             setIsFrontendSocialScraping(false); // Now show the data!
             setFrontendSocialProgress(100);
             addNotification(user?.id, "Search Complete", `Found ${streamerList.length} streamers`)
-            addSearchHistory(user?.id, "Test search history", streamerList.length, category, language, minFollowers, maxFollowers, minViewers)
+            addSearchHistory(user?.id, `${language} ${category} streamers`, streamerList.length, category, language, minFollowers, maxFollowers, minViewers)
             return;
           }
         } catch (error) {

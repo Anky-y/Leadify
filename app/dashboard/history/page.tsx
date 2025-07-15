@@ -64,6 +64,25 @@ export default function SearchHistoryPage() {
 
   const [searchHistory, setSearchHistory] = useState<SearchHistoryItem[]>([])
   const [error, setError] = useState<string | null>(null)
+
+  type ExportHistoryItem = {
+    id: number
+    filename: string
+    records: number
+    size: string // Changed from boolean to string
+    format: string
+    created_at: string
+  }
+
+  const [exportHistory, setExportHistory] = useState<ExportHistoryItem[]>([])
+  const [stats, setStats] = useState({
+    totalSearches: "",
+    dataExports: "",
+    streamersFound: "",
+  })
+  const [isLoadingStats, setIsLoadingStats] = useState(true)
+  const [isLoadingExports, setIsLoadingExports] = useState(true)
+
   useEffect(() => {
     async function fetchHistory() {
       if (!user?.id) {
@@ -97,6 +116,96 @@ export default function SearchHistoryPage() {
     }
     fetchHistory()
   }, [user])
+
+  useEffect(() => {
+    async function fetchStats() {
+      if (!user?.id) {
+        setIsLoadingStats(false)
+        setStats({
+          totalSearches: "127",
+          dataExports: "42",
+          streamersFound: "2,543",
+        })
+        return
+      }
+
+      setIsLoadingStats(true)
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}stats?user_id=${user.id}`, {
+          method: "GET",
+          headers: { accept: "application/json" },
+        })
+        if (!res.ok) throw new Error("Failed to fetch stats")
+
+        const data = await res.json()
+        setStats({
+          totalSearches: data["total-searches"] || "127",
+          dataExports: data["total-exports"] || "42",
+          streamersFound: data["streamers-found"] || "2,543",
+        })
+      } catch (err) {
+        // Fallback to temp values on error
+        setStats({
+          totalSearches: "127",
+          dataExports: "42",
+          streamersFound: "2,543",
+        })
+      } finally {
+        setIsLoadingStats(false)
+      }
+    }
+
+    fetchStats()
+  }, [user])
+
+  useEffect(() => {
+    async function fetchExportHistory() {
+      if (!user?.id) {
+        setExportHistory([])
+        setIsLoadingExports(false)
+        return
+      }
+      setIsLoadingExports(true)
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}export-history?user_id=${user.id}`, {
+          method: "GET",
+          headers: { accept: "application/json" },
+        })
+        if (!res.ok) {
+          setExportHistory([])
+          return
+        }
+        const json = await res.json()
+        if (Array.isArray(json)) {
+          setExportHistory(json)
+        } else {
+          setExportHistory([])
+        }
+      } catch (err) {
+        setExportHistory([])
+      } finally {
+        setIsLoadingExports(false)
+      }
+    }
+    fetchExportHistory()
+  }, [user])
+
+  const handleDownload = async (id: number) => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}download?file_id=${id}`, {
+        method: "GET",
+        headers: { accept: "application/json" },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        if (data.url) {
+          window.open(data.url, "_blank")
+        }
+      }
+    } catch (err) {
+      console.error("Download failed:", err)
+    }
+  }
 
   // const searchHistory = [
   //   {
@@ -166,69 +275,69 @@ export default function SearchHistoryPage() {
   //     id: 8,
   //     date: "April 1, 2025",
   //     time: "10:30 AM",
-  //     results: 34,
+  //     records: 34,
   //     category: "Technology",
   //     status: "completed",
   //     filters: ["AI", "Programming", "Tutorials"],
   //   },
   // ];
 
-  const exportHistory = [
-    {
-      id: 1,
-      filename: "English_Fortnite_Streamers.csv",
-      date: "April 11, 2025",
-      time: "2:35 PM",
-      records: 42,
-      size: "12KB",
-      format: "CSV",
-    },
-    {
-      id: 2,
-      filename: "Spanish_Gaming_Channels.xlsx",
-      date: "April 10, 2025",
-      time: "4:20 PM",
-      records: 28,
-      size: "18KB",
-      format: "Excel",
-    },
-    {
-      id: 3,
-      filename: "Tech_Reviewers.json",
-      date: "April 8, 2025",
-      time: "11:25 AM",
-      records: 15,
-      size: "8KB",
-      format: "JSON",
-    },
-    {
-      id: 4,
-      filename: "Beauty_Influencers.csv",
-      date: "April 6, 2025",
-      time: "3:50 PM",
-      records: 37,
-      size: "20KB",
-      format: "CSV",
-    },
-    {
-      id: 5,
-      filename: "Just_Chatting_Streamers.xlsx",
-      date: "April 5, 2025",
-      time: "1:25 PM",
-      records: 89,
-      size: "45KB",
-      format: "Excel",
-    },
-    {
-      id: 6,
-      filename: "Music_Production_Creators.json",
-      date: "April 3, 2025",
-      time: "6:50 PM",
-      records: 23,
-      size: "15KB",
-      format: "JSON",
-    },
-  ]
+  // const exportHistory = [
+  //   {
+  //     id: 1,
+  //     filename: "English_Fortnite_Streamers.csv",
+  //     date: "April 11, 2025",
+  //     time: "2:35 PM",
+  //     records: 42,
+  //     size: "12KB",
+  //     format: "CSV",
+  //   },
+  //   {
+  //     id: 2,
+  //     filename: "Spanish_Gaming_Channels.xlsx",
+  //     date: "April 10, 2025",
+  //     time: "4:20 PM",
+  //     records: 28,
+  //     size: "18KB",
+  //     format: "Excel",
+  //   },
+  //   {
+  //     id: 3,
+  //     filename: "Tech_Reviewers.json",
+  //     date: "April 8, 2025",
+  //     time: "11:25 AM",
+  //     records: 15,
+  //     size: "8KB",
+  //     format: "JSON",
+  //   },
+  //   {
+  //     id: 4,
+  //     filename: "Beauty_Influencers.csv",
+  //     date: "April 6, 2025",
+  //     time: "3:50 PM",
+  //     records: 37,
+  //     size: "20KB",
+  //     format: "CSV",
+  //   },
+  //   {
+  //     id: 5,
+  //     filename: "Just_Chatting_Streamers.xlsx",
+  //     date: "April 5, 2025",
+  //     time: "1:25 PM",
+  //     records: 89,
+  //     size: "45KB",
+  //     format: "Excel",
+  //   },
+  //   {
+  //     id: 6,
+  //     filename: "Music_Production_Creators.json",
+  //     date: "April 3, 2025",
+  //     time: "6:50 PM",
+  //     records: 23,
+  //     size: "15KB",
+  //     format: "JSON",
+  //   },
+  // ]
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -240,19 +349,6 @@ export default function SearchHistoryPage() {
         return "bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800"
       default:
         return "bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-800"
-    }
-  }
-
-  const getFormatIcon = (format: string) => {
-    switch (format.toLowerCase()) {
-      case "csv":
-        return "📊"
-      case "excel":
-        return "📈"
-      case "json":
-        return "🔧"
-      default:
-        return "📄"
     }
   }
 
@@ -284,21 +380,21 @@ export default function SearchHistoryPage() {
           {[
             {
               title: "Total Searches",
-              value: "127",
+              value: stats.totalSearches,
               icon: Search,
               color: "blue",
               change: "+12 this week",
             },
             {
               title: "Data Exports",
-              value: "42",
+              value: stats.dataExports,
               icon: Download,
               color: "green",
               change: "+8 this week",
             },
             {
               title: "Streamers Found",
-              value: "2,543",
+              value: stats.streamersFound,
               icon: Users,
               color: "purple",
               change: "+234 this week",
@@ -340,7 +436,9 @@ export default function SearchHistoryPage() {
                   </div>
                   <div className="space-y-2">
                     <h3 className="text-sm font-semibold text-slate-600 dark:text-slate-300">{stat.title}</h3>
-                    <p className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100">{stat.value}</p>
+                    <p className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100">
+                      {isLoadingStats ? "..." : stat.value}
+                    </p>
                     <p className="text-xs text-green-600 dark:text-green-400 font-medium">{stat.change}</p>
                   </div>
                 </CardContent>
@@ -352,11 +450,12 @@ export default function SearchHistoryPage() {
         {/* Tabs */}
         <motion.div variants={itemVariants}>
           <Tabs defaultValue="searches" className="space-y-6">
-            <div className="flex justify-center">
-              <TabsList className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700 p-1 rounded-xl shadow-lg">
+            <div className="flex justify-center w-full">
+              <TabsList className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700 p-2 rounded-2xl shadow-lg w-full max-w-lg">
                 <TabsTrigger
                   value="searches"
-                  className="transition-all duration-300 data-[state=active]:bg-blue-100 dark:data-[state=active]:bg-blue-900 data-[state=active]:text-blue-800 dark:data-[state=active]:text-blue-200 data-[state=active]:shadow-md px-6 sm:px-8 py-3 rounded-lg font-semibold"
+                  className="absolute left-0 transition-all duration-300 data-[state=active]:bg-blue-100 dark:data-[state=active]:bg-blue-900 data-[state=active]:text-blue-800 dark:data-[state=active]:text-blue-200 data-[state=active]:shadow-md px-8 sm:px-12 py-3 rounded-xl font-semibold flex-1"
+                  style={{ width: '50%' }}
                 >
                   <History className="h-4 w-4 mr-2" />
                   <span className="hidden sm:inline">Search History</span>
@@ -364,7 +463,8 @@ export default function SearchHistoryPage() {
                 </TabsTrigger>
                 <TabsTrigger
                   value="exports"
-                  className="transition-all duration-300 data-[state=active]:bg-green-100 dark:data-[state=active]:bg-green-900 data-[state=active]:text-green-800 dark:data-[state=active]:text-green-200 data-[state=active]:shadow-md px-6 sm:px-8 py-3 rounded-lg font-semibold"
+                  className=" absolute right-0 transition-all duration-300 data-[state=active]:bg-green-100 dark:data-[state=active]:bg-green-900 data-[state=active]:text-green-800 dark:data-[state=active]:text-green-200 data-[state=active]:shadow-md px-8 sm:px-12 py-3 rounded-xl font-semibold flex-1"
+                  style={{ width: '50%' }}
                 >
                   <Download className="h-4 w-4 mr-2" />
                   <span className="hidden sm:inline">Export History</span>
@@ -374,8 +474,8 @@ export default function SearchHistoryPage() {
             </div>
 
             {/* Search History Tab */}
-            <TabsContent value="searches" className="space-y-6">
-              <Card className="border-2 border-slate-200 dark:border-slate-700 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm overflow-hidden">
+            <TabsContent value="searches" className="space-y-6 w-full">
+              <Card className="border-2 border-slate-200 dark:border-slate-700 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm overflow-hidden w-full">
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5" />
                 <CardHeader className="relative">
                   <div className="flex items-center gap-3">
@@ -389,73 +489,70 @@ export default function SearchHistoryPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="relative">
-                  <div className="space-y-3">
+                  <div className={`space-y-3 transition-all duration-300 ${error ? "opacity-50" : "opacity-100"}`}>
                     {searchHistory.map((search, index) => {
-                    const localDate = new Date(search.created_at);
-                    const dateStr = localDate.toLocaleDateString();
-                    const timeStr = localDate.toLocaleTimeString();
-
-                    return (
-                      <motion.div
-                        key={search.id}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                        variants={cardHoverVariants}
-                        whileHover="hover"
-                        className="group p-4 rounded-lg bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all duration-200 border border-slate-200 dark:border-slate-600"
-                      >
-                        <div className="flex items-center gap-4">
-                          {/* Unified Search Icon */}
-                          <div className="p-2 rounded-lg bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900 dark:to-purple-900 flex-shrink-0">
-                            <History className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                          </div>
-                          
-
-                          {/* Search Information */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400 mb-2">
-                              <div className="flex items-center gap-1">
-                                <Calendar className="h-3 w-3" />
-                                <span>{dateStr}</span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                <span>{timeStr}</span>
-                              </div>
-                            </div>
-                            {search.title && (
-                              <div className="mb-2">
-                                <h4 className="font-semibold text-base text-slate-800 dark:text-slate-200 leading-tight">
-                                  {search.title}
-                                </h4>
-                              </div>
-                            )}
-
-                            <div className="flex flex-wrap items-center gap-2 mb-3">
-                              {/* <Badge className={getStatusColor(search.status)}>{search.status}</Badge> */}
-                              <Badge variant="outline" className="bg-slate-100 dark:bg-slate-800">
-                                {search.results} results
-                              </Badge>
-                              <Badge variant="outline" className="bg-slate-100 dark:bg-slate-800">
-                                {search.category}
-                              </Badge>
+                      const localDate = new Date(search.created_at)
+                      const dateStr = localDate.toLocaleDateString(navigator.language)
+                      const timeStr = localDate.toLocaleTimeString(navigator.language)
+                      return (
+                        <motion.div
+                          key={search.id}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.05 }}
+                          variants={cardHoverVariants}
+                          whileHover="hover"
+                          className="group p-4 rounded-lg bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all duration-200 border border-slate-200 dark:border-slate-600"
+                        >
+                          <div className="flex items-center gap-4">
+                            {/* Unified Search Icon */}
+                            <div className="p-2 rounded-lg bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900 dark:to-purple-900 flex-shrink-0">
+                              <History className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                             </div>
 
-                            <div className="flex flex-wrap gap-1">
-                              {search.filters.map((filter, idx) => (
-                                <span
-                                  key={idx}
-                                  className="px-2 py-1 text-xs bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 rounded-full border border-blue-200 dark:border-blue-800"
-                                >
-                                  {filter}
-                                </span>
-                              ))}
+                            {/* Search Information */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400 mb-2">
+                                <div className="flex items-center gap-1">
+                                  <Calendar className="h-3 w-3" />
+                                  <span>{dateStr}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  <span>{timeStr}</span>
+                                </div>
+                              </div>
+                              {search.title && (
+                                <div className="mb-2">
+                                  <h4 className="font-semibold text-base text-slate-800 dark:text-slate-200 leading-tight">
+                                    {search.title}
+                                  </h4>
+                                </div>
+                              )}
+
+                              <div className="flex flex-wrap items-center gap-2 mb-3">
+                                <Badge variant="outline" className="bg-slate-100 dark:bg-slate-800">
+                                  {search.results} results
+                                </Badge>
+                                <Badge variant="outline" className="bg-slate-100 dark:bg-slate-800">
+                                  {search.category}
+                                </Badge>
+                              </div>
+
+                              <div className="flex flex-wrap gap-1">
+                                {search.filters.map((filter, idx) => (
+                                  <span
+                                    key={idx}
+                                    className="px-2 py-1 text-xs bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 rounded-full border border-blue-200 dark:border-blue-800"
+                                  >
+                                    {filter}
+                                  </span>
+                                ))}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </motion.div>
-                      );
+                        </motion.div>
+                      )
                     })}
                   </div>
                 </CardContent>
@@ -474,8 +571,8 @@ export default function SearchHistoryPage() {
             </TabsContent>
 
             {/* Export History Tab */}
-            <TabsContent value="exports" className="space-y-6">
-              <Card className="border-2 border-slate-200 dark:border-slate-700 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm overflow-hidden">
+            <TabsContent value="exports" className="space-y-6 w-full">
+              <Card className="border-2 border-slate-200 dark:border-slate-700 shadow-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm overflow-hidden w-full">
                 <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-blue-500/5" />
                 <CardHeader className="relative">
                   <div className="flex items-center gap-3">
@@ -489,70 +586,81 @@ export default function SearchHistoryPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="relative">
-                  <div className="grid gap-4 lg:gap-6 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
-                    {exportHistory.map((export_, index) => (
-                      <motion.div
-                        key={export_.id}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        variants={cardHoverVariants}
-                        whileHover="hover"
-                        className="group p-4 rounded-xl bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all duration-200 border border-slate-200 dark:border-slate-600"
-                      >
-                        <div className="space-y-4">
-                          <div className="flex items-start gap-3">
-                            <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900 flex-shrink-0">
-                              <span className="text-lg">{getFormatIcon(export_.format)}</span>
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <h3 className="font-semibold text-slate-800 dark:text-slate-100 line-clamp-2">
-                                {export_.filename}
-                              </h3>
-                              <div className="flex items-center gap-3 text-sm text-slate-500 dark:text-slate-400 mt-1">
-                                <div className="flex items-center gap-1">
-                                  <Calendar className="h-3 w-3" />
-                                  <span>{export_.date}</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <Clock className="h-3 w-3" />
-                                  <span>{export_.time}</span>
+                  <div
+                    className={`grid gap-4 lg:gap-6 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 transition-all duration-300 ${
+                      isLoadingExports ? "opacity-50 animate-pulse" : "opacity-100"
+                    }`}
+                  >
+                    {exportHistory.map((export_, index) => {
+                      const localDate = new Date(export_.created_at)
+                      const dateStr = localDate.toLocaleDateString(navigator.language)
+                      const timeStr = localDate.toLocaleTimeString(navigator.language)
+
+                      return (
+                        <motion.div
+                          key={export_.id}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.1 }}
+                          variants={cardHoverVariants}
+                          whileHover="hover"
+                          className="group p-4 rounded-xl bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all duration-200 border border-slate-200 dark:border-slate-600"
+                        >
+                          <div className="space-y-4">
+                            <div className="flex items-start gap-3">
+                              <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900 flex-shrink-0">
+                                <FileText className="h-4 w-4 text-green-600 dark:text-green-400" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <h3 className="font-semibold text-slate-800 dark:text-slate-100 line-clamp-2">
+                                  {export_.filename}
+                                </h3>
+                                <div className="flex items-center gap-3 text-sm text-slate-500 dark:text-slate-400 mt-1">
+                                  <div className="flex items-center gap-1">
+                                    <Calendar className="h-3 w-3" />
+                                    <span>{dateStr}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <Clock className="h-3 w-3" />
+                                    <span>{timeStr}</span>
+                                  </div>
                                 </div>
                               </div>
                             </div>
-                          </div>
 
-                          <div className="flex flex-wrap gap-2">
-                            <Badge
-                              variant="outline"
-                              className="bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300"
-                            >
-                              <FileText className="h-3 w-3 mr-1" />
-                              {export_.format}
-                            </Badge>
-                            <Badge variant="outline" className="bg-slate-100 dark:bg-slate-800">
-                              <BarChart3 className="h-3 w-3 mr-1" />
-                              {export_.records} records
-                            </Badge>
-                            <Badge variant="outline" className="bg-slate-100 dark:bg-slate-800">
-                              📦 {export_.size}
-                            </Badge>
-                          </div>
-
-                          <div className="pt-2">
-                            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                              <Button
-                                size="sm"
-                                className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                            <div className="flex flex-wrap gap-2">
+                              <Badge
+                                variant="outline"
+                                className="bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300"
                               >
-                                <Download className="h-4 w-4 mr-2" />
-                                Download
-                              </Button>
-                            </motion.div>
+                                <FileText className="h-3 w-3 mr-1" />
+                                {export_.format}
+                              </Badge>
+                              <Badge variant="outline" className="bg-slate-100 dark:bg-slate-800">
+                                <BarChart3 className="h-3 w-3 mr-1" />
+                                {export_.records} records
+                              </Badge>
+                              <Badge variant="outline" className="bg-slate-100 dark:bg-slate-800">
+                                📦 {export_.size}
+                              </Badge>
+                            </div>
+
+                            <div className="pt-2">
+                              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                                <Button
+                                  size="sm"
+                                  className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                                  onClick={() => handleDownload(export_.id)}
+                                >
+                                  <Download className="h-4 w-4 mr-2" />
+                                  Download
+                                </Button>
+                              </motion.div>
+                            </div>
                           </div>
-                        </div>
-                      </motion.div>
-                    ))}
+                        </motion.div>
+                      )
+                    })}
                   </div>
                 </CardContent>
               </Card>
