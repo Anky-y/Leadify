@@ -113,11 +113,17 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify(payload),
     });
 
+    console.log("interception sent")
+    console.log(twitchRes)
+
     if (!twitchRes.ok) {
+      console.log("failed req")
       return new Response(JSON.stringify({ error: "Twitch error" }), {
         status: twitchRes.status,
       });
     }
+
+    console.log("After twitch res check")
 
     const return_data = {
       socials: {
