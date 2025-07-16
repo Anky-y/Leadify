@@ -112,8 +112,22 @@ export async function POST(req: NextRequest) {
     console.log("recoeved request :D");
 
     // ✅ Set up proxy agent
-    const proxy = "http://190.104.146.244:999"; // Replace with your proxy
-    const agent = new HttpsProxyAgent(proxy);
+    let agent;
+    if (process.env.NODE_ENV === "production") {
+      const proxy = process.env.PROXY_URL;
+      if (proxy) {
+        agent = new HttpsProxyAgent(proxy);
+      } else {
+        throw new Error("PROXY_URL environment variable is not set.");
+      }
+    }
+    const axiosConfig: any = {
+      headers,
+      timeout: 10000,
+    };
+    if (agent) {
+      axiosConfig.httpsAgent = agent;
+    }
 
     // ✅ Make request through proxy using axios
     const twitchRes = await axios.post("https://gql.twitch.tv/gql", payload, {
