@@ -479,6 +479,7 @@ export default function SavedStreamersTable({
   // Enhanced export function with column selection for Pro users
   const handleExport = async () => {
     const selected = Object.values(selectedStreamers).some(Boolean);
+    console.log(data);
     const exportData = selected
       ? data.filter((row) => selectedStreamers[row.id])
       : data;
@@ -552,6 +553,8 @@ export default function SavedStreamersTable({
         ...censoredSocials,
       };
     });
+
+    console.log(exportSafeData);
 
     // Export logic
     if (exportFormat === "csv") {
