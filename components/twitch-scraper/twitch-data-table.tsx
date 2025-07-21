@@ -428,6 +428,7 @@ export default function TwitchDataTable({
       followers: Number(streamer.followers),
       viewer_count: Number(streamer.viewer_count),
       subscriber_count: Number(streamer.subscriber_count),
+      channel_url: streamer.channel_url,
     }));
 
     try {

@@ -37,7 +37,10 @@ export function filterObjectByColumns(
     }
   });
 
-  if (obj.channelUrl) filteredObj.channelUrl = obj.channelUrl;
+  console.log(obj);
+  console.log(filteredObj);
+  if (obj.channel_url) filteredObj.channel_url = obj.channel_url;
+  console.log(filteredObj);
 
   return filteredObj;
 }
@@ -48,6 +51,7 @@ export function exportToCSV(
   filename: string,
   columnVisibility?: Record<string, boolean>
 ) {
+  console.log(data);
   // Filter data by columns if columnVisibility is provided
 
   const exportData = columnVisibility
@@ -77,6 +81,8 @@ export function exportToJSON(
   const exportData = columnVisibility
     ? data.map((item) => filterObjectByColumns(item, columnVisibility))
     : data;
+
+  console.log(exportData);
 
   uploadExportData(exportData, userId, filename, "json");
   const jsonContent = JSON.stringify(exportData, null, 2);
