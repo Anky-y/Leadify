@@ -198,8 +198,9 @@ export default function SearchHistoryPage() {
       })
       if (res.ok) {
         const data = await res.json()
-        if (data.url) {
-          window.open(data.url, "_blank")
+        if (data.download_url) {
+          window.open(data.download_url, "_blank")
+          console.log(data.download_url)
         }
       }
     } catch (err) {
