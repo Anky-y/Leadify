@@ -1205,7 +1205,7 @@ export default function SavedStreamersTable({
       }
 
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}saved-streamers/${streamerId}`,
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}streamers/${streamerId}`,
         {
           method: "DELETE",
           headers,
