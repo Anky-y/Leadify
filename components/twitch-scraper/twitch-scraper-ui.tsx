@@ -14,17 +14,22 @@ import { motion, AnimatePresence } from "framer-motion";
 import { json } from "stream/consumers";
 import { createClient } from "@/utils/supabase-browser";
 
-const supabase = createClient()
+const supabase = createClient();
 
-async function addNotification(user_id: string | undefined, title: string, message: string) {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}add_notifications`, {
+async function addNotification(
+  user_id: string | undefined,
+  title: string,
+  message: string
+) {
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_BACKEND_URL}add_notifications`,
+    {
       method: "POST",
-      body: JSON.stringify({ user_id, title, message}),
+      body: JSON.stringify({ user_id, title, message }),
       headers: { "Content-Type": "application/json" },
-    })
- 
+    }
+  );
 }
-
 
 // Define the scraping stages
 type ScrapingStage = {
@@ -63,6 +68,35 @@ export default function TwitchScraperUI({
   const [streamers, setStreamers] = useState<TwitchData[]>([]);
   const [loadingStreamers, setLoadingStreamers] = useState(false);
   const [runSearchOnTab, setRunSearchOnTab] = useState(false);
+
+  // ...inside your TwitchScraperUI component...
+  const [showCancelSearchPrompt, setShowCancelSearchPrompt] = useState(false);
+  const [pendingTab, setPendingTab] = useState<string | null>(null);
+
+  // Example tab change handler
+  const handleTabChange = (newTab: string) => {
+    if (isLoading && activeTab === "search" && newTab !== "search") {
+      setPendingTab(newTab);
+      setShowCancelSearchPrompt(true);
+    } else {
+      setActiveTab(newTab);
+    }
+  };
+
+  // When user confirms cancellation
+const confirmTabChange = () => {
+  setShowCancelSearchPrompt(false);
+  if (pendingTab !== null) {
+    setActiveTab(pendingTab);
+  }
+  setPendingTab(null);
+  // Add your cancellation logic here if needed
+};
+
+const cancelTabChange = () => {
+  setShowCancelSearchPrompt(false);
+  setPendingTab(null);
+};
 
   const [isFrontendSocialScraping, setIsFrontendSocialScraping] =
     useState(false);
@@ -166,7 +200,7 @@ export default function TwitchScraperUI({
               } catch (err) {
                 updatedStreamers.push(s); // fallback
               }
-              
+
               const percent = Math.round(((i + 1) / streamerList.length) * 100);
               updateProgressData({
                 ...progressDataRef.current!,
@@ -189,8 +223,21 @@ export default function TwitchScraperUI({
             setIsLoading(false);
             setIsFrontendSocialScraping(false); // Now show the data!
             setFrontendSocialProgress(100);
-            addNotification(user?.id, "Search Complete", `Found ${streamerList.length} streamers`)
-            addSearchHistory(user?.id, `${language} ${category} streamers`, streamerList.length, category, language, minFollowers, maxFollowers, minViewers)
+            addNotification(
+              user?.id,
+              "Search Complete",
+              `Found ${streamerList.length} streamers`
+            );
+            addSearchHistory(
+              user?.id,
+              `${language} ${category} streamers`,
+              streamerList.length,
+              category,
+              language,
+              minFollowers,
+              maxFollowers,
+              minViewers
+            );
             return;
           }
         } catch (error) {
@@ -311,22 +358,25 @@ export default function TwitchScraperUI({
     max_followers: number,
     min_viewers: number
   ) {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}search_history`, {
-      method: "POST", 
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        user_id,
-        title,
-        result_count,
-        category, 
-        language,
-        min_followers,
-        max_followers,  
-        min_viewers                                      
-      })
-    })
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}search_history`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          user_id,
+          title,
+          result_count,
+          category,
+          language,
+          min_followers,
+          max_followers,
+          min_viewers,
+        }),
+      }
+    );
   }
 
   function mergeAboutTwitchData(streamer: any, aboutTwitch: any) {
@@ -475,6 +525,33 @@ export default function TwitchScraperUI({
           </Tabs>
         </motion.div>
       </div>
+      {showCancelSearchPrompt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+            <h2 className="text-lg font-bold mb-2">Cancel Search?</h2>
+            <p className="mb-4">
+              A search is currently running. Switching tabs will cancel the
+              search in progress.
+              <br />
+              Are you sure you want to continue?
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                className="px-4 py-2 rounded border"
+                onClick={cancelTabChange}
+              >
+                Stay
+              </button>
+              <button
+                className="px-4 py-2 rounded bg-blue-600 text-white"
+                onClick={confirmTabChange}
+              >
+                Switch Tab
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 }
