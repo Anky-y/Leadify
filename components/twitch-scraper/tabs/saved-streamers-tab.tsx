@@ -508,6 +508,7 @@ export default function SavedStreamersTab({}: SavedStreamersTabProps) {
                       </Label>
                       <Input
                         id="folder-name"
+                        maxLength={16}
                         value={newFolderName}
                         onChange={(e) => setNewFolderName(e.target.value)}
                         placeholder="e.g. Gaming Pros, VTubers, Content Creators"
@@ -533,7 +534,7 @@ export default function SavedStreamersTab({}: SavedStreamersTabProps) {
                 </Dialog>
               </div>
 
-              <div className="space-y-2 max-h-[calc(100vh-300px)] overflow-y-auto pr-2">
+              <div className="space-y-2 max-h-[calc(100vh-300px)] pr-2">
                 {folders.map((folder) => {
                   const count = folder.streamer_count ?? 0;
                   const isActive = selectedFolder?.id === folder.id;

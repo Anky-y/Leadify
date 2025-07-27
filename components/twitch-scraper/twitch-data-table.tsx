@@ -657,44 +657,46 @@ export default function TwitchDataTable({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Dialog
-            open={saveStreamersDialogOpen}
-            onOpenChange={setSaveStreamersDialogOpen}
-          >
-            <DialogTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 px-2 text-xs sm:text-sm sm:h-9 sm:px-3 border-blue-200 text-blue-700 hover:bg-blue-50 transition-all"
-              >
-                <UserPlus className="h-3.5 w-3.5 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">Save Selected</span>
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Save Selected Streamers</DialogTitle>
-                <DialogDescription>
-                  All currently selected streamers will be saved to your saved
-                  list.
-                  <br />
-                  <span className="text-sm text-muted-foreground">
-                    Streamers that are already saved will be skipped
-                    automatically.
-                  </span>
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter>
+          {Object.values(selectedUsernames).some(Boolean) && (
+            <Dialog
+              open={saveStreamersDialogOpen}
+              onOpenChange={setSaveStreamersDialogOpen}
+            >
+              <DialogTrigger asChild>
                 <Button
                   variant="outline"
-                  onClick={() => setSaveStreamersDialogOpen(false)}
+                  size="sm"
+                  className="h-8 px-2 text-xs sm:text-sm sm:h-9 sm:px-3 border-blue-200 text-blue-700 hover:bg-blue-50 transition-all"
                 >
-                  Cancel
+                  <UserPlus className="h-3.5 w-3.5 mr-1 sm:mr-2" />
+                  <span className="hidden sm:inline">Save Selected</span>
                 </Button>
-                <Button onClick={handleSaveStreamers}>Confirm Save</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Save Selected Streamers</DialogTitle>
+                  <DialogDescription>
+                    All currently selected streamers will be saved to your saved
+                    list.
+                    <br />
+                    <span className="text-sm text-muted-foreground">
+                      Streamers that are already saved will be skipped
+                      automatically.
+                    </span>
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => setSaveStreamersDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button onClick={handleSaveStreamers}>Confirm Save</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
       </div>
       <Dialog

@@ -358,7 +358,7 @@ export default function SavedStreamersTable({
   // Handler for "Select all" (across all pages)
   const handleSelectAllGlobalChange = (checked: boolean) => {
     const newSelected: Record<string, boolean> = {};
-    data.forEach((streamer) => {
+    savedStreamers.forEach((streamer) => {
       newSelected[streamer.id] = checked;
     });
     setSelectedStreamers(newSelected);
@@ -479,10 +479,9 @@ export default function SavedStreamersTable({
   // Enhanced export function with column selection for Pro users
   const handleExport = async () => {
     const selected = Object.values(selectedStreamers).some(Boolean);
-    console.log(data);
     const exportData = selected
-      ? data.filter((row) => selectedStreamers[row.id])
-      : data;
+      ? savedStreamers.filter((row) => selectedStreamers[row.id])
+      : savedStreamers;
 
     if (exportData.length === 0) {
       toast.error("There are no saved streamers to export.");
@@ -749,7 +748,7 @@ export default function SavedStreamersTable({
     }
 
     const streamersToReveal = selectedStreamerIds.filter((id) => {
-      const streamer = data.find((s) => s.id === id);
+      const streamer = savedStreamers.find((s) => s.id === id);
       return streamer && hasSocialLinks(streamer) && !streamer.socials_revealed;
     });
 
@@ -778,7 +777,7 @@ export default function SavedStreamersTable({
       .map(([id]) => id);
 
     const streamersToReveal = selectedStreamerIds.filter((id) => {
-      const streamer = data.find((s) => s.id === id);
+      const streamer = savedStreamers.find((s) => s.id === id);
       return streamer && hasSocialLinks(streamer) && !streamer.socials_revealed;
     });
 
@@ -878,7 +877,7 @@ export default function SavedStreamersTable({
     }
 
     const streamersToReveal = selectedStreamerIds.filter((id) => {
-      const streamer = data.find((s) => s.id === id);
+      const streamer = savedStreamers.find((s) => s.id === id);
       return streamer && hasEmails(streamer) && !streamer.email_revealed;
     });
 
@@ -907,7 +906,7 @@ export default function SavedStreamersTable({
       .map(([id]) => id);
 
     const streamersToReveal = selectedStreamerIds.filter((id) => {
-      const streamer = data.find((s) => s.id === id);
+      const streamer = savedStreamers.find((s) => s.id === id);
       return streamer && hasEmails(streamer) && !streamer.email_revealed;
     });
 
@@ -1951,7 +1950,7 @@ export default function SavedStreamersTable({
                             variant="secondary"
                             className="bg-blue-50 text-blue-700 border-blue-100"
                           >
-                            {row.game_name}
+                            <span className="text-center">{row.game_name}</span>
                           </Badge>
                         </TableCell>
                       )}
@@ -2602,7 +2601,7 @@ export default function SavedStreamersTable({
                   Object.entries(selectedStreamers)
                     .filter(([_, selected]) => selected)
                     .filter(([id]) => {
-                      const streamer = data.find((s) => s.id === id);
+                      const streamer = savedStreamers.find((s) => s.id === id);
                       return (
                         streamer &&
                         hasSocialLinks(streamer) &&
@@ -2617,7 +2616,7 @@ export default function SavedStreamersTable({
                   Object.entries(selectedStreamers)
                     .filter(([_, selected]) => selected)
                     .filter(([id]) => {
-                      const streamer = data.find((s) => s.id === id);
+                      const streamer = savedStreamers.find((s) => s.id === id);
                       return (
                         streamer &&
                         hasSocialLinks(streamer) &&
@@ -2656,7 +2655,7 @@ export default function SavedStreamersTable({
                   Object.entries(selectedStreamers)
                     .filter(([_, selected]) => selected)
                     .filter(([id]) => {
-                      const streamer = data.find((s) => s.id === id);
+                      const streamer = savedStreamers.find((s) => s.id === id);
                       return (
                         streamer &&
                         hasEmails(streamer) &&
@@ -2670,7 +2669,7 @@ export default function SavedStreamersTable({
                 {Object.entries(selectedStreamers)
                   .filter(([_, selected]) => selected)
                   .filter(([id]) => {
-                    const streamer = data.find((s) => s.id === id);
+                    const streamer = savedStreamers.find((s) => s.id === id);
                     return (
                       streamer &&
                       hasEmails(streamer) &&
