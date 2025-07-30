@@ -23,6 +23,8 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 import { usePathname } from "next/navigation";
+import { SafeLink } from "../SafeLink";
+import { useSearchStatus } from "@/app/context/searchStatusContext";
 // Navigation items
 const items = [
   {
@@ -60,6 +62,7 @@ const items = [
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   // const [activeItem, setActiveItem] = React.useState("/dashboard");
   const pathname = usePathname();
+  const { isSearching } = useSearchStatus();
 
   return (
     <Sidebar
@@ -90,10 +93,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     className="transition-all duration-200 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950 dark:hover:text-blue-300 data-[active=true]:bg-blue-100 data-[active=true]:text-blue-700 dark:data-[active=true]:bg-blue-900 dark:data-[active=true]:text-blue-300"
                     tooltip={item.title}
                   >
-                    <a href={item.url} className="flex items-center gap-3">
+                    <SafeLink
+                      href={item.url}
+                      isSearching={isSearching}
+                      className="flex items-center gap-3"
+                    >
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
-                    </a>
+                    </SafeLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
