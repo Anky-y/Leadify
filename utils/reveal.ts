@@ -24,15 +24,29 @@ export async function revealSocialLinks(streamerId: string): Promise<boolean> {
       }
     );
 
-    console.log(response);
-
     if (!response.ok) {
       const errorData = await response.json();
+      const errorDetail = errorData?.detail?.toLowerCase() || "";
+
+      if (errorDetail.includes("insufficient credits")) {
+        toast.error("Insufficient credits", {
+          description: "You do not have enough credits to reveal social links.",
+        });
+        return false; // <-- Return here, do not throw
+      }
+
       throw new Error(errorData.detail || "Failed to reveal social links");
     }
 
     return true;
   } catch (error: any) {
+    if (
+      typeof error?.message === "string" &&
+      error.message.toLowerCase().includes("insufficient credits")
+    ) {
+      // Already handled, do nothing
+      return false;
+    }
     toast.error("Error revealing social links", {
       description: error.message,
     });
@@ -59,11 +73,29 @@ export async function revealEmail(streamerId: string): Promise<boolean> {
 
     if (!response.ok) {
       const errorData = await response.json();
+      const errorDetail = errorData?.detail?.toLowerCase() || "";
+
+      if (errorDetail.includes("insufficient credits")) {
+        toast.error("Insufficient credits", {
+          description: "You do not have enough credits to reveal email.",
+        });
+        return false; // <-- Return here, do not throw
+      }
+
+      // Only throw for truly unexpected errors
       throw new Error(errorData.detail || "Failed to reveal email");
     }
 
     return true;
   } catch (error: any) {
+    // Only show a toast for unexpected errors
+    if (
+      typeof error?.message === "string" &&
+      error.message.toLowerCase().includes("insufficient credits")
+    ) {
+      // Already handled, do nothing
+      return false;
+    }
     toast.error("Error revealing email", {
       description: error.message,
     });
@@ -90,7 +122,9 @@ export function canAccessFeature(
 }
 
 // Helper function to show upgrade toast
-export function showUpgradeToast(feature: "social_links" | "email" | "favorite") {
+export function showUpgradeToast(
+  feature: "social_links" | "email" | "favorite"
+) {
   let featureName: string;
   let requiredPlan: string;
 
@@ -114,7 +148,9 @@ export function showUpgradeToast(feature: "social_links" | "email" | "favorite")
   }
 
   toast.error(
-    `${featureName.charAt(0).toUpperCase() + featureName.slice(1)} are only available on ${requiredPlan} plans and above`,
+    `${
+      featureName.charAt(0).toUpperCase() + featureName.slice(1)
+    } are only available on ${requiredPlan} plans and above`,
     {
       description: "Upgrade your subscription to access this feature",
       action: {

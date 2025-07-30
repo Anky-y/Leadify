@@ -601,21 +601,6 @@ export default function SavedStreamersTable({
   };
 
   const handleRevealSocials = async (streamerId: string) => {
-    // Optimistic update - mark as revealed immediately
-    // setSavedStreamers((prev) =>
-    //   prev.map((streamer) =>
-    //     streamer.id === streamerId
-    //       ? { ...streamer, socials_revealed: true }
-    //       : streamer
-    //   )
-    // );
-
-    // setRevealedSocials((prev) => ({
-    //   ...prev,
-    //   [streamerId]: true,
-    // }));
-
-    // updateCredits(-1);
     try {
       const success = await revealSocialLinks(streamerId);
       if (success) {
@@ -632,13 +617,13 @@ export default function SavedStreamersTable({
               : streamer
           )
         );
-
         setRevealedSocials((prev) => ({
           ...prev,
           [streamerId]: true,
         }));
       } else {
-        throw new Error("Failed to reveal social links");
+        // Do nothing: insufficient credits toast already shown by revealSocialLinks
+        return;
       }
     } catch (error) {
       // Revert optimistic update on error
@@ -649,12 +634,11 @@ export default function SavedStreamersTable({
             : streamer
         )
       );
-
       setRevealedSocials((prev) => ({
         ...prev,
         [streamerId]: false,
       }));
-
+      console.log(error);
       toast.error("Failed to reveal social links", {
         description:
           "Please try again or contact support if the issue persists",
@@ -693,13 +677,13 @@ export default function SavedStreamersTable({
               : streamer
           )
         );
-
         setRevealedEmails((prev) => ({
           ...prev,
           [streamerId]: true,
         }));
       } else {
-        throw new Error("Failed to reveal email");
+        // Do nothing: insufficient credits toast already shown by revealEmail
+        return;
       }
     } catch (error) {
       // Revert optimistic update on error
@@ -710,12 +694,11 @@ export default function SavedStreamersTable({
             : streamer
         )
       );
-
       setRevealedEmails((prev) => ({
         ...prev,
         [streamerId]: false,
       }));
-
+      console.log(error);
       toast.error("Failed to reveal email address", {
         description:
           "Please try again or contact support if the issue persists",
@@ -729,7 +712,6 @@ export default function SavedStreamersTable({
       console.error("Error revealing email:", error);
     }
   };
-
   // Bulk reveal socials for selected streamers with confirmation
   const handleBulkRevealSocials = async () => {
     const selectedStreamerIds = Object.entries(selectedStreamers)

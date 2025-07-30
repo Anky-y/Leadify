@@ -9,10 +9,9 @@ import SavedFiltersTab from "./tabs/saved-filters-tab";
 import type { ScrapingProgress, TwitchData } from "./types";
 import type User from "@/app/types/user";
 import { useUser } from "@/app/context/UserContext";
-import Papa from "papaparse";
 import { motion, AnimatePresence } from "framer-motion";
-import { json } from "stream/consumers";
 import { createClient } from "@/utils/supabase-browser";
+import { useSearchStatus } from "@/app/context/searchStatusContext";
 
 const supabase = createClient();
 
@@ -56,7 +55,7 @@ export default function TwitchScraperUI({
   const [maxViewers, setMaxViewers] = useState<number>(100000);
 
   // State for UI
-  const [isLoading, setIsLoading] = useState(false);
+  const { isSearching, setIsSearching } = useSearchStatus();
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [data, setData] = useState<TwitchData[]>([]);
   const [subscribed, setSubscribed] = useState(initialSubscribed);
@@ -73,30 +72,20 @@ export default function TwitchScraperUI({
   const [showCancelSearchPrompt, setShowCancelSearchPrompt] = useState(false);
   const [pendingTab, setPendingTab] = useState<string | null>(null);
 
-  // Example tab change handler
-  const handleTabChange = (newTab: string) => {
-    if (isLoading && activeTab === "search" && newTab !== "search") {
-      setPendingTab(newTab);
-      setShowCancelSearchPrompt(true);
-    } else {
-      setActiveTab(newTab);
+  // When user confirms cancellation
+  const confirmTabChange = () => {
+    setShowCancelSearchPrompt(false);
+    if (pendingTab !== null) {
+      setActiveTab(pendingTab);
     }
+    setPendingTab(null);
+    // Add your cancellation logic here if needed
   };
 
-  // When user confirms cancellation
-const confirmTabChange = () => {
-  setShowCancelSearchPrompt(false);
-  if (pendingTab !== null) {
-    setActiveTab(pendingTab);
-  }
-  setPendingTab(null);
-  // Add your cancellation logic here if needed
-};
-
-const cancelTabChange = () => {
-  setShowCancelSearchPrompt(false);
-  setPendingTab(null);
-};
+  const cancelTabChange = () => {
+    setShowCancelSearchPrompt(false);
+    setPendingTab(null);
+  };
 
   const [isFrontendSocialScraping, setIsFrontendSocialScraping] =
     useState(false);
@@ -117,7 +106,7 @@ const cancelTabChange = () => {
 
   // Function to handle search with detailed progress updates
   const handleSearch = async () => {
-    setIsLoading(true);
+    setIsSearching(true);
     setLoadingProgress(0);
 
     if (progressData !== null) {
@@ -220,7 +209,7 @@ const cancelTabChange = () => {
             });
 
             setStreamers(updatedStreamers);
-            setIsLoading(false);
+            setIsSearching(false);
             setIsFrontendSocialScraping(false); // Now show the data!
             setFrontendSocialProgress(100);
             addNotification(
@@ -243,7 +232,7 @@ const cancelTabChange = () => {
         } catch (error) {
           console.error("Error polling scrape progress:", error);
           clearInterval(pollingInterval);
-          setIsLoading(false);
+          setIsSearching(false);
         }
       }, pollInterval);
       // Start first poll immediately
@@ -253,7 +242,7 @@ const cancelTabChange = () => {
       }, 500);
     } catch (error) {
       console.error("Error starting scrape:", error);
-      setIsLoading(false);
+      setIsSearching(false);
     }
   };
 
@@ -461,7 +450,7 @@ const cancelTabChange = () => {
                       setMinViewers={setMinViewers}
                       maxViewers={maxViewers}
                       setMaxViewers={setMaxViewers}
-                      isLoading={isLoading}
+                      isLoading={isSearching}
                       loadingProgress={loadingProgress}
                       data={data}
                       subscribed={subscribed}

@@ -10,6 +10,7 @@ import { useUser } from "@/app/context/UserContext";
 import { handleLogout } from "./logout";
 import { useRouter } from "next/navigation";
 import { useSubscription } from "@/app/context/SubscriptionContext";
+import { SearchStatusProvider } from "@/app/context/searchStatusContext";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -18,7 +19,7 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const router = useRouter();
   const { user, refreshUser } = useUser();
-  const {subscription, refreshSubscription} = useSubscription();
+  const { subscription, refreshSubscription } = useSubscription();
   const handleLogoutClick = async () => {
     const { error } = await handleLogout();
 
@@ -33,13 +34,19 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   };
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <DashboardHeader onLogout={handleLogoutClick} user={user} subscription={subscription} />
-        <div className="flex flex-1 flex-col ">{children}</div>
-      </SidebarInset>
-      <MobileSidebarTrigger />
-    </SidebarProvider>
+    <SearchStatusProvider>
+      <SidebarProvider>
+        <AppSidebar />
+        <SidebarInset>
+          <DashboardHeader
+            onLogout={handleLogoutClick}
+            user={user}
+            subscription={subscription}
+          />
+          <div className="flex flex-1 flex-col ">{children}</div>
+        </SidebarInset>
+        <MobileSidebarTrigger />
+      </SidebarProvider>
+    </SearchStatusProvider>
   );
 }
