@@ -43,6 +43,8 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useUser } from "@/app/context/UserContext";
+import { Category } from "./types";
+import { set } from "date-fns";
 
 interface FilterSectionProps {
   language: string;
@@ -95,6 +97,30 @@ export default function FilterSection({
   const [filterName, setFilterName] = useState("");
   const { user } = useUser();
   const [activeFiltersCount, setActiveFiltersCount] = useState(0);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoriesIsOpen, setCategoriesIsOpen] = useState(false);
+
+  // Fetch categories when dropdown opens
+  useEffect(() => {
+    if (categoriesIsOpen) {
+      fetchCategories();
+    }
+  }, [categoriesIsOpen]);
+
+  const fetchCategories = async () => {
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}categories`
+      );
+      if (!res.ok) {
+        throw new Error("Failed to fetch categories");
+      }
+      const { data } = await res.json();
+      setCategories(data);
+    } catch (err) {
+      console.error("Failed to fetch categories:", err);
+    }
+  };
 
   useEffect(() => {
     setMinFollowersInput(minFollowers.toString());
@@ -471,7 +497,10 @@ export default function FilterSection({
                 value="category"
                 className="border-b-0 rounded-xl overflow-hidden"
               >
-                <AccordionTrigger className="text-sm font-semibold py-4 px-4 hover:no-underline group bg-gradient-to-r from-slate-50 to-gray-50 hover:from-blue-100 hover:to-purple-100 rounded-xl transition-all duration-200 border border-blue-100">
+                <AccordionTrigger
+                  onClick={() => setCategoriesIsOpen((prev) => !prev)}
+                  className="text-sm font-semibold py-4 px-4 hover:no-underline group bg-gradient-to-r from-slate-50 to-gray-50 hover:from-blue-100 hover:to-purple-100 rounded-xl transition-all duration-200 border border-blue-100"
+                >
                   <div className="flex items-center gap-2">
                     <span className="transition-colors group-hover:text-blue-700 text-blue-600">
                       Twitch Category
@@ -499,17 +528,13 @@ export default function FilterSection({
                       <SelectTrigger className="transition-all hover:border-blue-400 focus:ring-blue-200 focus:ring-offset-2 border-blue-200">
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
-                      <SelectContent className="border-blue-100">
+                      <SelectContent className="border-blue-100 max-h-60 overflow-y-auto">
                         <SelectItem value="any">Any category</SelectItem>
-                        <SelectItem value="just-chatting">
-                          Just Chatting
-                        </SelectItem>
-                        <SelectItem value="fortnite">Fortnite</SelectItem>
-                        <SelectItem value="league-of-legends">
-                          League of Legends
-                        </SelectItem>
-                        <SelectItem value="VALORANT">Valorant</SelectItem>
-                        <SelectItem value="Minecraft">Minecraft</SelectItem>
+                        {categories.map((cat) => (
+                          <SelectItem key={cat.value} value={cat.value}>
+                            {cat.name} — {cat.viewers.toLocaleString()} viewers
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </motion.div>
