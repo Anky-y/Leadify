@@ -12,6 +12,7 @@ export interface TwitchData {
   twitter?: string;
   youtube?: string;
   instagram?: string;
+  tiktok?: string;
   discord?: string;
   facebook?: string;
   folder_id?: string; // Better to reference folder by ID

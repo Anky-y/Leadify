@@ -20,6 +20,7 @@ import {
   TwitterLogo,
   YoutubeLogo,
   EnvelopeSimple,
+  TikTokLogo,
 } from "./social-icons";
 import {
   ExternalLink,
@@ -100,6 +101,7 @@ import {
 interface SavedStreamersTableProps {
   data: TwitchData[];
   folders: Folder[];
+  currentFolderId?: string; // Add this new prop
   onDelete: (id: string) => Promise<void>;
   onMoveToFolder: (id: string, folder: string) => Promise<void>;
   refreshStreamers: () => void;
@@ -109,6 +111,7 @@ interface SavedStreamersTableProps {
 export default function SavedStreamersTable({
   data,
   folders,
+  currentFolderId, // Add this
   setFolders,
   onDelete,
   onMoveToFolder,
@@ -179,6 +182,11 @@ export default function SavedStreamersTable({
   const [bulkSocialsConfirmOpen, setBulkSocialsConfirmOpen] = useState(false);
   const [bulkEmailsConfirmOpen, setBulkEmailsConfirmOpen] = useState(false);
 
+  // Loading states for individual operations
+  const [loadingOperations, setLoadingOperations] = useState<
+    Record<string, boolean>
+  >({});
+
   // Adjust visible columns based on screen size
   useEffect(() => {
     if (isMobile) {
@@ -225,6 +233,11 @@ export default function SavedStreamersTable({
 
   const { user, updateCredits } = useUser();
   const [savedStreamers, setSavedStreamers] = useState<TwitchData[]>(data);
+
+  // Sync with external data changes
+  useEffect(() => {
+    setSavedStreamers(data);
+  }, [data]);
 
   const itemsPerPage = isDesktop ? 10 : isTablet ? 7 : 5;
 
@@ -338,6 +351,20 @@ export default function SavedStreamersTable({
 
       return 0;
     });
+  };
+
+  // Filter data based on current folder view
+  const filterDataByFolder = (items: TwitchData[]) => {
+    if (!currentFolderId) return items;
+
+    if (currentFolderId === "all") return items;
+
+    if (currentFolderId === "favourites") {
+      return items.filter((item) => item.is_favourite);
+    }
+
+    // For specific folders
+    return items.filter((item) => item.folder_id === currentFolderId);
   };
 
   // Handle pagination
@@ -463,6 +490,9 @@ export default function SavedStreamersTable({
         )
       );
 
+      // Revert folder count
+      setFolders(folders);
+
       toast.error("Failed to update favorite status", {
         description: "Please try again or check your connection",
         icon: "❌",
@@ -475,6 +505,22 @@ export default function SavedStreamersTable({
       console.error("Error updating favorite:", error);
     }
   };
+
+  function normalizeExportField(field: any): string {
+    if (!field) return "";
+    if (Array.isArray(field)) return field.filter(Boolean).join(", ");
+    if (typeof field === "string") {
+      // Try to parse stringified array
+      try {
+        const parsed = JSON.parse(field);
+        if (Array.isArray(parsed)) return parsed.filter(Boolean).join(", ");
+      } catch {
+        // Not a JSON array, treat as CSV or single string
+        return field.trim();
+      }
+    }
+    return "";
+  }
 
   // Enhanced export function with column selection for Pro users
   const handleExport = async () => {
@@ -521,21 +567,15 @@ export default function SavedStreamersTable({
       const localSavedAt = row.saved_at
         ? new Date(row.saved_at).toLocaleString()
         : "";
-      const censoredEmail = row.email_revealed
-        ? row.gmail
-        : row.gmail
-        ? normalizeEmails(row.gmail)
-            .map(() => "••••••••")
-            .join(", ")
-        : "";
 
-      const censoredSocials = row.socials_revealed
+      // Normalize socials and email for export
+      const normalizedSocials = row.socials_revealed
         ? {
-            twitter: row.twitter,
-            youtube: row.youtube,
-            instagram: row.instagram,
-            discord: row.discord,
-            facebook: row.facebook,
+            twitter: normalizeExportField(row.twitter),
+            youtube: normalizeExportField(row.youtube),
+            instagram: normalizeExportField(row.instagram),
+            discord: normalizeExportField(row.discord),
+            facebook: normalizeExportField(row.facebook),
           }
         : {
             twitter: row.twitter ? "••••••••" : "",
@@ -545,11 +585,19 @@ export default function SavedStreamersTable({
             facebook: row.facebook ? "••••••••" : "",
           };
 
+      const normalizedGmail = row.email_revealed
+        ? normalizeExportField(row.gmail)
+        : row.gmail
+        ? normalizeEmails(row.gmail)
+            .map(() => "••••••••")
+            .join(", ")
+        : "";
+
       return {
         ...rowWithoutUnwanted,
         saved_at: localSavedAt,
-        gmail: censoredEmail,
-        ...censoredSocials,
+        gmail: normalizedGmail,
+        ...normalizedSocials,
       };
     });
 
@@ -970,6 +1018,7 @@ export default function SavedStreamersTable({
     const leavingCount: Record<string, number> = {};
     let addedCount = 0;
 
+    // Calculate folder count changes
     savedStreamers.forEach((s) => {
       if (streamerIds.includes(s.id)) {
         if (s.folder_id && s.folder_id !== targetFolderId) {
@@ -981,12 +1030,14 @@ export default function SavedStreamersTable({
       }
     });
 
+    // Optimistic update - update streamers
     setSavedStreamers((prev) =>
       prev.map((s) =>
         streamerIds.includes(s.id) ? { ...s, folder_id: targetFolderId } : s
       )
     );
 
+    // Optimistic update - update folder counts
     const updatedFolders = folders.map((folder) => {
       let count = folder.streamer_count || 0;
 
@@ -1003,9 +1054,325 @@ export default function SavedStreamersTable({
 
     setFolders(updatedFolders);
 
+    // Perform API calls
+    let successCount = 0;
+    let failCount = 0;
+
     for (const id of streamerIds) {
-      await handleMoveToFolder(id, targetFolderId);
+      try {
+        await handleMoveToFolder(id, targetFolderId);
+        successCount++;
+      } catch (error) {
+        failCount++;
+      }
     }
+
+    if (failCount > 0) {
+      // If some operations failed, refresh data to ensure consistency
+      refreshStreamers();
+      toast.error(`Failed to move ${failCount} streamers`, {
+        description: "Data has been refreshed to ensure accuracy",
+        icon: "⚠️",
+        closeButton: true,
+        duration: 5000,
+      });
+    }
+  };
+
+  const handleRemoveFromFolder = async (streamerId: string) => {
+    if (!user?.id) return;
+
+    const streamer = savedStreamers.find((s) => s.id === streamerId);
+    if (!streamer?.folder_id) {
+      toast.error("Streamer is not in any folder", {
+        description: "This streamer is already in the default location",
+        icon: "ℹ️",
+        closeButton: true,
+        duration: 3000,
+      });
+      return;
+    }
+
+    const originalFolderId = streamer.folder_id;
+    const operationKey = `remove-${streamerId}`;
+
+    // Set loading state
+    setLoadingOperations((prev) => ({ ...prev, [operationKey]: true }));
+
+    // Optimistic update - remove from folder immediately
+    setSavedStreamers((prev) =>
+      prev.map((s) =>
+        s.id === streamerId ? { ...s, folder_id: undefined } : s
+      )
+    );
+
+    // If we're viewing the specific folder this streamer was removed from,
+    // force an immediate re-render by updating the filtered data
+    if (currentFolderId === originalFolderId) {
+      // Trigger a state update to force re-filtering
+      setSavedStreamers((prev) => [...prev]);
+    }
+
+    // Update folder counts optimistically
+    const updatedFolders = folders.map((folder) => {
+      if (folder.id === originalFolderId) {
+        return {
+          ...folder,
+          streamer_count: Math.max((folder.streamer_count || 0) - 1, 0),
+        };
+      }
+      return folder;
+    });
+    setFolders(updatedFolders);
+
+    // If we're viewing the folder that the streamer was removed from,
+    // and we're on a page that might become empty, adjust the current page
+    if (currentFolderId === originalFolderId) {
+      const remainingInFolder = savedStreamers.filter(
+        (s) => s.id !== streamerId && s.folder_id === originalFolderId
+      ).length;
+
+      const newTotalPages = Math.ceil(remainingInFolder / itemsPerPage);
+      if (currentPage > newTotalPages && newTotalPages > 0) {
+        setCurrentPage(newTotalPages);
+      } else if (newTotalPages === 0) {
+        setCurrentPage(1);
+      }
+    }
+
+    // Clear the streamer from selection if it was selected
+    setSelectedStreamers((prev) => {
+      const updated = { ...prev };
+      delete updated[streamerId];
+      return updated;
+    });
+
+    try {
+      const result = await removeStreamerFromFolder(user.id, streamerId);
+
+      if (result.success) {
+        toast.success("Removed from folder", {
+          description: "Streamer has been moved to the default location",
+          icon: "📁",
+          closeButton: true,
+          duration: 3000,
+        });
+      } else {
+        throw new Error(result.error || "Failed to remove from folder");
+      }
+    } catch (error) {
+      // Revert optimistic updates on error
+      setSavedStreamers((prev) =>
+        prev.map((s) =>
+          s.id === streamerId ? { ...s, folder_id: originalFolderId } : s
+        )
+      );
+
+      // Revert folder counts
+      const revertedFolders = folders.map((folder) => {
+        if (folder.id === originalFolderId) {
+          return {
+            ...folder,
+            streamer_count: (folder.streamer_count || 0) + 1,
+          };
+        }
+        return folder;
+      });
+      setFolders(revertedFolders);
+
+      toast.error("Failed to remove from folder", {
+        description: "Please try again or check your connection",
+        icon: "❌",
+        closeButton: true,
+        action: {
+          label: "Retry",
+          onClick: () => handleRemoveFromFolder(streamerId),
+        },
+      });
+      console.error("Error removing from folder:", error);
+    } finally {
+      // Clear loading state
+      setLoadingOperations((prev) => {
+        const updated = { ...prev };
+        delete updated[operationKey];
+        return updated;
+      });
+    }
+  };
+
+  const handleBulkRemoveFromFolder = async () => {
+    if (!user?.id) return;
+
+    const selectedStreamerIds = Object.entries(selectedStreamers)
+      .filter(([_, selected]) => selected)
+      .map(([id]) => id);
+
+    if (selectedStreamerIds.length === 0) {
+      toast.error("No streamers selected", {
+        description:
+          "Please select at least one streamer to remove from folders",
+        icon: "⚠️",
+        closeButton: true,
+        duration: 4000,
+      });
+      return;
+    }
+
+    const streamersInFolders = selectedStreamerIds.filter((id) => {
+      const streamer = savedStreamers.find((s) => s.id === id);
+      return streamer && streamer.folder_id;
+    });
+
+    if (streamersInFolders.length === 0) {
+      toast.info("No streamers in folders", {
+        description:
+          "All selected streamers are already in the default location",
+        icon: "ℹ️",
+        closeButton: true,
+        duration: 4000,
+      });
+      return;
+    }
+
+    // Calculate folder count changes before optimistic update
+    const folderCounts: Record<string, number> = {};
+    streamersInFolders.forEach((id) => {
+      const streamer = savedStreamers.find((s) => s.id === id);
+      if (streamer?.folder_id) {
+        folderCounts[streamer.folder_id] =
+          (folderCounts[streamer.folder_id] || 0) + 1;
+      }
+    });
+
+    // Optimistic update - remove all from folders immediately
+    setSavedStreamers((prev) =>
+      prev.map((s) =>
+        streamersInFolders.includes(s.id) ? { ...s, folder_id: undefined } : s
+      )
+    );
+
+    // Force immediate re-render if we're viewing a folder that had streamers removed
+    if (currentFolderId && folderCounts[currentFolderId]) {
+      // Trigger a state update to force re-filtering
+      setSavedStreamers((prev) => [...prev]);
+    }
+
+    // Optimistic update - update folder counts immediately
+    const updatedFolders = folders.map((folder) => {
+      if (folderCounts[folder.id]) {
+        return {
+          ...folder,
+          streamer_count: Math.max(
+            (folder.streamer_count || 0) - folderCounts[folder.id],
+            0
+          ),
+        };
+      }
+      return folder;
+    });
+    setFolders(updatedFolders);
+
+    // If we're viewing a folder that had streamers removed, adjust pagination if needed
+    if (currentFolderId && folderCounts[currentFolderId]) {
+      const remainingInFolder = savedStreamers.filter(
+        (s) =>
+          !streamersInFolders.includes(s.id) && s.folder_id === currentFolderId
+      ).length;
+
+      const newTotalPages = Math.ceil(remainingInFolder / itemsPerPage);
+      if (currentPage > newTotalPages && newTotalPages > 0) {
+        setCurrentPage(newTotalPages);
+      } else if (newTotalPages === 0) {
+        setCurrentPage(1);
+      }
+    }
+
+    toast.info(
+      `Removing ${streamersInFolders.length} streamers from folders...`,
+      {
+        description: "This may take a few moments to complete",
+        icon: "⏳",
+        closeButton: true,
+        duration: 6000,
+      }
+    );
+
+    let successCount = 0;
+    let failCount = 0;
+    const failedStreamers: string[] = [];
+
+    for (const streamerId of streamersInFolders) {
+      try {
+        const result = await removeStreamerFromFolder(user.id, streamerId);
+        if (result.success) {
+          successCount++;
+        } else {
+          failCount++;
+          failedStreamers.push(streamerId);
+        }
+      } catch (error) {
+        failCount++;
+        failedStreamers.push(streamerId);
+      }
+    }
+
+    // If some operations failed, revert those specific streamers
+    if (failedStreamers.length > 0) {
+      setSavedStreamers((prev) =>
+        prev.map((s) => {
+          if (failedStreamers.includes(s.id)) {
+            // Find original folder for this streamer
+            const originalStreamer = savedStreamers.find(
+              (orig) => orig.id === s.id
+            );
+            return { ...s, folder_id: originalStreamer?.folder_id };
+          }
+          return s;
+        })
+      );
+
+      // Revert folder counts for failed operations
+      const revertedFolders = folders.map((folder) => {
+        const failedInThisFolder = failedStreamers.filter((id) => {
+          const originalStreamer = savedStreamers.find((s) => s.id === id);
+          return originalStreamer?.folder_id === folder.id;
+        }).length;
+
+        if (failedInThisFolder > 0) {
+          return {
+            ...folder,
+            streamer_count: (folder.streamer_count || 0) + failedInThisFolder,
+          };
+        }
+        return folder;
+      });
+      setFolders(revertedFolders);
+    }
+
+    if (successCount > 0) {
+      toast.success(
+        `Successfully removed ${successCount} streamers from folders`,
+        {
+          description: `${successCount} streamers moved to default location`,
+          icon: "✅",
+          closeButton: true,
+          duration: 4000,
+        }
+      );
+    }
+
+    if (failCount > 0) {
+      toast.error(`Failed to remove ${failCount} streamers from folders`, {
+        description:
+          "Some operations failed. Please try again for the remaining streamers",
+        icon: "⚠️",
+        closeButton: true,
+        duration: 5000,
+      });
+    }
+
+    // Clear selection after bulk operation
+    setSelectedStreamers({});
   };
 
   const toggleExpandEmails = (streamerId: string) => {
@@ -1094,6 +1461,7 @@ export default function SavedStreamersTable({
     addLinks("twitter", streamer.twitter, TwitterLogo);
     addLinks("facebook", streamer.facebook, FacebookLogo);
     addLinks("instagram", streamer.instagram, InstagramLogo);
+    addLinks("tiktok", streamer.tiktok, TikTokLogo);
 
     return links;
   };
@@ -1105,6 +1473,7 @@ export default function SavedStreamersTable({
     const originalStreamer = savedStreamers.find((s) => s.id === streamerId);
     const originalFolderId = originalStreamer?.folder_id;
 
+    // Optimistic update
     setSavedStreamers((prev) =>
       prev.map((s) =>
         s.id === streamerId
@@ -1112,6 +1481,7 @@ export default function SavedStreamersTable({
           : s
       )
     );
+
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
@@ -1147,6 +1517,7 @@ export default function SavedStreamersTable({
         duration: 3000,
       });
     } catch (error) {
+      // Revert optimistic update on error
       setSavedStreamers((prev) =>
         prev.map((s) =>
           s.id === streamerId ? { ...s, folder_id: originalFolderId } : s
@@ -1168,14 +1539,48 @@ export default function SavedStreamersTable({
 
   const handleDeleteStreamer = async (streamerId: string) => {
     const streamerToDelete = savedStreamers.find((s) => s.id === streamerId);
+    const originalFolderId = streamerToDelete?.folder_id;
 
+    // Optimistic update - remove from UI immediately
     setSavedStreamers((prev) => prev.filter((s) => s.id !== streamerId));
 
+    // Update folder counts optimistically
+    if (originalFolderId) {
+      const updatedFolders = folders.map((folder) => {
+        if (folder.id === originalFolderId) {
+          return {
+            ...folder,
+            streamer_count: Math.max((folder.streamer_count || 0) - 1, 0),
+          };
+        }
+        return folder;
+      });
+      setFolders(updatedFolders);
+    }
+
+    // Clear from selection
     setSelectedStreamers((prev) => {
       const updated = { ...prev };
       delete updated[streamerId];
       return updated;
     });
+
+    // If we're viewing a specific folder and this affects the current view, adjust pagination
+    if (
+      currentFolderId &&
+      (currentFolderId === originalFolderId || currentFolderId === "all")
+    ) {
+      const remainingInView = filterDataByFolder(
+        savedStreamers.filter((s) => s.id !== streamerId)
+      ).length;
+
+      const newTotalPages = Math.ceil(remainingInView / itemsPerPage);
+      if (currentPage > newTotalPages && newTotalPages > 0) {
+        setCurrentPage(newTotalPages);
+      } else if (newTotalPages === 0) {
+        setCurrentPage(1);
+      }
+    }
 
     try {
       const headers: Record<string, string> = {
@@ -1206,6 +1611,7 @@ export default function SavedStreamersTable({
         duration: 3000,
       });
     } catch (error) {
+      // Revert optimistic updates on error
       if (streamerToDelete) {
         setSavedStreamers((prev) =>
           [...prev, streamerToDelete].sort((a, b) => {
@@ -1214,6 +1620,20 @@ export default function SavedStreamersTable({
             return 0;
           })
         );
+
+        // Revert folder count
+        if (originalFolderId) {
+          const revertedFolders = folders.map((folder) => {
+            if (folder.id === originalFolderId) {
+              return {
+                ...folder,
+                streamer_count: (folder.streamer_count || 0) + 1,
+              };
+            }
+            return folder;
+          });
+          setFolders(revertedFolders);
+        }
       }
 
       toast.error("Failed to delete streamer", {
@@ -1229,8 +1649,70 @@ export default function SavedStreamersTable({
     }
   };
 
-  // Apply sorting and pagination
-  const sortedData = sortData(savedStreamers);
+  async function removeStreamerFromFolder(
+    userId: string,
+    streamerId: string
+  ): Promise<{ success?: boolean; error?: string }> {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}streamers/remove-from-folder`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-user-id": userId,
+          },
+          body: JSON.stringify({ streamer_id: streamerId }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data?.detail || "Failed to remove streamer from folder"
+        );
+      }
+
+      return { success: true };
+    } catch (error: any) {
+      console.error("Error removing streamer from folder:", error.message);
+      return { error: error.message };
+    }
+  }
+
+  // Update the getRowStyling function to use more subtle and functional color schemes
+  const getRowStyling = (streamer: TwitchData) => {
+    const hasSocials = hasSocialLinks(streamer);
+    const hasEmail = hasEmails(streamer);
+    const socialsRevealed = streamer.socials_revealed;
+    const emailRevealed = streamer.email_revealed;
+
+    const base =
+      "bg-white/90 hover:bg-slate-100 transition-all duration-200 rounded-md shadow-sm hover:shadow-md backdrop-blur border-l-4";
+
+    // Both revealed – Premium indigo
+    if (hasSocials && hasEmail && socialsRevealed && emailRevealed) {
+      return `${base} border-l-indigo-500`;
+    }
+
+    // Only socials – Modern emerald
+    if (hasSocials && socialsRevealed && (!hasEmail || !emailRevealed)) {
+      return `${base} border-l-emerald-500`;
+    }
+
+    // Only email – Clear sky tone
+    if (hasEmail && emailRevealed && (!hasSocials || !socialsRevealed)) {
+      return `${base} border-l-sky-500`;
+    }
+
+    // Nothing revealed – Subtle neutral
+    return `${base} border-l-slate-200`;
+  };
+
+  // Apply filtering first, then sorting and pagination
+  const filteredData = filterDataByFolder(savedStreamers);
+  const sortedData = sortData(filteredData);
   const totalPages = Math.ceil(sortedData.length / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
@@ -1268,7 +1750,20 @@ export default function SavedStreamersTable({
     visible: { opacity: 1, transition: { duration: 0.3 } },
   };
 
-  console.log(savedStreamers);
+  // Handle real-time filtering and pagination adjustments
+  useEffect(() => {
+    if (currentFolderId && currentFolderId !== "all") {
+      const filteredCount = filterDataByFolder(savedStreamers).length;
+      const newTotalPages = Math.ceil(filteredCount / itemsPerPage);
+
+      // If current page is beyond available pages, adjust to last page
+      if (currentPage > newTotalPages && newTotalPages > 0) {
+        setCurrentPage(newTotalPages);
+      } else if (newTotalPages === 0 && currentPage !== 1) {
+        setCurrentPage(1);
+      }
+    }
+  }, [savedStreamers, currentFolderId, currentPage, itemsPerPage]);
 
   return (
     <TooltipProvider>
@@ -1511,13 +2006,14 @@ export default function SavedStreamersTable({
             {/* Bulk Action Buttons with Confirmation Dialogs */}
             {selectedCount > 0 && (
               <>
+                {/* Update bulk action buttons with improved styling */}
                 {selectedWithSocials > 0 && (
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-8 px-2 text-xs sm:text-sm sm:h-9 sm:px-3 border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:border-emerald-300 transition-all duration-200 bg-transparent"
+                        className="h-8 px-2 text-xs sm:text-sm sm:h-9 sm:px-3 border-teal-300 bg-white/90 text-teal-700 hover:bg-teal-50 hover:border-teal-400 transition-all duration-200 shadow-sm hover:shadow-md backdrop-blur-sm font-medium"
                         onClick={handleBulkRevealSocials}
                         disabled={bulkRevealingSocials}
                       >
@@ -1551,10 +2047,10 @@ export default function SavedStreamersTable({
                       <Button
                         variant="outline"
                         size="sm"
-                        className={`h-8 px-2 text-xs sm:text-sm sm:h-9 sm:px-3 transition-all duration-200 ${
+                        className={`h-8 px-2 text-xs sm:text-sm sm:h-9 sm:px-3 transition-all duration-200 shadow-sm hover:shadow-md backdrop-blur-sm font-medium ${
                           canAccessFeature("email", user?.subscription_plan)
-                            ? "border-blue-200 text-blue-700 hover:bg-blue-50 hover:border-blue-300"
-                            : "border-amber-200 text-amber-700 hover:bg-amber-50 hover:border-amber-300"
+                            ? "border-violet-300 bg-white/90 text-violet-700 hover:bg-violet-50 hover:border-violet-400"
+                            : "border-amber-300 bg-white/90 text-amber-700 hover:bg-amber-50 hover:border-amber-400"
                         }`}
                         onClick={handleBulkRevealEmails}
                         disabled={bulkRevealingEmails}
@@ -1578,7 +2074,7 @@ export default function SavedStreamersTable({
                           "email",
                           user?.subscription_plan
                         ) && (
-                          <Badge className="ml-1 bg-amber-100 text-amber-800 hover:bg-amber-100 text-xs px-1">
+                          <Badge className="ml-1 bg-amber-100 text-amber-800 hover:bg-amber-100 text-xs px-1 font-medium">
                             Basic
                           </Badge>
                         )}
@@ -1591,6 +2087,37 @@ export default function SavedStreamersTable({
                     </TooltipContent>
                   </Tooltip>
                 )}
+
+                {/* Add bulk remove from folder button */}
+                {(() => {
+                  const streamersInFolders = selectedStreamerData.filter(
+                    (s) => s.folder_id
+                  ).length;
+                  return streamersInFolders > 0 ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 px-2 text-xs sm:text-sm sm:h-9 sm:px-3 border-orange-300 bg-white/90 text-orange-700 hover:bg-orange-50 hover:border-orange-400 transition-all duration-200 shadow-sm hover:shadow-md backdrop-blur-sm font-medium"
+                          onClick={handleBulkRemoveFromFolder}
+                        >
+                          <FolderClosed className="h-3.5 w-3.5 mr-1 sm:mr-2" />
+                          <span className="hidden sm:inline">
+                            Remove from folders ({streamersInFolders})
+                          </span>
+                          <span className="inline sm:hidden">
+                            Remove ({streamersInFolders})
+                          </span>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        Remove {streamersInFolders} selected streamers from
+                        their current folders
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : null;
+                })()}
 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -1667,7 +2194,7 @@ export default function SavedStreamersTable({
 
         <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
           <Table>
-            <TableHeader className="bg-gradient-to-r from-gray-50 to-gray-100 sticky top-0 z-10">
+            <TableHeader className="bg-gradient-to-r from-gray-50 to-gray-100 sticky top-0">
               <TableRow className="border-b border-gray-200 hover:bg-transparent">
                 <TableHead className="w-[50px]">
                   <Checkbox
@@ -1844,23 +2371,28 @@ export default function SavedStreamersTable({
                           visible: true,
                         });
                       }}
-                      className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors duration-150"
+                      className={`border-b border-gray-100 transition-colors duration-150 ${getRowStyling(
+                        row
+                      )}`}
                       custom={index}
                       initial="hidden"
                       animate="visible"
                       exit="exit"
                       variants={tableRowVariants}
                     >
-                      <TableCell className="py-2 sm:py-3">
-                        <Checkbox
-                          checked={!!selectedStreamers[row.id]}
-                          onCheckedChange={(checked) =>
-                            handleCheckboxChange(row.id, checked === true)
-                          }
-                          aria-label={`Select ${row.username}`}
-                          className="ml-2"
-                        />
+                      <TableCell className="py-2 sm:py-3 relative">
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            checked={!!selectedStreamers[row.id]}
+                            onCheckedChange={(checked) =>
+                              handleCheckboxChange(row.id, checked === true)
+                            }
+                            aria-label={`Select ${row.username}`}
+                            className="ml-2"
+                          />
+                        </div>
                       </TableCell>
+                      {/* Rest of the table cells remain the same */}
                       {visibleColumns.favorite && (
                         <TableCell className="py-2 sm:py-3">
                           <Tooltip>
@@ -1937,7 +2469,7 @@ export default function SavedStreamersTable({
                         </TableCell>
                       )}
                       {visibleColumns.social && (
-                        <TableCell className="py-2 sm:py-3">
+                        <TableCell className="py-2 sm:py-3 relative overflow-visible">
                           {(() => {
                             const allSocialLinks = getSocialLinksArray(row);
                             if (allSocialLinks.length === 0) {
@@ -1972,10 +2504,11 @@ export default function SavedStreamersTable({
                                   </div>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
+                                      {/* Social reveal button */}
                                       <Button
                                         variant="outline"
                                         size="sm"
-                                        className="h-8 rounded-full text-xs px-3 py-0 ml-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 hover:border-emerald-300 transition-all duration-200 shadow-sm bg-transparent"
+                                        className="h-8 rounded-full text-xs px-3 py-0 ml-2 border-teal-300 bg-white/90 text-teal-700 hover:bg-teal-50 hover:text-teal-800 hover:border-teal-400 transition-all duration-200 shadow-sm hover:shadow-md backdrop-blur-sm font-medium"
                                         onClick={() =>
                                           handleRevealSocials(row.id)
                                         }
@@ -1984,7 +2517,9 @@ export default function SavedStreamersTable({
                                         Reveal
                                       </Button>
                                     </TooltipTrigger>
-                                    <TooltipContent>
+                                    <TooltipContent
+                                      className={index < 3 ? "z-50" : "z-30"}
+                                    >
                                       Reveal social media links
                                     </TooltipContent>
                                   </Tooltip>
@@ -1998,6 +2533,7 @@ export default function SavedStreamersTable({
                                 if (!acc[link.type]) {
                                   acc[link.type] = [];
                                 }
+
                                 acc[link.type].push(link);
                                 return acc;
                               },
@@ -2049,7 +2585,9 @@ export default function SavedStreamersTable({
                                         </TooltipTrigger>
                                         <TooltipContent
                                           side="top"
-                                          className="max-w-xs"
+                                          className={`max-w-xs ${
+                                            index < 3 ? "z-50" : "z-30"
+                                          }`}
                                         >
                                           <div className="space-y-1">
                                             <div className="font-medium text-sm capitalize mb-2">
@@ -2073,9 +2611,6 @@ export default function SavedStreamersTable({
                                                 <ExternalLink className="h-3 w-3 flex-shrink-0" />
                                                 <span className="truncate max-w-[200px]">
                                                   {link.url}
-                                                  {/* {hasMultiple
-                                                    ? `Link ${idx + 1}`
-                                                    : "Open link"} */}
                                                 </span>
                                               </motion.a>
                                             ))}
@@ -2094,7 +2629,6 @@ export default function SavedStreamersTable({
                         <TableCell className="py-2 sm:py-3 max-w-[200px]">
                           {(() => {
                             const emails = normalizeEmails(row.gmail);
-                            console.log(emails);
                             if (emails.length === 0) {
                               return (
                                 <span className="text-gray-400 text-xs">
@@ -2114,10 +2648,11 @@ export default function SavedStreamersTable({
                                   ) ? (
                                     <Tooltip>
                                       <TooltipTrigger asChild>
+                                        {/* Email reveal button (when accessible) */}
                                         <Button
                                           variant="outline"
                                           size="sm"
-                                          className="h-8 rounded-full text-xs px-3 py-0 ml-2 border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800 hover:border-blue-300 transition-all duration-200 shadow-sm bg-transparent"
+                                          className="h-8 rounded-full text-xs px-3 py-0 ml-2 border-violet-300 bg-white/90 text-violet-700 hover:bg-violet-50 hover:text-violet-800 hover:border-violet-400 transition-all duration-200 shadow-sm hover:shadow-md backdrop-blur-sm font-medium"
                                           onClick={() =>
                                             handleRevealEmail(row.id)
                                           }
@@ -2133,17 +2668,18 @@ export default function SavedStreamersTable({
                                   ) : (
                                     <Tooltip>
                                       <TooltipTrigger asChild>
+                                        {/* Email reveal button (when upgrade needed) */}
                                         <Button
                                           variant="outline"
                                           size="sm"
-                                          className="h-8 rounded-full text-xs px-3 py-0 ml-2 border-amber-200 text-amber-700 hover:bg-amber-50 hover:text-amber-800 hover:border-amber-300 transition-all duration-200 shadow-sm bg-transparent"
+                                          className="h-8 rounded-full text-xs px-3 py-0 ml-2 border-amber-300 bg-white/90 text-amber-700 hover:bg-amber-50 hover:text-amber-800 hover:border-amber-400 transition-all duration-200 shadow-sm hover:shadow-md backdrop-blur-sm font-medium"
                                           onClick={() =>
                                             showUpgradeToast("email")
                                           }
                                         >
                                           <Unlock className="h-3 w-3 mr-1.5" />
                                           <span className="mr-1">Reveal</span>
-                                          <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 text-xs px-1">
+                                          <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 text-xs px-1 font-medium">
                                             Basic
                                           </Badge>
                                         </Button>
@@ -2235,8 +2771,8 @@ export default function SavedStreamersTable({
                           >
                             {row.folder_id
                               ? folders.find((f) => f.id === row.folder_id)
-                                  ?.name
-                              : "N/A"}
+                                  ?.name || "Unknown"
+                              : "Default"}
                           </Badge>
                         </TableCell>
                       )}
@@ -2259,8 +2795,13 @@ export default function SavedStreamersTable({
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8 hover:bg-gray-100 transition-colors duration-150"
+                              disabled={loadingOperations[`remove-${row.id}`]}
                             >
-                              <MoreHorizontal className="h-4 w-4" />
+                              {loadingOperations[`remove-${row.id}`] ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <MoreHorizontal className="h-4 w-4" />
+                              )}
                               <span className="sr-only">Open menu</span>
                             </Button>
                           </DropdownMenuTrigger>
@@ -2354,11 +2895,27 @@ export default function SavedStreamersTable({
                                 ))}
                             </div>
                             <DropdownMenuSeparator />
+                            {row.folder_id && (
+                              <DropdownMenuItem
+                                onClick={async () =>
+                                  await handleRemoveFromFolder(row.id)
+                                }
+                                className="cursor-pointer text-orange-600 hover:bg-orange-50"
+                                disabled={loadingOperations[`remove-${row.id}`]}
+                              >
+                                {loadingOperations[`remove-${row.id}`] ? (
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                ) : (
+                                  <FolderClosed className="mr-2 h-4 w-4" />
+                                )}
+                                <span>Remove from folder</span>
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuItem
                               onClick={async () =>
                                 await handleDeleteStreamer(row.id)
                               }
-                              className="cursor-pointer"
+                              className="cursor-pointer text-red-600 hover:bg-red-50"
                             >
                               <Trash2 className="mr-2 h-4 w-4" />
                               <span>Delete</span>
@@ -2431,7 +2988,7 @@ export default function SavedStreamersTable({
         {contextMenu.visible && contextMenu.row && (
           <motion.div
             ref={contextMenuRef}
-            className="fixed z-50 bg-white border rounded-md shadow-lg overflow-hidden"
+            className="fixed z-40 bg-white border rounded-md shadow-lg overflow-hidden"
             style={{
               top: menuPosition.y,
               left: menuPosition.x,
@@ -2548,6 +3105,25 @@ export default function SavedStreamersTable({
                   ))}
               </div>
               <div className="h-px bg-gray-200 my-1" />
+              {contextMenu.row?.folder_id && (
+                <button
+                  onClick={() => {
+                    if (contextMenu.row) {
+                      handleRemoveFromFolder(contextMenu.row.id);
+                      setContextMenu((prev) => ({ ...prev, visible: false }));
+                    }
+                  }}
+                  className="w-full flex items-center px-2 py-2 text-sm text-orange-600 hover:bg-orange-50 rounded-sm cursor-pointer"
+                  disabled={loadingOperations[`remove-${contextMenu.row.id}`]}
+                >
+                  {loadingOperations[`remove-${contextMenu.row.id}`] ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <FolderClosed className="mr-2 h-4 w-4" />
+                  )}
+                  <span>Remove from folder</span>
+                </button>
+              )}
               <button
                 onClick={async () => {
                   if (contextMenu.row) {
