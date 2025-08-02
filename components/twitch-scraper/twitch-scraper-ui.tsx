@@ -12,6 +12,8 @@ import { useUser } from "@/app/context/UserContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/utils/supabase-browser";
 import { useSearchStatus } from "@/app/context/searchStatusContext";
+import { toast } from "sonner";
+import { CheckCircle } from "lucide-react";
 
 const supabase = createClient();
 
@@ -128,9 +130,9 @@ export default function TwitchScraperUI({
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            category: "Fortnite",
-            minimum_followers: 10,
-            maximum_followers: 100000,
+            category: "Politics",
+            minimum_followers: 100000000000,
+            maximum_followers: 1000000000000000,
             viewer_count: 20,
             language: "en",
             user_id: user?.id,
@@ -168,6 +170,8 @@ export default function TwitchScraperUI({
             setFrontendSocialProgress(0);
 
             let streamerList: TwitchData[] = progress.data || [];
+            
+            
 
             updateProgressData({
               ...progress,
@@ -212,6 +216,9 @@ export default function TwitchScraperUI({
             setIsSearching(false);
             setIsFrontendSocialScraping(false); // Now show the data!
             setFrontendSocialProgress(100);
+             toast.success(`Search complete`, {
+              description: `Found ${streamerList.length} streamers`,
+            });
             addNotification(
               user?.id,
               "Search Complete",
