@@ -387,7 +387,7 @@ export function DashboardHeader({
                 <Badge
                 className="absolute -top-1 -right-1 h-5 w-5 rounded-full flex items-center justify-center text-xs bg-blue-600 hover:bg-blue-600 p-0"
                 >
-                {unreadCount}
+                {unreadCount < 9 ? unreadCount: "9+"}
                 </Badge>
               )}
               <span className="sr-only">Notifications</span>
