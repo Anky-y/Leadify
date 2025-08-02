@@ -90,8 +90,11 @@ export default function SavedStreamersTab({}: SavedStreamersTabProps) {
       const foldersRes = await fetch(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}folders?user_id=${userId}`
       );
+
+      console.log(foldersRes)
       const fetchedFolders = await foldersRes.json();
 
+      console.log(fetchedFolders)
       const filteredFolders = fetchedFolders.filter(
         (folder: Folder) =>
           folder.name !== "All" && folder.name !== "Favourites"
