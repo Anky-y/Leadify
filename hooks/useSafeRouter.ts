@@ -15,7 +15,7 @@ export function useSafeRouter(isSearching: boolean) {
       "A search is currently running. Navigating away will cancel it. Continue?"
     );
     if (confirmed){
-      await fetch(`${process.env.NEXT_PUBLIC_BACKEND_UR}Twitch_scraper/terminate`,
+      await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}Twitch_scraper/terminate`,
         {method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({user_id:user?.id}),
