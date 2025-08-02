@@ -2,13 +2,6 @@
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import {
   ChevronLeft,
@@ -29,9 +22,9 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Input } from "@/components/ui/input";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Dialog,
   DialogContent,
@@ -41,10 +34,22 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { toast } from "sonner";
 import { useUser } from "@/app/context/UserContext";
-import { Category } from "./types";
-import { set } from "date-fns";
+import type { Category, Language } from "./types";
 
 interface FilterSectionProps {
   language: string;
@@ -99,13 +104,21 @@ export default function FilterSection({
   const [activeFiltersCount, setActiveFiltersCount] = useState(0);
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoriesIsOpen, setCategoriesIsOpen] = useState(false);
+  const [categorySearchOpen, setCategorySearchOpen] = useState(false);
+  const [categorySearch, setCategorySearch] = useState("");
+  const [languages, setLanguages] = useState<Language[]>([]);
+  const [languageSearchOpen, setLanguageSearchOpen] = useState(false);
+  const [languageSearch, setLanguageSearch] = useState("");
 
-  // Fetch categories when dropdown opens
+  // Fetch languages and categories when dropdowns open
   useEffect(() => {
-    if (categoriesIsOpen) {
+    if (categoriesIsOpen || categorySearchOpen) {
       fetchCategories();
     }
-  }, [categoriesIsOpen]);
+    if (languageSearchOpen) {
+      fetchLanguages();
+    }
+  }, [categoriesIsOpen, categorySearchOpen, languageSearchOpen]);
 
   const fetchCategories = async () => {
     try {
@@ -121,6 +134,85 @@ export default function FilterSection({
       console.error("Failed to fetch categories:", err);
     }
   };
+
+  const fetchLanguages = async () => {
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}languages`
+      );
+      if (!res.ok) {
+        throw new Error("Failed to fetch languages");
+      }
+      const { data } = await res.json();
+      setLanguages(data);
+    } catch (err) {
+      console.error("Failed to fetch languages:", err);
+    }
+  };
+
+  // Filter categories based on search
+  const filteredCategories = useMemo(() => {
+    if (!categorySearch.trim()) return categories;
+
+    const searchTerm = categorySearch.toLowerCase();
+    return categories
+      .filter(
+        (cat) =>
+          cat.name.toLowerCase().includes(searchTerm) ||
+          cat.value.toLowerCase().includes(searchTerm)
+      )
+      .sort((a, b) => {
+        // Prioritize exact matches and starts-with matches
+        const aNameMatch = a.name.toLowerCase().indexOf(searchTerm);
+        const bNameMatch = b.name.toLowerCase().indexOf(searchTerm);
+
+        if (aNameMatch === 0 && bNameMatch !== 0) return -1;
+        if (bNameMatch === 0 && aNameMatch !== 0) return 1;
+        if (aNameMatch !== bNameMatch) return aNameMatch - bNameMatch;
+
+        // Then sort by viewer count (descending)
+        return b.viewers - a.viewers;
+      });
+  }, [categories, categorySearch]);
+
+  // Filter languages based on search
+  const filteredLanguages = useMemo(() => {
+    if (!languageSearch.trim()) return languages;
+
+    const searchTerm = languageSearch.toLowerCase();
+    return languages
+      .filter(
+        (lang) =>
+          lang.name.toLowerCase().includes(searchTerm) ||
+          lang.value.toLowerCase().includes(searchTerm)
+      )
+      .sort((a, b) => {
+        // Prioritize exact matches and starts-with matches
+        const aNameMatch = a.name.toLowerCase().indexOf(searchTerm);
+        const bNameMatch = b.name.toLowerCase().indexOf(searchTerm);
+
+        if (aNameMatch === 0 && bNameMatch !== 0) return -1;
+        if (bNameMatch === 0 && aNameMatch !== 0) return 1;
+        if (aNameMatch !== bNameMatch) return aNameMatch - bNameMatch;
+
+        // Then sort alphabetically
+        return a.name.localeCompare(b.name);
+      });
+  }, [languages, languageSearch]);
+
+  // Get selected category display name
+  const selectedCategoryName = useMemo(() => {
+    if (!category || category === "any") return "Any category";
+    const selectedCat = categories.find((cat) => cat.value === category);
+    return selectedCat ? selectedCat.name : category;
+  }, [category, categories]);
+
+  // Get selected language display name
+  const selectedLanguageName = useMemo(() => {
+    if (!language || language === "any") return "Any language";
+    const selectedLang = languages.find((lang) => lang.value === language);
+    return selectedLang ? selectedLang.name : language;
+  }, [language, languages]);
 
   useEffect(() => {
     setMinFollowersInput(minFollowers.toString());
@@ -459,13 +551,14 @@ export default function FilterSection({
                     </span>
                     {language && language !== "any" && (
                       <motion.span
-                        className="inline-flex items-center justify-center px-3 py-1 text-xs font-bold bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-full shadow-sm"
+                        className="inline-flex items-center justify-center px-3 py-1 text-xs font-bold bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-full shadow-sm max-w-32 truncate"
                         initial="initial"
                         animate="animate"
                         exit="exit"
                         variants={badgeVariants}
+                        title={selectedLanguageName}
                       >
-                        {language}
+                        {selectedLanguageName}
                       </motion.span>
                     )}
                   </div>
@@ -476,19 +569,105 @@ export default function FilterSection({
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.2 }}
                   >
-                    <Select value={language} onValueChange={setLanguage}>
-                      <SelectTrigger className="transition-all hover:border-blue-400 focus:ring-blue-200 focus:ring-offset-2 border-blue-200">
-                        <SelectValue placeholder="Select language" />
-                      </SelectTrigger>
-                      <SelectContent className="border-blue-100">
-                        <SelectItem value="any">Any language</SelectItem>
-                        <SelectItem value="english">English</SelectItem>
-                        <SelectItem value="spanish">Spanish</SelectItem>
-                        <SelectItem value="french">French</SelectItem>
-                        <SelectItem value="german">German</SelectItem>
-                        <SelectItem value="japanese">Japanese</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Popover
+                      open={languageSearchOpen}
+                      onOpenChange={setLanguageSearchOpen}
+                    >
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={languageSearchOpen}
+                          className="w-full justify-between transition-all hover:border-blue-400 focus:ring-blue-200 focus:ring-offset-2 border-blue-200 bg-transparent"
+                        >
+                          <span className="truncate">
+                            {selectedLanguageName}
+                          </span>
+                          <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        className="w-full p-0 border-blue-100"
+                        align="start"
+                      >
+                        <Command>
+                          <CommandInput
+                            placeholder="Search languages..."
+                            value={languageSearch}
+                            onValueChange={setLanguageSearch}
+                            className="border-0 focus:ring-0"
+                          />
+                          <CommandList className="max-h-60">
+                            <CommandEmpty className="py-6 text-center text-sm text-gray-500">
+                              <div className="flex flex-col items-center gap-2">
+                                <Search className="h-8 w-8 text-gray-300" />
+                                <span>No languages found</span>
+                                <span className="text-xs">
+                                  Try a different search term
+                                </span>
+                              </div>
+                            </CommandEmpty>
+                            <CommandGroup>
+                              <CommandItem
+                                value="any"
+                                onSelect={() => {
+                                  setLanguage("any");
+                                  setLanguageSearchOpen(false);
+                                  setLanguageSearch("");
+                                }}
+                                className="cursor-pointer hover:bg-blue-50"
+                              >
+                                <div className="flex items-center justify-between w-full">
+                                  <span className="font-medium">
+                                    Any language
+                                  </span>
+                                  <span className="text-xs text-gray-500">
+                                    All languages
+                                  </span>
+                                </div>
+                              </CommandItem>
+                              <AnimatePresence>
+                                {filteredLanguages.map((lang, index) => (
+                                  <motion.div
+                                    key={lang.value}
+                                    initial={{ opacity: 0, y: -10 }}
+                                    animate={{
+                                      opacity: 1,
+                                      y: 0,
+                                      transition: {
+                                        delay: index * 0.02,
+                                        duration: 0.2,
+                                      },
+                                    }}
+                                    exit={{
+                                      opacity: 0,
+                                      y: -10,
+                                      transition: { duration: 0.1 },
+                                    }}
+                                  >
+                                    <CommandItem
+                                      value={lang.name}
+                                      onSelect={() => {
+                                        setLanguage(lang.value);
+                                        setLanguageSearchOpen(false);
+                                        setLanguageSearch("");
+                                      }}
+                                      className="cursor-pointer hover:bg-blue-50 transition-colors"
+                                    >
+                                      <div className="flex items-center justify-between w-full">
+                                        <span className="font-medium truncate flex-1 mr-2">
+                                          {lang.name}
+                                        </span>
+                                      </div>
+                                    </CommandItem>
+                                  </motion.div>
+                                ))}
+                              </AnimatePresence>
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   </motion.div>
                 </AccordionContent>
               </AccordionItem>
@@ -497,23 +676,24 @@ export default function FilterSection({
                 value="category"
                 className="border-b-0 rounded-xl overflow-hidden"
               >
-                <AccordionTrigger
-                  onClick={() => setCategoriesIsOpen((prev) => !prev)}
-                  className="text-sm font-semibold py-4 px-4 hover:no-underline group bg-gradient-to-r from-slate-50 to-gray-50 hover:from-blue-100 hover:to-purple-100 rounded-xl transition-all duration-200 border border-blue-100"
-                >
+                <AccordionTrigger className="text-sm font-semibold py-4 px-4 hover:no-underline group bg-gradient-to-r from-slate-50 to-gray-50 hover:from-blue-100 hover:to-purple-100 rounded-xl transition-all duration-200 border border-blue-100">
                   <div className="flex items-center gap-2">
                     <span className="transition-colors group-hover:text-blue-700 text-blue-600">
                       Twitch Category
                     </span>
+                    <span className="text-xs text-gray-500 font-normal">
+                      (100+ viewers only)
+                    </span>
                     {category && category !== "any" && (
                       <motion.span
-                        className="inline-flex items-center justify-center px-3 py-1 text-xs font-bold bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-full shadow-sm"
+                        className="inline-flex items-center justify-center px-3 py-1 text-xs font-bold bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-full shadow-sm max-w-32 truncate"
                         initial="initial"
                         animate="animate"
                         exit="exit"
                         variants={badgeVariants}
+                        title={selectedCategoryName}
                       >
-                        {category}
+                        {selectedCategoryName}
                       </motion.span>
                     )}
                   </div>
@@ -524,19 +704,108 @@ export default function FilterSection({
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.2 }}
                   >
-                    <Select value={category} onValueChange={setCategory}>
-                      <SelectTrigger className="transition-all hover:border-blue-400 focus:ring-blue-200 focus:ring-offset-2 border-blue-200">
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent className="border-blue-100 max-h-60 overflow-y-auto">
-                        <SelectItem value="any">Any category</SelectItem>
-                        {categories.map((cat) => (
-                          <SelectItem key={cat.value} value={cat.value}>
-                            {cat.name} — {cat.viewers.toLocaleString()} viewers
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Popover
+                      open={categorySearchOpen}
+                      onOpenChange={setCategorySearchOpen}
+                    >
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={categorySearchOpen}
+                          className="w-full justify-between transition-all hover:border-blue-400 focus:ring-blue-200 focus:ring-offset-2 border-blue-200 bg-transparent"
+                        >
+                          <span className="truncate">
+                            {selectedCategoryName}
+                          </span>
+                          <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        className="w-full p-0 border-blue-100"
+                        align="start"
+                      >
+                        <Command>
+                          <CommandInput
+                            placeholder="Search categories..."
+                            value={categorySearch}
+                            onValueChange={setCategorySearch}
+                            className="border-0 focus:ring-0"
+                          />
+                          <CommandList className="max-h-60">
+                            <CommandEmpty className="py-6 text-center text-sm text-gray-500">
+                              <div className="flex flex-col items-center gap-2">
+                                <Search className="h-8 w-8 text-gray-300" />
+                                <span>No categories found</span>
+                                <span className="text-xs">
+                                  Try a different search term
+                                </span>
+                              </div>
+                            </CommandEmpty>
+                            <CommandGroup>
+                              <CommandItem
+                                value="any"
+                                onSelect={() => {
+                                  setCategory("any");
+                                  setCategorySearchOpen(false);
+                                  setCategorySearch("");
+                                }}
+                                className="cursor-pointer hover:bg-blue-50"
+                              >
+                                <div className="flex items-center justify-between w-full">
+                                  <span className="font-medium">
+                                    Any category
+                                  </span>
+                                  <span className="text-xs text-gray-500">
+                                    All categories
+                                  </span>
+                                </div>
+                              </CommandItem>
+                              <AnimatePresence>
+                                {filteredCategories.map((cat, index) => (
+                                  <motion.div
+                                    key={cat.value}
+                                    initial={{ opacity: 0, y: -10 }}
+                                    animate={{
+                                      opacity: 1,
+                                      y: 0,
+                                      transition: {
+                                        delay: index * 0.02,
+                                        duration: 0.2,
+                                      },
+                                    }}
+                                    exit={{
+                                      opacity: 0,
+                                      y: -10,
+                                      transition: { duration: 0.1 },
+                                    }}
+                                  >
+                                    <CommandItem
+                                      value={cat.name}
+                                      onSelect={() => {
+                                        setCategory(cat.value);
+                                        setCategorySearchOpen(false);
+                                        setCategorySearch("");
+                                      }}
+                                      className="cursor-pointer hover:bg-blue-50 transition-colors"
+                                    >
+                                      <div className="flex items-center justify-between w-full">
+                                        <span className="font-medium truncate flex-1 mr-2">
+                                          {cat.name}
+                                        </span>
+                                        <span className="text-xs text-blue-600 font-semibold bg-blue-50 px-2 py-1 rounded-full">
+                                          {cat.viewers.toLocaleString()}
+                                        </span>
+                                      </div>
+                                    </CommandItem>
+                                  </motion.div>
+                                ))}
+                              </AnimatePresence>
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   </motion.div>
                 </AccordionContent>
               </AccordionItem>
@@ -803,7 +1072,7 @@ export default function FilterSection({
                 <DialogTrigger asChild>
                   <Button
                     variant="outline"
-                    className="w-full border-2 border-blue-200 text-blue-700 hover:bg-blue-50 transition-all duration-200 py-3"
+                    className="w-full border-2 border-blue-200 text-blue-700 hover:bg-blue-50 transition-all duration-200 py-3 bg-transparent"
                   >
                     <Save className="h-4 w-4 mr-2" />
                     Save Current Filter
@@ -844,7 +1113,7 @@ export default function FilterSection({
                         <span className="font-semibold">
                           Category<span className="text-red-500">*</span>:
                         </span>{" "}
-                        {category || "Any"}
+                        {selectedCategoryName}
                       </div>
                       <div>
                         <span className="font-semibold">Followers:</span>{" "}

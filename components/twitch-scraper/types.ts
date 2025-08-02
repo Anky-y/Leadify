@@ -28,6 +28,11 @@ export interface Category {
   viewers: number;
 }
 
+export interface Language {
+  name: string;
+  value: string;
+}
+
 export interface FilterValues {
   searchTerm: string;
   language: string;
