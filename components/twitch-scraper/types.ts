@@ -22,6 +22,17 @@ export interface TwitchData {
   socials_revealed: boolean;
 }
 
+export interface Category {
+  name: string;
+  value: string;
+  viewers: number;
+}
+
+export interface Language {
+  name: string;
+  value: string;
+}
+
 export interface FilterValues {
   searchTerm: string;
   language: string;
