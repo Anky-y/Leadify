@@ -14,17 +14,8 @@ import { useUser } from "@/app/context/UserContext";
 import User from "@/app/types/user";
 import Spinner from "./spinner";
 
-/*************  ✨ Windsurf Command ⭐  *************/
-/**
- * The main header component for the app.
- *
- * This component renders the main navigation links, auth buttons, and theme toggle.
- * On mobile devices, it also renders a menu button and a dropdown menu with the
- * navigation links.
- *
- * @returns The header component.
- */
-/*******  d13f2080-228c-429e-9fa5-c532c1e6f7ea  *******/ export default function Header() {
+
+ export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
@@ -137,6 +128,24 @@ import Spinner from "./spinner";
             )}
           >
             Contact
+          </Link>
+          <Link
+            href="/privacy-policy"
+            className={cn(
+              "text-sm font-medium transition-colors",
+              isActive("/privacy-policy") ? "text-blue-700" : "hover:text-blue-600"
+            )}
+          >
+            Privacy Policy
+          </Link>
+          <Link
+            href="/refund-policy"
+            className={cn(
+              "text-sm font-medium transition-colors",
+              isActive("/refund-policy") ? "text-blue-700" : "hover:text-blue-600"
+            )}
+          >
+            Refund Policy
           </Link>
         </nav>
 

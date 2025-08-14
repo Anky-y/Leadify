@@ -1,26 +1,38 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+"use client"
 import { Button } from "@/components/ui/button"
-import { Shield, Lock, Eye, Users, Database, Globe, Mail, FileText, ChevronRight, ArrowLeft } from "lucide-react"
+import { Shield, Lock, Users, Database, Globe, Mail, FileText, ChevronRight } from "lucide-react"
 import Link from "next/link"
+import { useState, useEffect } from "react"
 import Header from "@/components/header"
+import Footer from "@/components/footer"
 
 export default function PrivacyPolicyPage() {
+  const [isVisible, setIsVisible] = useState(false)
+
+  useEffect(() => {
+    setIsVisible(true)
+  }, [])
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-purple-50">
       {/* Header */}
-      <Header/>
-      
+      <Header />
 
       {/* Hero Section */}
       <section className="py-12 md:py-16">
         <div className="container mx-auto px-4">
-          <div className="text-center max-w-3xl mx-auto">
-            <div className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-700 mb-6">
+          <div
+            className={`text-center max-w-3xl mx-auto transition-all duration-1000 ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
+          >
+            <div className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-700 mb-6 animate-fade-in">
               <Shield className="mr-2 h-4 w-4" />
               <span>Privacy & Data Protection</span>
             </div>
             <h1 className="text-4xl md:text-5xl font-bold text-blue-900 mb-6">Privacy Policy</h1>
+            <div className="inline-flex items-center rounded-full border border-green-200 bg-green-50 px-4 py-2 text-sm text-green-700 mb-6">
+              <FileText className="mr-2 h-4 w-4" />
+              <span>Effective Date: January 15, 2025</span>
+            </div>
             <p className="text-xl text-gray-600 leading-relaxed">
               At Leadify Solutions, we value your privacy and are committed to protecting your personal data. This
               policy explains how we collect, use, and safeguard your information.
@@ -29,16 +41,15 @@ export default function PrivacyPolicyPage() {
         </div>
       </section>
 
-      {/* Quick Overview Cards */}
-      
-
       {/* Main Content */}
       <section className="py-8">
         <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto">
+          <div
+            className={`max-w-4xl mx-auto transition-all duration-1000 delay-500 ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
+          >
             <div className="bg-white rounded-xl shadow-sm border border-blue-100 overflow-hidden">
               {/* Section 1: Information We Collect */}
-              <div className="p-8 border-b border-gray-100">
+              <div className="p-8 border-b border-gray-100 hover:bg-blue-50/30 transition-colors duration-300">
                 <div className="flex items-start gap-4 mb-6">
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 shrink-0">
                     <Database className="h-5 w-5 text-blue-700" />
@@ -50,12 +61,12 @@ export default function PrivacyPolicyPage() {
                 </div>
 
                 <div className="space-y-4 ml-14">
-                  <div className="bg-blue-50 p-4 rounded-lg">
+                  <div className="bg-blue-50 p-4 rounded-lg hover:shadow-md transition-shadow duration-300">
                     <h3 className="font-semibold text-blue-900 mb-2">Account Information</h3>
                     <p className="text-sm text-gray-700">Name, email address, and password (encrypted).</p>
                   </div>
 
-                  <div className="bg-purple-50 p-4 rounded-lg">
+                  <div className="bg-purple-50 p-4 rounded-lg hover:shadow-md transition-shadow duration-300">
                     <h3 className="font-semibold text-purple-900 mb-2">Saved Streamer Data</h3>
                     <p className="text-sm text-gray-700">
                       Information you choose to save from Twitch searches, which may include publicly available streamer
@@ -63,7 +74,7 @@ export default function PrivacyPolicyPage() {
                     </p>
                   </div>
 
-                  <div className="bg-green-50 p-4 rounded-lg">
+                  <div className="bg-green-50 p-4 rounded-lg hover:shadow-md transition-shadow duration-300">
                     <h3 className="font-semibold text-green-900 mb-2">Cookies</h3>
                     <p className="text-sm text-gray-700">Authentication-related cookies to maintain your session.</p>
                   </div>
@@ -77,7 +88,7 @@ export default function PrivacyPolicyPage() {
               </div>
 
               {/* Section 2: How We Collect Information */}
-              <div className="p-8 border-b border-gray-100">
+              <div className="p-8 border-b border-gray-100 hover:bg-green-50/30 transition-colors duration-300">
                 <div className="flex items-start gap-4 mb-6">
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 shrink-0">
                     <Globe className="h-5 w-5 text-green-700" />
@@ -110,7 +121,7 @@ export default function PrivacyPolicyPage() {
               </div>
 
               {/* Section 3: How We Use Your Information */}
-              <div className="p-8 border-b border-gray-100">
+              <div className="p-8 border-b border-gray-100 hover:bg-purple-50/30 transition-colors duration-300">
                 <div className="flex items-start gap-4 mb-6">
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100 shrink-0">
                     <Users className="h-5 w-5 text-purple-700" />
@@ -166,7 +177,7 @@ export default function PrivacyPolicyPage() {
               </div>
 
               {/* Section 4: Data Storage & Security */}
-              <div className="p-8 border-b border-gray-100">
+              <div className="p-8 border-b border-gray-100 hover:bg-amber-50/30 transition-colors duration-300">
                 <div className="flex items-start gap-4 mb-6">
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 shrink-0">
                     <Lock className="h-5 w-5 text-amber-700" />
@@ -197,7 +208,7 @@ export default function PrivacyPolicyPage() {
               </div>
 
               {/* Section 5: Third-Party Services */}
-              <div className="p-8 border-b border-gray-100">
+              <div className="p-8 border-b border-gray-100 hover:bg-indigo-50/30 transition-colors duration-300">
                 <div className="flex items-start gap-4 mb-6">
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-100 shrink-0">
                     <Globe className="h-5 w-5 text-indigo-700" />
@@ -244,7 +255,7 @@ export default function PrivacyPolicyPage() {
               </div>
 
               {/* Section 6: Your Rights */}
-              <div className="p-8 border-b border-gray-100">
+              <div className="p-8 border-b border-gray-100 hover:bg-green-50/30 transition-colors duration-300">
                 <div className="flex items-start gap-4 mb-6">
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 shrink-0">
                     <Shield className="h-5 w-5 text-green-700" />
@@ -286,7 +297,7 @@ export default function PrivacyPolicyPage() {
               </div>
 
               {/* Section 7: Cookies */}
-              <div className="p-8 border-b border-gray-100">
+              <div className="p-8 border-b border-gray-100 hover:bg-orange-50/30 transition-colors duration-300">
                 <div className="flex items-start gap-4 mb-6">
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-100 shrink-0">
                     <FileText className="h-5 w-5 text-orange-700" />
@@ -305,7 +316,7 @@ export default function PrivacyPolicyPage() {
               </div>
 
               {/* Section 8: Policy Updates */}
-              <div className="p-8 border-b border-gray-100">
+              <div className="p-8 border-b border-gray-100 hover:bg-pink-50/30 transition-colors duration-300">
                 <div className="flex items-start gap-4 mb-6">
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-pink-100 shrink-0">
                     <FileText className="h-5 w-5 text-pink-700" />
@@ -335,7 +346,7 @@ export default function PrivacyPolicyPage() {
               </div>
 
               {/* Section 9: Contact Us */}
-              <div className="p-8">
+              <div className="p-8 hover:bg-blue-50/30 transition-colors duration-300">
                 <div className="flex items-start gap-4 mb-6">
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 shrink-0">
                     <Mail className="h-5 w-5 text-blue-700" />
@@ -366,6 +377,8 @@ export default function PrivacyPolicyPage() {
           </div>
         </div>
       </section>
+
+      <Footer />
 
       {/* Footer CTA */}
       <section className="py-12 bg-white">
