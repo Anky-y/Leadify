@@ -1,21 +1,5 @@
 "use client"
-
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import {
-  CreditCard,
-  AlertTriangle,
-  Clock,
-  Mail,
-  FileText,
-  ChevronRight,
-  ArrowLeft,
-  Shield,
-  CheckCircle,
-  XCircle,
-  Calendar,
-} from "lucide-react"
-import Link from "next/link"
+import { CreditCard, AlertTriangle, Clock, Mail, FileText, Shield, CheckCircle, XCircle, Calendar } from "lucide-react"
 import { useState, useEffect } from "react"
 import Header from "@/components/header"
 import Footer from "@/components/footer"
@@ -30,8 +14,7 @@ export default function RefundPolicyPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-purple-50">
       {/* Header */}
-      <Header/>
-      
+      <Header />
 
       {/* Hero Section */}
       <section className="py-12 md:py-16">
@@ -44,6 +27,10 @@ export default function RefundPolicyPage() {
               <span>Refund & Credit Policy</span>
             </div>
             <h1 className="text-4xl md:text-5xl font-bold text-blue-900 mb-6">Refund Policy</h1>
+            <div className="inline-flex items-center rounded-full border border-green-200 bg-green-50 px-4 py-2 text-sm text-green-700 mb-6">
+              <FileText className="mr-2 h-4 w-4" />
+              <span>Effective Date: January 15, 2025</span>
+            </div>
             <p className="text-xl text-gray-600 leading-relaxed">
               At Leadify Solutions, we aim to ensure that our service runs smoothly and delivers value to our users.
               While we generally do not offer monetary refunds, we may issue credit refunds in specific cases outlined
@@ -52,9 +39,6 @@ export default function RefundPolicyPage() {
           </div>
         </div>
       </section>
-
-      {/* Quick Overview Cards */}
-      
 
       {/* Main Content */}
       <section className="py-8">
@@ -262,7 +246,7 @@ export default function RefundPolicyPage() {
               </div>
 
               {/* Section 6: Third-Party Payments */}
-              <div className="p-8">
+              <div className="p-8 hover:bg-orange-50/30 transition-colors duration-300">
                 <div className="flex items-start gap-4 mb-6">
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-100 shrink-0">
                     <Shield className="h-5 w-5 text-orange-700" />
@@ -296,10 +280,7 @@ export default function RefundPolicyPage() {
           </div>
         </div>
       </section>
-      <Footer/>
-
-      {/* Contact Section */}
-      
+      <Footer />
     </div>
   )
 }
