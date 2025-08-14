@@ -130,8 +130,8 @@ export default function TwitchScraperUI({
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            category: "Politics",
-            minimum_followers: 100000000000,
+            category: "VALORANT",
+            minimum_followers: 1000,
             maximum_followers: 1000000000000000,
             viewer_count: 20,
             language: "en",
